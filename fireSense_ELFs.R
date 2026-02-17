@@ -187,15 +187,22 @@ Init <- function(sim) {
   # Put them all in the sim
   objsHere <- depends(sim)@dependencies[[currentModule(sim)]]@outputObjects$objectName
   list2env(mget(objsHere, envir = environment()), envir = envir(sim))
-  
-  Plots(as.list(sim[grep("studyArea|rasterToMatch", names(sim), value = TRUE)]),
-                     title = paste0("StudyArea ", sim$.runName),
-                     fn = SpaDES.project::plotSAs,
-                     filename = paste0("studyAreas", sim$.runName),
-                     path = inputPath,
-                     types = c("screen", "png")) |>
-    reproducible::Cache(.functionName = "Plots_studyAreas",
-                        useCache = !identical(names(dev.cur()), "null device"))
+  if (anyPlotting(Par$.plots)) {
+    
+    Plots(fn = plotAllELFsFn, centred = ELFs$rasCentered,
+          crsToUse = terra::crs(ELFs$rasWhole[[11]]), alreadyRun = aa,
+          path = inputPath, deviceArgs = list(width = 11, height = 8, units = "in", res = 300),
+          filename = paste0("ELF_polygons.png"), useCache = TRUE
+    )
+    
+    Plots(as.list(sim[grep("studyArea|rasterToMatch", names(sim), value = TRUE)]),
+          title = paste0("StudyArea ", sim$.runName),
+          fn = SpaDES.project::plotSAs,
+          filename = paste0("studyAreas", sim$.runName),
+          path = inputPath,
+          types = c("screen", "png"), useCache = TRUE)
+    
+  }
   
   return(invisible(sim))
 }
@@ -225,3 +232,17 @@ ggplotFn <- function(data, ...) {
     ggplot2::geom_histogram(...)
 }
 
+
+plotAllELFsFn <- function(centred, crsToUse, alreadyRun) {
+  allELFs <- { Map(r = centred, function(r) {
+    r2 <- r == 2
+    r2[!terra::values(r2, mat = FALSE) %in% TRUE] <- NA
+    terra::as.polygons(r2) |> terra::project(y = crsToUse)}) |>
+      Reduce(rbind, x = _)
+  }
+  wh <- rowSums(as.data.frame(allELFs), na.rm = TRUE) == 1
+  allELFs2 <- allELFs[wh, ]
+  cen <- terra::centroids(allELFs2)
+  terra::plot(allELFs)
+  terra::text(cen, label = gsub("^X", "", names(allELFs)), cex = 0.8)
+}
