@@ -21,6 +21,12 @@ defineModule(sim, list(
                   "PredictiveEcology/SpaDES.project@development (>= 0.1.4)"),
   parameters = bindrows(
     #defineParameter("paramName", "paramClass", value, min, max, "parameter description"),
+    defineParameter("spreadFitFilename", "character", "fireSenseParams.rds",
+                    NA, NA, "A Googledrive folder url where a file with fireSense studyArea exists as an 'sf' class object"),
+    defineParameter("spreadFitGoogleDriveFolder", "character",
+                    "https://drive.google.com/drive/folders/1X9-mRjyLMNpgkP_cfqhbr_AQEPOsVCHf",
+                    # KNN pre Oct 2025: "https://drive.google.com/drive/u/0/folders/1spxq7CnL4kNcJoUQlRek2CmBJ1InAmbP",
+                    NA, NA, "A Googledrive folder url where a file with fireSense studyArea exists as an 'sf' class object"),
     defineParameter(".plots", "character", "screen", NA, NA,
                     "Used by Plots function, which can be optionally used here"),
     defineParameter(".plotInitialTime", "numeric", start(sim), NA, NA,
@@ -55,7 +61,11 @@ defineModule(sim, list(
     createsOutput("studyAreaELF", objectClass = "SpatVector", desc = NA),
     createsOutput("studyAreaReporting", objectClass = "SpatVector", desc = NA),
     createsOutput("sppEquiv", objectClass = "data.table", desc = NA),
-    createsOutput("studyAreaPSP", objectClass = "SpatVector", desc = NA)
+    createsOutput("studyAreaPSP", objectClass = "SpatVector", desc = NA),
+    createsOutput("studyAreaWithSpreadParams", "sf",
+                  desc = paste("This is the studyArea, but with parameters from a previously ",
+                               "fitted SpreadFit. If no pre-existing object exists from ",
+                               "CacheGeo, this will be NULL")),
   )
 ))
 
@@ -183,18 +193,22 @@ Init <- function(sim) {
   }
   
   # Check on what fireSense_SpreadFit has already been run
-  prepInputsFSURL <- Par$spreadFitGoogleDriveFolder
+  browser()
+  prepInputsFSURL <- SpaDES.core::paramCheckOtherMods(sim, "spreadFitGoogleDriveFolder")
+  # prepInputsFSURL <- Par$spreadFitGoogleDriveFolder
   gdLs <- googledrive::drive_ls(prepInputsFSURL)
-  gdLs <- googledrive::drive_ls(prepInputsFSURL)
-  fireSenseParamsRDS <- Par$spreadFitFilename
+  fireSenseParamsRDS <- SpaDES.core::paramCheckOtherMods(sim, "spreadFitFilename")
+  # fireSenseParamsRDS <- Par$spreadFitFilename
   remoteFile <- gdLs[gdLs$name %in% fireSenseParamsRDS,]
   digRemote <- remoteFile$drive_resource[[1]]$md5Checksum
   gdMeta <- googledrive::drive_download(remoteFile,
                                         path = file.path(inputPath(sim), remoteFile$name),
                                         overwrite = TRUE) |>
     reproducible::Cache(.cacheExtra = digRemote)
-  aa <- readRDS(gdMeta$local_path)
+  spreadFitPreRun <- readRDS(gdMeta$local_path)
   aa
+  sim$studyAreaWithSpreadParams <- spreadFitPreRun
+  
   browser()
   
   if (is.null(sim$studyArea)) # conditional; can't put it in metadata or this will not be run first
