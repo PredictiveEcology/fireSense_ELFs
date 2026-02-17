@@ -182,6 +182,21 @@ Init <- function(sim) {
     a[a$ECOPROVINC %in% ecoprovinces] # |> terra::aggregate()
   }
   
+  # Check on what fireSense_SpreadFit has already been run
+  prepInputsFSURL <- Par$spreadFitGoogleDriveFolder
+  gdLs <- googledrive::drive_ls(prepInputsFSURL)
+  gdLs <- googledrive::drive_ls(prepInputsFSURL)
+  fireSenseParamsRDS <- Par$spreadFitFilename
+  remoteFile <- gdLs[gdLs$name %in% fireSenseParamsRDS,]
+  digRemote <- remoteFile$drive_resource[[1]]$md5Checksum
+  gdMeta <- googledrive::drive_download(remoteFile,
+                                        path = file.path(inputPath(sim), remoteFile$name),
+                                        overwrite = TRUE) |>
+    reproducible::Cache(.cacheExtra = digRemote)
+  aa <- readRDS(gdMeta$local_path)
+  aa
+  browser()
+  
   if (is.null(sim$studyArea)) # conditional; can't put it in metadata or this will not be run first
     studyArea <- studyAreaELF
   # Put them all in the sim
