@@ -128,7 +128,10 @@ Init <- function(sim) {
     fireSenseUtils::makeELFs(rastTemplate, desiredBuffer = 20000, destinationPath = inputPath) |>
       Cache(omitArgs = "nationalForestPolygon",
             .cacheExtra = list(rt = attr(rastTemplate, "tags"),
-                               bufferOutFn = fireSenseUtils:::bufferOut))
+                               makeELFs = fireSenseUtils::makeELFs,
+                               bufferOutFn = fireSenseUtils:::bufferOut,
+                               splitPoly = fireSenseUtils:::split_poly,
+                               merge = fireSenseUtils:::mergeAndSplitRas))
   }
   
   rasterToMatchLarge <- {
@@ -198,7 +201,6 @@ Init <- function(sim) {
   }
   
   # Check on what fireSense_SpreadFit has already been run
-  browser()
   prepInputsFSURL <- SpaDES.core::paramCheckOtherMods(sim, "spreadFitGoogleDriveFolder")
   # prepInputsFSURL <- Par$spreadFitGoogleDriveFolder
   gdLs <- googledrive::drive_ls(prepInputsFSURL)
