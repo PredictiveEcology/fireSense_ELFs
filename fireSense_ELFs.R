@@ -62,10 +62,15 @@ defineModule(sim, list(
     createsOutput("studyAreaReporting", objectClass = "SpatVector", desc = NA),
     createsOutput("sppEquiv", objectClass = "data.table", desc = NA),
     createsOutput("studyAreaPSP", objectClass = "SpatVector", desc = NA),
-    createsOutput("studyAreaWithSpreadParams", "sf",
-                  desc = paste("This is the studyArea, but with parameters from a previously ",
-                               "fitted SpreadFit. If no pre-existing object exists from ",
-                               "CacheGeo, this will be NULL")),
+    createsOutput("spreadFitPreRun", "data.frame",
+                  desc = paste("This is a data.frame that has a geometry list column, so it can be ",
+                               "converted to a sf or SpatVector (e.g., `terra::vect(sf::st_as_sf(sim$spreadFitPreRun))` ",
+                               " , plus other mostly list columns:",
+                               "numIterations, objFunVal (not list), params, sppEquiv, ", 
+                               "nonForestedLCCGroups, missingLCCgroup, and polygonID. These are from ",
+                               "previously fitted SpreadFit. If no pre-existing object exists from ",
+                               "CacheGeo, this will be NULL"))
+    
   )
 ))
 
@@ -206,16 +211,15 @@ Init <- function(sim) {
                                         overwrite = TRUE) |>
     reproducible::Cache(.cacheExtra = digRemote)
   spreadFitPreRun <- readRDS(gdMeta$local_path)
-  aa
-  sim$studyAreaWithSpreadParams <- spreadFitPreRun
-  
-  browser()
   
   if (is.null(sim$studyArea)) # conditional; can't put it in metadata or this will not be run first
     studyArea <- studyAreaELF
+  
   # Put them all in the sim
   objsHere <- depends(sim)@dependencies[[currentModule(sim)]]@outputObjects$objectName
   list2env(mget(objsHere, envir = environment()), envir = envir(sim))
+  ## 
+  
   if (anyPlotting(Par$.plots)) {
     
     Plots(fn = plotAllELFsFn, centred = ELFs$rasCentered,
@@ -229,6 +233,7 @@ Init <- function(sim) {
           fn = SpaDES.project::plotSAs,
           filename = paste0("studyAreas", sim$.runName),
           path = inputPath,
+          deviceArgs = list(width = 11, height = 8, units = "in", res = 300),
           types = c("screen", "png"), useCache = TRUE)
     
   }
