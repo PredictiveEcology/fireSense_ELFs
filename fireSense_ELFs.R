@@ -27,6 +27,9 @@ defineModule(sim, list(
                     "https://drive.google.com/drive/folders/1X9-mRjyLMNpgkP_cfqhbr_AQEPOsVCHf",
                     # KNN pre Oct 2025: "https://drive.google.com/drive/u/0/folders/1spxq7CnL4kNcJoUQlRek2CmBJ1InAmbP",
                     NA, NA, "A Googledrive folder url where a file with fireSense studyArea exists as an 'sf' class object"),
+    defineParameter("hashSpreadFitRemoteFile", "character", NULL,
+                    NA, NA, "A character scalar with the remote hash value e.g., from reproducible:::getRemoteMetadata, ",
+                    " which will determine whether the module needs to be rerun"),
     defineParameter(".plots", "character", "screen", NA, NA,
                     "Used by Plots function, which can be optionally used here"),
     defineParameter(".plotInitialTime", "numeric", start(sim), NA, NA,
@@ -224,8 +227,10 @@ Init <- function(sim) {
   
   if (anyPlotting(Par$.plots)) {
     
+    runningELFs <- sapply(rownames(SpaDES.project:::logFileInfo()) |> strsplit(split = "_"), function(x) x[[2]])
+    
     Plots(fn = plotAllELFsFn, centred = ELFs$rasCentered,
-          crsToUse = terra::crs(ELFs$rasWhole[[11]]), alreadyRun = aa,
+          crsToUse = terra::crs(ELFs$rasWhole[[11]]), alreadyRun = spreadFitPreRun, runningELFs = runningELFs,
           path = inputPath, deviceArgs = list(width = 11, height = 8, units = "in", res = 300),
           filename = paste0("ELF_polygons.png"), useCache = TRUE
     )
@@ -236,7 +241,7 @@ Init <- function(sim) {
           filename = paste0("studyAreas", sim$.runName),
           path = inputPath,
           deviceArgs = list(width = 11, height = 8, units = "in", res = 300),
-          types = c("screen", "png"), useCache = TRUE)
+          useCache = TRUE)
     
   }
   
@@ -269,7 +274,7 @@ ggplotFn <- function(data, ...) {
 }
 
 
-plotAllELFsFn <- function(centred, crsToUse, alreadyRun) {
+plotAllELFsFn <- function(centred, crsToUse, alreadyRun, runningELFs) {
   allELFs <- { Map(r = centred, function(r) {
     r2 <- r == 2
     r2[!terra::values(r2, mat = FALSE) %in% TRUE] <- NA
@@ -280,5 +285,21 @@ plotAllELFsFn <- function(centred, crsToUse, alreadyRun) {
   allELFs2 <- allELFs[wh, ]
   cen <- terra::centroids(allELFs2)
   terra::plot(allELFs)
+  if (!missing(alreadyRun)) {
+    if (NROW(alreadyRun)) {
+      if (is.data.frame(alreadyRun)) {
+        alreadyRunPolys <- sf::st_as_sf(alreadyRun) |> terra::vect()
+      }
+      terra::plot(alreadyRunPolys, add = TRUE, col = "green", alpha = 0.5)
+      
+    }
+  }
+  if (!missing(runningELFs)) {
+    if (NROW(runningELFs)) {
+      turnYellow <- sapply(runningELFs, function(x) grep(pattern = x, names(allELFs)))
+      terra::plot(allELFs[turnYellow,], add = TRUE, col = "yellow", alpha = 0.5)
+    }
+  }
+  
   terra::text(cen, label = gsub("^X", "", names(allELFs)), cex = 0.8)
 }
