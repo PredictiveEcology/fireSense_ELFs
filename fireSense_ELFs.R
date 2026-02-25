@@ -30,6 +30,9 @@ defineModule(sim, list(
     defineParameter("hashSpreadFitRemoteFile", "character", NULL,
                     NA, NA, "A character scalar with the remote hash value e.g., from reproducible:::getRemoteMetadata, ",
                     " which will determine whether the module needs to be rerun"),
+    defineParameter("queue_path", "character", NULL,
+                    NA, NA, "A character scalar indicating what the filename of the queue.rds file is from experimentTmux; ",
+                    "if NULL, then this can't determine which ELFs are being run (no 'yellow' on the map)"),
     defineParameter(".plots", "character", "screen", NA, NA,
                     "Used by Plots function, which can be optionally used here"),
     defineParameter(".plotInitialTime", "numeric", start(sim), NA, NA,
@@ -227,7 +230,22 @@ Init <- function(sim) {
   
   if (anyPlotting(Par$.plots)) {
     
-    runningELFs <- sapply(rownames(SpaDES.project:::logFileInfo()) |> strsplit(split = "_"), function(x) x[[2]])
+    runningELFs <- NULL
+    if (!is.null(Par$queue_path)) {
+      activeRunningPath <- activeRunningPathForTmux(activeRunningPath = NULL, Par$queue_path)
+      
+      fi <- rownames(
+         SpaDES.project:::logFileInfo(queue_path = Par$queue_path, activeRunningPath = activeRunningPath))
+      if (!is.null(fi)) {
+        runningELFs <- sapply(basename(fi) |> strsplit(split = "_"), function(x) x[[2]]) 
+      } 
+      
+      # runningELFs <- sapply(
+      #   rownames(
+      #     SpaDES.project:::logFileInfo(queue_path = Par$queue_path, activeRunningPath = activeRunningPath, runNameLabel = ".ELFind")) |> 
+      #     strsplit(split = "_"), function(x) x[[2]])
+    } 
+    
     
     Plots(fn = plotAllELFsFn, centred = ELFs$rasCentered,
           crsToUse = terra::crs(ELFs$rasWhole[[11]]), alreadyRun = spreadFitPreRun, runningELFs = runningELFs,
