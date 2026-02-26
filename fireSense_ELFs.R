@@ -17,6 +17,7 @@ defineModule(sim, list(
   documentation = list("NEWS.md", "README.md", "fireSense_ELFs.Rmd"),
   reqdPkgs = list("SpaDES.core (>= 3.0.1)", "terra", "reproducible (>=3.0.0)",
                   "PredictiveEcology/scfmutils@development",
+                  "deldir",
                   "PredictiveEcology/fireSenseUtils@development (>= 0.0.6.9008)",
                   "PredictiveEcology/SpaDES.project@development (>= 0.1.4)"),
   parameters = bindrows(
