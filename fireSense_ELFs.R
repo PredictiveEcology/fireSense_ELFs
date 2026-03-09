@@ -241,15 +241,10 @@ Init <- function(sim) {
       activeRunningPath <- activeRunningPathForTmux(activeRunningPath = NULL, Par$queue_path)
       
       fi <- rownames(
-         SpaDES.project:::logFileInfo(queue_path = Par$queue_path, activeRunningPath = activeRunningPath))
+        SpaDES.project:::activeRunningFileInfo(queue_path = Par$queue_path, activeRunningPath = activeRunningPath))
       if (!is.null(fi)) {
         runningELFs <- sapply(basename(fi) |> strsplit(split = "_"), function(x) x[[2]]) 
       } 
-      
-      # runningELFs <- sapply(
-      #   rownames(
-      #     SpaDES.project:::logFileInfo(queue_path = Par$queue_path, activeRunningPath = activeRunningPath, runNameLabel = ".ELFind")) |> 
-      #     strsplit(split = "_"), function(x) x[[2]])
     } 
     
     
