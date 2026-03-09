@@ -10,14 +10,14 @@ defineModule(sim, list(
   keywords = "",
   authors = structure(list(list(given = c("First", "Middle"), family = "Last", role = c("aut", "cre"), email = "email@example.com", comment = NULL)), class = "person"),
   childModules = character(0),
-  version = list(fireSense_ELFs = "0.0.0.9000"),
+  version = list(fireSense_ELFs = "0.0.1"),
   timeframe = as.POSIXlt(c(NA, NA)),
   timeunit = "year",
   citation = list("citation.bib"),
   documentation = list("NEWS.md", "README.md", "fireSense_ELFs.Rmd"),
   reqdPkgs = list("SpaDES.core (>= 3.0.1)", "terra", "reproducible (>=3.0.0)",
                   "PredictiveEcology/scfmutils@development",
-                  "deldir",
+                  "deldir", "withr",
                   "PredictiveEcology/fireSenseUtils@development (>= 0.0.6.9008)",
                   "PredictiveEcology/SpaDES.project@development (>= 0.1.4)"),
   parameters = bindrows(
@@ -48,8 +48,8 @@ defineModule(sim, list(
                     "Human-readable name for the study area used - e.g., a hash of the study",
                           "area obtained using `reproducible::studyAreaName()`"),
     ## .seed is optional: `list('init' = 123)` will `set.seed(123)` for the `init` event only.
-    defineParameter(".seed", "list", list(), NA, NA,
-                    "Named list of seeds to use for each event (names)."),
+    # defineParameter(".seed", "list", list('init' = 123), NA, NA,
+    #                 "Named list of seeds to use for each event (names)."),
     defineParameter(".useCache", "logical", FALSE, NA, NA,
                     "Should caching of events or module be used?")
   ),
@@ -106,6 +106,11 @@ doEvent.fireSense_ELFs = function(sim, eventTime, eventType) {
 
 ### template initialization
 Init <- function(sim) {
+  # The generation of the ELFs has a tiny bit of randomness; we don't actually
+  #   want this; they should be identical
+  withr::local_seed(123)
+  
+  
   inputPath <- inputPath(sim)
   ELF <- sim$.runName
   # ll <- list(
