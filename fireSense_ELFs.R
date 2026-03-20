@@ -132,7 +132,7 @@ Init <- function(sim) {
       p <- tidyterra::mutate(p, ELF_ID = as.character(ELF_ID))
 
       if (nrow(p)) {
-        p <- terra::aggregate(p)
+        p <- p[p$ELF_ID == 2] ## 0 is outside ELF; 1 is buffer; 2 is inside
         p$ELF_ID <- stringr::str_extract(basename(x), "(?<=r_).*(?=[.]tif)")
       }
 
