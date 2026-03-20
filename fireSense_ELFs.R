@@ -116,6 +116,39 @@ Init <- function(sim) {
                                bufferOutFn = fireSenseUtils:::bufferOut))
   }
   
+  ## WORKAROUND subsequent module failures; just write the ELF polygons to disk
+  {
+    scanfi_crs <- paste(
+      "+proj=lcc +lat_0=0 +lon_0=-95 +lat_1=49 +lat_2=77",
+      "+x_0=0 +y_0=0 +datum=NAD83 +units=m +no_defs"
+    )
+
+    ELF_tifs <- fs::dir_ls(file.path(inputPath(sim), "ELFs_final"), regexp = "r_.*[.]tif$")
+    names(ELF_tifs) <- stringr::str_extract(basename(ELF_tifs), "(?<=r_).*(?=[.]tif)")
+
+    ELF_poly_list <- lapply(ELF_tifs, function(x) {
+      p <- terra::rast(x) |> terra::as.polygons() |> terra::project(terra::crs(scanfi_crs))
+      names(p) <- "ELF_ID"
+      p <- tidyterra::mutate(p, ELF_ID = as.character(ELF_ID))
+
+      if (nrow(p)) {
+        p <- terra::aggregate(p)
+        p$ELF_ID <- stringr::str_extract(basename(x), "(?<=r_).*(?=[.]tif)")
+      }
+
+      return(p)
+    })
+
+    ELF_polys <- do.call(tidyterra::bind_spat_rows, append(ELF_poly_list, list(.id = "ELF_ID"))) |>
+      tidyterra::mutate(first_empty = NULL)
+
+    terra::writeVector(ELF_polys, file.path(inputPath(sim), "ELFs_final", "fireSense_ELFs.gpkg"), overwrite = TRUE)
+  }
+
+  ## bail out early! module errors out after this point
+  ## but raster versions of ELFs written to disk in previous step
+  return(invisible(sim))
+
   rasterToMatchLarge <- {
     rtml <- ELFs$rasWhole[[ELF]]
     if (identical(1, terra::freq(is.na(rtml))$value))
