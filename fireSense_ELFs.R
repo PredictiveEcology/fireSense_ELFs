@@ -55,7 +55,7 @@ defineModule(sim, list(
   ),
   inputObjects = bindrows(
     #expectsInput("objectName", "objectClass", "input object description", sourceURL, ...),
-    expectsInput(".runName", "character", "Some descriptive, short name for this fitting, e.g., ELF14.1")
+    expectsInput(".ELFind", "character", "Some descriptive, short name for this fitting, e.g., ELF14.1")
   ),
   outputObjects = bindrows(
     #createsOutput("objectName", "objectClass", "output object description", ...),
@@ -112,7 +112,7 @@ Init <- function(sim) {
   
   
   inputPath <- inputPath(sim)
-  ELF <- sim$.runName
+  ELF <- sim$.ELFind
   # ll <- list(
   rastTemplate <- {
     # check the hash once per week
@@ -255,9 +255,9 @@ Init <- function(sim) {
     )
     
     Plots(as.list(sim[grep("studyArea|rasterToMatch", names(sim), value = TRUE)]),
-          title = paste0("StudyArea ", sim$.runName),
+          title = paste0("StudyArea ", sim$.ELFind),
           fn = SpaDES.project::plotSAs,
-          filename = paste0("studyAreas", sim$.runName),
+          filename = paste0("studyAreas", sim$.ELFind),
           path = inputPath,
           deviceArgs = list(width = 11, height = 8, units = "in", res = 300),
           useCache = TRUE)
