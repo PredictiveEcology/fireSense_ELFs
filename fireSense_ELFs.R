@@ -22,6 +22,8 @@ defineModule(sim, list(
                   "PredictiveEcology/SpaDES.project@development (>= 0.1.4)"),
   parameters = bindrows(
     #defineParameter("paramName", "paramClass", value, min, max, "parameter description"),
+    defineParameter("sppEquivCol", "character", "LandR", NA, NA,
+                    "The column in `sim$speciesEquivalency` data.table to use as a naming convention."),
     defineParameter("spreadFitFilename", "character", "fireSenseParams.rds",
                     NA, NA, "A Googledrive folder url where a file with fireSense studyArea exists as an 'sf' class object"),
     defineParameter("spreadFitGoogleDriveFolder", "character",
@@ -192,6 +194,7 @@ Init <- function(sim) {
   }
   studyAreaReporting <- studyAreaELF
   sppEquiv <- {
+    browser()
     species <- LandR::speciesInStudyArea(studyAreaELF, dPath = inputPath) |>
       reproducible::Cache(omitArgs = "studyArea", .cacheExtra = list(sa = attr(studyAreaELF, "tags")))
     spp <- grep("_Spp", species$speciesList, invert = TRUE, value = TRUE)
