@@ -194,13 +194,24 @@ Init <- function(sim) {
   }
   studyAreaReporting <- studyAreaELF
   sppEquiv <- {
-    browser()
     species <- LandR::speciesInStudyArea(studyAreaELF, dPath = inputPath) |>
       reproducible::Cache(omitArgs = "studyArea", .cacheExtra = list(sa = attr(studyAreaELF, "tags")))
     spp <- grep("_Spp", species$speciesList, invert = TRUE, value = TRUE)
     column <- LandR::equivalentNameColumn(spp, LandR::sppEquivalencies_CA)
-    sppEquiv <- LandR::sppEquivalencies_CA[which(LandR::sppEquivalencies_CA[[column]] %in% spp),]
+    #for ForSITE, merge Pice_eng_gla and Pice_eng, and make sure Pinus contorta includes both variants
+    sppEquivCol <- P(sim)$sppEquivCol
+    studyAreaSpp <- LandR::equivalentName(spp, LandR::sppEquivalencies_CA, column = sppEquivCol, searchColumn = column)
+    
+    sppEquiv <- LandR::sppEquivalencies_CA[get(sppEquivCol) %in% studyAreaSpp,]
     sppEquiv[LANDIS_traits != "",]
+
+    if ("PICE_ENG_GLA" %in% spp | "PICE_ENG" %in% spp) {
+      #get both - treat them as the same - so 
+      sppEquiv <- rbind(sppEquiv, 
+                        LandR::sppEquivalencies_CA[LandR %in% c("Pice_eng", "Pice_eng_gla")])
+      sppEquiv[LandR == "Pice_eng_gla", LandR := "Pice_eng"]
+      sppEquiv <- unique(sppEquiv)
+    }
   }
   studyAreaPSP <- {
     a <- reproducible::prepInputs(url = paste0("https://sis.agr.gc.ca/cansis/nsdb/ecostrat/",
