@@ -212,7 +212,6 @@ Init <- function(sim) {
     reproducible::Cache(.cacheExtra = digRemote)
   aa <- readRDS(gdMeta$local_path)
   
-  browser()
   if (anyPlotting(Par$.plots)) {
     
     Plots(fn = plotAllELFsFn, centred = ELFs$rasCentered,
