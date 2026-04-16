@@ -114,7 +114,7 @@ Init <- function(sim) {
   
   
   inputPath <- inputPath(sim)
-  ELF <- sim$.ELFind
+  ELF <- as.character(sim$.ELFind)
   # ll <- list(
   rastTemplate <- {
     # check the hash once per week
