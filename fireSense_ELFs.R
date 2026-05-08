@@ -58,8 +58,9 @@ defineModule(sim, list(
                     "Should caching of events or module be used?"),
     defineParameter(".useCacheArgs", "list",
                     list(init = list(
-                      cacheId       = "fireSense_ELFs_v1.0",
+                      # cacheId       = "fireSense_ELFs_v1.0",
                       useCloud      = TRUE,
+                      .cacheExtra   = sim$.ELFind,
                       cloudFolderID = "1gCgLiF4P0kAEp37OW1gak7F_rkkkCzse"
                     )),
                     NA, NA,
@@ -173,11 +174,11 @@ Init <- function(sim) {
                                ELFind = ELF,
                                rastTemplate = attr(rastTemplate, "tags")))
   }
-  rastTemplate <- { # This is HUGE 2+GB
-    { postProcess(rastTemplate, to = rasterToMatchLarge,
-                  writeTo = file.path(inputPath, paste0("rasterTemplate_", ELF,".tif")))} |>
-      Cache(omitArgs = c("x"), .cacheExtra = attr(rastTemplate, "tags"))
-  }
+  # rastTemplate <- { # This is HUGE 2+GB
+  #   { postProcess(rastTemplate, to = rasterToMatchLarge,
+  #                 writeTo = file.path(inputPath, paste0("rasterTemplate_", ELF,".tif")))} |>
+  #     Cache(omitArgs = c("x"), .cacheExtra = attr(rastTemplate, "tags"))
+  # }
   studyAreaLarge <- {
     {
       terra::as.polygons(rasterToMatchLarge > 0) # |>
