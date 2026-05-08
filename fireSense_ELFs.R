@@ -60,6 +60,7 @@ defineModule(sim, list(
                     list(init = list(
                       # cacheId       = "fireSense_ELFs_v1.0",
                       useCloud      = TRUE,
+                      omitArgs = c("sim"),
                       .cacheExtra   = sim$.ELFind,
                       cloudFolderID = "1gCgLiF4P0kAEp37OW1gak7F_rkkkCzse"
                     )),
