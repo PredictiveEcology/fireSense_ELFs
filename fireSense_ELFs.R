@@ -10,12 +10,14 @@ defineModule(sim, list(
   keywords = "",
   authors = structure(list(list(given = c("First", "Middle"), family = "Last", role = c("aut", "cre"), email = "email@example.com", comment = NULL)), class = "person"),
   childModules = character(0),
-  version = list(fireSense_ELFs = "0.0.1"),
+  version = list(fireSense_ELFs = "1.0.0"),
   timeframe = as.POSIXlt(c(NA, NA)),
   timeunit = "year",
   citation = list("citation.bib"),
   documentation = list("NEWS.md", "README.md", "fireSense_ELFs.Rmd"),
-  reqdPkgs = list("SpaDES.core (>= 3.0.1)", "terra", "reproducible (>=3.0.0)",
+  reqdPkgs = list("SpaDES.core (>= 3.0.1)", "terra", 
+                  "PredictiveEcology/reproducible@useCloudPullPushTest (>=3.0.0.9065)",
+                  "PredictiveEcology/SpaDES.core@spadesCloudCacheTest (>= 3.0.4.9020)",
                   "PredictiveEcology/scfmutils@development",
                   "deldir", "withr",
                   "PredictiveEcology/fireSenseUtils@development (>= 0.0.6.9008)",
@@ -53,7 +55,15 @@ defineModule(sim, list(
     # defineParameter(".seed", "list", list('init' = 123), NA, NA,
     #                 "Named list of seeds to use for each event (names)."),
     defineParameter(".useCache", "logical", FALSE, NA, NA,
-                    "Should caching of events or module be used?")
+                    "Should caching of events or module be used?"),
+    defineParameter(".useCacheArgs", "list",
+                    list(init = list(
+                      cacheId       = "fireSense_ELFs_v1.0",
+                      useCloud      = TRUE,
+                      cloudFolderID = "1gCgLiF4P0kAEp37OW1gak7F_rkkkCzse"
+                    )),
+                    NA, NA,
+                    "Per-event Cache() args; cacheId pins the key for cloud reuse")
   ),
   inputObjects = bindrows(
     #expectsInput("objectName", "objectClass", "input object description", sourceURL, ...),
@@ -61,7 +71,7 @@ defineModule(sim, list(
   ),
   outputObjects = bindrows(
     #createsOutput("objectName", "objectClass", "output object description", ...),
-    createsOutput("rastTemplate", objectClass = "SpatRaster", desc = NA),
+    # createsOutput("rastTemplate", objectClass = "SpatRaster", desc = NA),
     createsOutput("homogeneousFire", objectClass = "SpatRaster", desc = NA),
     createsOutput("ELFs", objectClass = "SpatRaster", desc = NA),
     createsOutput("rasterToMatchLarge", objectClass = "SpatRaster", desc = NA),
@@ -244,6 +254,7 @@ Init <- function(sim) {
     studyArea <- studyAreaELF
   
   # Put them all in the sim
+  rm(list = "rastTemplate", envir = envir(sim)) # don't need this
   objsHere <- depends(sim)@dependencies[[currentModule(sim)]]@outputObjects$objectName
   list2env(mget(objsHere, envir = environment()), envir = envir(sim))
   ## 
@@ -277,6 +288,12 @@ Init <- function(sim) {
           useCache = TRUE)
     
   }
+  
+  # bring to memory as it is relatively small; better for caching
+  for (j in seq_along(ELFs))
+    for (i in seq_along(ELFs[[j]])) 
+      ELFs[[j]][[i]] <- toMemory(ELFs[[j]][[i]])
+  sim$ELFs <- ELFs
   
   return(invisible(sim))
 }
