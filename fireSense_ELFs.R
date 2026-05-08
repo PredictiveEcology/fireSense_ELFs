@@ -54,7 +54,7 @@ defineModule(sim, list(
     ## .seed is optional: `list('init' = 123)` will `set.seed(123)` for the `init` event only.
     # defineParameter(".seed", "list", list('init' = 123), NA, NA,
     #                 "Named list of seeds to use for each event (names)."),
-    defineParameter(".useCache", "logical", FALSE, NA, NA,
+    defineParameter(".useCache", "logical", "init", NA, NA,
                     "Should caching of events or module be used?"),
     defineParameter(".useCacheArgs", "list",
                     list(init = list(
