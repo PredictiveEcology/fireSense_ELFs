@@ -16,8 +16,8 @@ defineModule(sim, list(
   citation = list("citation.bib"),
   documentation = list("NEWS.md", "README.md", "fireSense_ELFs.Rmd"),
   reqdPkgs = list("SpaDES.core (>= 3.0.1)", "terra", 
-                  "PredictiveEcology/reproducible@useCloudPullPushTest (>=3.0.0.9065)",
-                  "PredictiveEcology/SpaDES.core@spadesCloudCacheTest (>= 3.0.4.9020)",
+                  "PredictiveEcology/reproducible@development (>=3.1.1.9000)",
+                  "PredictiveEcology/SpaDES.core@development (>= 3.1.2.9000)",
                   "PredictiveEcology/scfmutils@development",
                   "deldir", "withr",
                   "PredictiveEcology/fireSenseUtils@development (>= 0.0.6.9008)",
@@ -32,9 +32,9 @@ defineModule(sim, list(
                     "https://drive.google.com/drive/folders/1X9-mRjyLMNpgkP_cfqhbr_AQEPOsVCHf",
                     # KNN pre Oct 2025: "https://drive.google.com/drive/u/0/folders/1spxq7CnL4kNcJoUQlRek2CmBJ1InAmbP",
                     NA, NA, "A Googledrive folder url where a file with fireSense studyArea exists as an 'sf' class object"),
-    defineParameter("hashSpreadFitRemoteFile", "character", NULL,
-                    NA, NA, "A character scalar with the remote hash value e.g., from reproducible:::getRemoteMetadata, ",
-                    " which will determine whether the module needs to be rerun"),
+    # defineParameter("hashSpreadFitRemoteFile", "character", NULL,
+    #                 NA, NA, "A character scalar with the remote hash value e.g., from reproducible:::getRemoteMetadata, ",
+    #                 " which will determine whether the module needs to be rerun"),
     defineParameter("queue_path", "character", NULL,
                     NA, NA, "A character scalar indicating what the filename of the queue.rds file is from experimentTmux; ",
                     "if NULL, then this can't determine which ELFs are being run (no 'yellow' on the map)"),
@@ -58,10 +58,10 @@ defineModule(sim, list(
                     "Should caching of events or module be used?"),
     defineParameter(".useCacheArgs", "list",
                     list(init = list(
-                      cacheId       = quote(paste0("fireSense_ELFs_v1.0_ELF", sim$.ELFind)),
+                      # cacheId       = quote(paste0("fireSense_ELFs_v1.0_ELF", sim$.ELFind)),
                       useCloud      = FALSE,
-                      omitArgs = TRUE,
-                      .cacheExtra   = quote(sim$.ELFind),
+                      # omitArgs = TRUE,
+                      # .cacheExtra   = quote(sim$.ELFind),
                       cloudFolderID = "1gCgLiF4P0kAEp37OW1gak7F_rkkkCzse"
                     )),
                     NA, NA,
@@ -70,19 +70,27 @@ defineModule(sim, list(
   inputObjects = bindrows(
     #expectsInput("objectName", "objectClass", "input object description", sourceURL, ...),
     expectsInput(".ELFind", "character", "Some descriptive, short name for this fitting, e.g., ELF14.1"),
-    expectsInput("studyAreaLarge", objectClass = "SpatVector", desc = NA, sourceURL = NA)
+    expectsInput("studyAreaLarge", objectClass = "SpatVector", desc = NA, sourceURL = NA) # nolint: in_no_default
     
   ),
   outputObjects = bindrows(
     #createsOutput("objectName", "objectClass", "output object description", ...),
-    # createsOutput("rastTemplate", objectClass = "SpatRaster", desc = NA),
+    # createsOutput("rastTemplate", obje$tClass = "SpatRaster", desc = NA),
     createsOutput("homogeneousFire", objectClass = "SpatRaster", desc = NA),
     createsOutput("ELFs", objectClass = "SpatRaster", desc = NA),
-    createsOutput("rasterToMatchELFLarge", objectClass = "SpatRaster", desc = NA),
-    createsOutput("rasterToMatchELF", objectClass = "SpatRaster", desc = NA),
+    createsOutput("rasterToMatchLargeELF", objectClass = "SpatRaster", desc = NA),
+    createsOutput("rasterToMatchELF", objectClass = "SpatRaster", desc = "This will be smaller than ",
+                  "rasterToMatchLargeELF if the studyAreaLarge covers less than one ELF, ",
+                  "i.e., the buffers will be removed. But if there are no buffers (i.e., ",
+                  "studyAreaLarge covers more than one ELF), then it will be same as ", 
+                  "rasterToMatchLargeELF"),
+    createsOutput("rasterToMatch", objectClass = "SpatRaster", 
+                  desc = "If not supplied from another source, it will be studyArea, ",
+                  "with metadata from trim(ELFs$rasCentred)"),
     createsOutput("studyArea", objectClass = "SpatVector", desc = NA),
+    createsOutput("studyAreaLargeELF", objectClass = "SpatVector", desc = NA),
     createsOutput("studyAreaELF", objectClass = "SpatVector", desc = NA),
-    createsOutput("studyAreaReporting", objectClass = "SpatVector", desc = NA),
+    # createsOutput("studyAreaReporting", objectClass = "SpatVector", desc = NA),
     createsOutput("sppEquiv", objectClass = "data.table", desc = NA),
     createsOutput("studyAreaPSP", objectClass = "SpatVector", desc = NA),
     createsOutput("spreadFitPreRun", "data.frame",
@@ -189,69 +197,102 @@ Init <- function(sim) {
                                merge = fireSenseUtils:::mergeAndSplitRas))
   }
   
-  browser()
+  
+  
+  # Check on what fireSense_SpreadFit has already been run
+  prepInputsFSURL <- SpaDES.core::paramCheckOtherMods(sim, "spreadFitGoogleDriveFolder")
+  # prepInputsFSURL <- Par$spreadFitGoogleDriveFolder
+  gdLs <- googledrive::drive_ls(prepInputsFSURL)
+  fireSenseParamsRDS <- SpaDES.core::paramCheckOtherMods(sim, "spreadFitFilename")
+  # fireSenseParamsRDS <- Par$spreadFitFilename
+  remoteFile <- gdLs[gdLs$name %in% fireSenseParamsRDS,]
+  digRemote <- remoteFile$drive_resource[[1]]$md5Checksum
+  gdMeta <- googledrive::drive_download(remoteFile,
+                                        path = file.path(inputPath(sim), remoteFile$name),
+                                        overwrite = TRUE) |>
+    reproducible::Cache(.cacheExtra = digRemote)
+  spreadFitPreRun <- readRDS(gdMeta$local_path)
+  
+  
   if (hasStudyAreaLarge) {
 
     out <- ELFsInStudyArea(sim$studyAreaLarge, ELFsRaster = ELFs["rasWhole"], 
                            ELFsPolygon = ELFs$poly, inputPath = inputPath(sim))
-    terra::plot(out$rast, main = "ELFs that touch Yukon/BC Mountain Caribou Ranges")
-    terra::plot(terra::project(sim$studyAreaLarge, out$rast), add = TRUE)
+    # terra::plot(out$rast, main = "ELFs that touch Yukon/BC Mountain Caribou Ranges")
+    # terra::plot(terra::project(sim$studyAreaLarge, out$rast), add = TRUE)
     ELFsNeeded <- unique(out$poly$ID)
     v <- values(out$rast, dataframe = TRUE)
     out$rast[which(v[[1]] %in% "none")] <- NA
     out$rast <- terra::sieve(out$rast, threshold = 100, directions = 8)
-    pp <- as.polygons(out$rast)
+    rr <- terra::trim(out$rast)
+    pp <- as.polygons(rr)
+    
+    # Not all will have SpreadFit yet
+    hasELFFittedData <- pp$ELFind %in% spreadFitPreRun$polygonID
+    if (any(!hasELFFittedData)) {
+      warning("Not all the ELFs have SpreadFit parameters; masking studyAreaLarge to ONLY the ELFs that have data")
+      pp <- pp[pp$ELFind %in% spreadFitPreRun$polygonID,]
+    }
+    
     pp <- terra::project(pp, sim$studyAreaLarge)
     pp <- terra::intersect(pp, sim$studyAreaLarge)
+    studyAreaELF <- studyAreaLargeELF <- terra::project(pp, ELFs$rasWhole[[1]])
+    rr <- rasterize(studyAreaLargeELF, ELFs$rasWhole[[1]], field = "ELFind")
+    rasterToMatchLargeELF <- terra::trim(rr)
+    rasterToMatchELF <- rasterToMatchLargeELF
+    studyAreaLarge <- sim$studyAreaLarge
     
   } else {
-    
-  }
-  browser()
-  rasterToMatchELFLarge <- {
     rtml <- ELFs$rasWhole[[ELF]]
-    if (identical(1, terra::freq(is.na(rtml))$value))
-      stop("This ELF has no data")
-    rtml[rtml[] == 0] <- NA
-    {
-      postProcess(rtml, projectTo = rastTemplate, method = "near",
-                  writeTo = file.path(inputPath, paste0("rtml_", ELF,".tif"))) |>
-        terra::trim() } |>
-      Cache(omitArgs = c("x"),
-            .functionName = paste0("rasterToMatchELFLarge"),
-            .cacheExtra = list(ELFs = attr(ELFs, "tags"),
-                               ELFind = ELF,
-                               rastTemplate = attr(rastTemplate, "tags")))
+    rasterToMatchLargeELF <- {
+      # rtml <- ELFs$rasWhole[[ELF]]
+      if (identical(1, terra::freq(is.na(rtml))$value))
+        stop("This ELF has no data")
+      rtml[rtml[] == 0] <- NA
+      {
+        postProcess(rtml, projectTo = rastTemplate, method = "near",
+                    writeTo = file.path(inputPath, paste0("rtml_", Par$.studyAreaName,".tif"))) |>
+          terra::trim() } |>
+        Cache(omitArgs = c("x"),
+              .functionName = paste0("rasterToMatchLargeELF"),
+              .cacheExtra = list(ELFs = attr(ELFs, "tags"),
+                                 ELFind = ELF,
+                                 rastTemplate = attr(rastTemplate, "tags")))
+    }
+    studyAreaLargeELF <- {
+      {
+        terra::as.polygons(rasterToMatchLargeELF > 0) # |>
+        #  terra::buffer(width = d1) |>
+        #  terra::buffer(width = -d1)
+      } |> Cache(omitArgs = c("x"), .functionName = "studyAreaLargeELF",
+                 .cacheExtra = list(rtml = attr(rasterToMatchLargeELF, "tags")))
+    }
+    rasterToMatchELF <- {
+      {
+        rasterToMatchLargeELF |>
+          replace(list = rasterToMatchLargeELF != 2, NA) |>
+          terra::trim()
+      } |> Cache(omitArgs = c("x"),
+                 .functionName = "rasterToMatchELF",
+                 .cacheExtra = list(rtml = attr(rasterToMatchLargeELF, "tags")))
+    }
+    studyAreaELF <- {
+      terra::as.polygons(rasterToMatchELF) |>
+        #  terra::buffer(width = d1) |>
+        #  terra::buffer(width = -d1)
+        Cache(omitArgs = c("x"), .functionName = "studyArea",
+              .cacheExtra = list(rtm = attr(rasterToMatchELF, "tags")))
+    }
+    studyAreaLarge <- studyAreaLargeELF
   }
+  
   # rastTemplate <- { # This is HUGE 2+GB
-  #   { postProcess(rastTemplate, to = rasterToMatchELFLarge,
+  #   { postProcess(rastTemplate, to = rasterToMatchLargeELF,
   #                 writeTo = file.path(inputPath, paste0("rasterTemplate_", ELF,".tif")))} |>
   #     Cache(omitArgs = c("x"), .cacheExtra = attr(rastTemplate, "tags"))
   # }
-  studyAreaLarge <- {
-    {
-      terra::as.polygons(rasterToMatchELFLarge > 0) # |>
-      #  terra::buffer(width = d1) |>
-      #  terra::buffer(width = -d1)
-    } |> Cache(omitArgs = c("x"), .functionName = "studyAreaLarge",
-               .cacheExtra = list(rtml = attr(rasterToMatchELFLarge, "tags")))
-  }
-  rasterToMatchELF <- {
-    {
-      rasterToMatchELFLarge |>
-        replace(list = rasterToMatchELFLarge != 2, NA) |>
-        terra::trim()
-    } |> Cache(omitArgs = c("x"),
-               .functionName = "rasterToMatchELF",
-               .cacheExtra = list(rtml = attr(rasterToMatchELFLarge, "tags")))
-  }
-  studyAreaELF <- {
-    terra::as.polygons(rasterToMatchELF) |>
-      #  terra::buffer(width = d1) |>
-      #  terra::buffer(width = -d1)
-      Cache(omitArgs = c("x"), .functionName = "studyArea",
-            .cacheExtra = list(rtm = attr(rasterToMatchELF, "tags")))
-  }
+  
+  
   # studyAreaReporting <- studyAreaELF
   sppEquiv <- {
     species <- LandR::speciesInStudyArea(studyAreaELF, dPath = inputPath) |>
@@ -286,26 +327,15 @@ Init <- function(sim) {
     a[a$ECOPROVINC %in% ecoprovinces] # |> terra::aggregate()
   }
   
-  # Check on what fireSense_SpreadFit has already been run
-  prepInputsFSURL <- SpaDES.core::paramCheckOtherMods(sim, "spreadFitGoogleDriveFolder")
-  # prepInputsFSURL <- Par$spreadFitGoogleDriveFolder
-  gdLs <- googledrive::drive_ls(prepInputsFSURL)
-  fireSenseParamsRDS <- SpaDES.core::paramCheckOtherMods(sim, "spreadFitFilename")
-  # fireSenseParamsRDS <- Par$spreadFitFilename
-  remoteFile <- gdLs[gdLs$name %in% fireSenseParamsRDS,]
-  digRemote <- remoteFile$drive_resource[[1]]$md5Checksum
-  gdMeta <- googledrive::drive_download(remoteFile,
-                                        path = file.path(inputPath(sim), remoteFile$name),
-                                        overwrite = TRUE) |>
-    reproducible::Cache(.cacheExtra = digRemote)
-  spreadFitPreRun <- readRDS(gdMeta$local_path)
   
   if (is.null(sim$studyArea)) # conditional; can't put it in metadata or this will not be run first
     studyArea <- studyAreaELF
+
+  if (is.null(sim$rasterToMatch)) # conditional; can't put it in metadata or this will not be run first
+    rasterToMatch <- rasterToMatchELF
   
   # Put them all in the sim
-  browser()
-  rm(list = "rastTemplate", envir = envir(sim)) # don't need this
+  # rm(list = "rastTemplate", envir = envir(sim)) # don't need this
   objsHere <- depends(sim)@dependencies[[currentModule(sim)]]@outputObjects$objectName
   list2env(mget(objsHere, envir = environment()), envir = envir(sim))
   ## 
@@ -335,13 +365,15 @@ Init <- function(sim) {
           fn = SpaDES.project::plotSAs,
           filename = paste0("studyAreas", sim$.ELFind),
           path = inputPath,
-          deviceArgs = list(width = 11, height = 8, units = "in", res = 300),
+          # ggsaveArgs = list(width = 11, height = 8, units = "in", res = 300),
+          ggsaveArgs = list(width = 11, height = 8, units = "in"),
+          # deviceArgs = list(width = 11, height = 8, units = "in", res = 300),
           useCache = TRUE)
     
   }
   
   # bring to memory as it is relatively small; better for caching
-  for (j in seq_along(ELFs))
+  for (j in seq_along(ELFs[1:2]))
     for (i in seq_along(ELFs[[j]])) 
       ELFs[[j]][[i]] <- toMemory(ELFs[[j]][[i]])
   sim$ELFs <- ELFs
@@ -403,4 +435,13 @@ plotAllELFsFn <- function(centred, crsToUse, alreadyRun, runningELFs) {
   }
   
   terra::text(cen, label = gsub("^X", "", names(allELFs)), cex = 0.8)
+}
+
+.inputObjects <- function(sim) {
+  
+  if (!suppliedElsewhere(".ELFind", sim)) {
+    sim$.ELFind <- "4.3"
+  }
+  
+  
 }
