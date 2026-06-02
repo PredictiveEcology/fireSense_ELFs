@@ -10,7 +10,7 @@ defineModule(sim, list(
   keywords = "",
   authors = structure(list(list(given = c("First", "Middle"), family = "Last", role = c("aut", "cre"), email = "email@example.com", comment = NULL)), class = "person"),
   childModules = character(0),
-  version = list(fireSense_ELFs = "1.0.0"),
+  version = list(fireSense_ELFs = "1.1.0"),
   timeframe = as.POSIXlt(c(NA, NA)),
   timeunit = "year",
   citation = list("citation.bib"),
@@ -20,7 +20,7 @@ defineModule(sim, list(
                   "PredictiveEcology/SpaDES.core@development (>= 3.1.2.9000)",
                   "PredictiveEcology/scfmutils@development",
                   "deldir", "withr",
-                  "PredictiveEcology/fireSenseUtils@development (>= 0.0.6.9008)",
+                  "PredictiveEcology/fireSenseUtils@development (>= 0.2.0.9000)",
                   "PredictiveEcology/SpaDES.project@development (>= 0.1.4)"),
   parameters = bindrows(
     #defineParameter("paramName", "paramClass", value, min, max, "parameter description"),
@@ -78,16 +78,20 @@ defineModule(sim, list(
     # createsOutput("rastTemplate", obje$tClass = "SpatRaster", desc = NA),
     createsOutput("homogeneousFire", objectClass = "SpatRaster", desc = NA),
     createsOutput("ELFs", objectClass = "SpatRaster", desc = NA),
-    createsOutput("rasterToMatchLargeELF", objectClass = "SpatRaster", desc = NA),
+    createsOutput("rasterToMatchLargeELF", objectClass = "SpatRaster", 
+                  desc = "A very coarse rasterToMatch (5kmx5km); with the ELF values on it"),
     createsOutput("rasterToMatchELF", objectClass = "SpatRaster", desc = "This will be smaller than ",
                   "rasterToMatchLargeELF if the studyAreaLarge covers less than one ELF, ",
                   "i.e., the buffers will be removed. But if there are no buffers (i.e., ",
                   "studyAreaLarge covers more than one ELF), then it will be same as ", 
                   "rasterToMatchLargeELF"),
-    createsOutput("rasterToMatch", objectClass = "SpatRaster", 
+    createsOutput("rasterToMatch", objectClass = "SpatRaster",
                   desc = "If not supplied from another source, it will be studyArea, ",
                   "with metadata from trim(ELFs$rasCentred)"),
     createsOutput("studyArea", objectClass = "SpatVector", desc = NA),
+    createsOutput("studyAreaLarge", objectClass = "SpatVector", 
+                  desc = "This will be the inputted studyAreaLarge, but intersected with ", 
+                  "the ELFs that have results for them"),
     createsOutput("studyAreaLargeELF", objectClass = "SpatVector", desc = NA),
     createsOutput("studyAreaELF", objectClass = "SpatVector", desc = NA),
     # createsOutput("studyAreaReporting", objectClass = "SpatVector", desc = NA),
@@ -143,42 +147,8 @@ Init <- function(sim) {
   #   sequence below allows the Cache to find it once, because it is in memory; it
   #   will be cleaned up at the end of the function
   rastTemplate <- ELFtemplateRaster(inputPath)
-  # rastTemplate <- {  
-  #   templateURL <- "https://ftp.maps.canada.ca/pub/nrcan_rncan/Forests_Foret/SCANFI/v1/SCANFI_sps_douglasFir_SW_2020_v1.2.tif"
-  #   hash <- reproducible:::getRemoteMetadata(isGDurl = FALSE, url = templateURL) |>
-  #     Cache(notOlderThan = Sys.time() - 60*60*24*7)
-  #   fn <- dir(getOption("reproducible.destinationPathShared"), pattern = "douglasFir", full.names = TRUE)[1]
-  #   {
-  #     # r <- terra::rast(paste0("/vsicurl/", templateURL)) |>
-  #     prepInputs(url = templateURL, destinationPath = inputPath) |>
-  #     # terra::rast(fn) |>
-  #       terra::aggregate(fact = 8) |> 
-  #       terra::toMemory()
-  #     } |> Cache(omitArgs = TRUE, .cacheExtra = list(hash$remoteHash))
-  # }
-  # 
-  # rastTemplate <- terra::writeRaster(
-  #   rastTemplate, filename = file.path(inputPath, "rastTemplate_Canada.tif"), 
-  #   overwrite = TRUE) 
-  
-  # rastTemplate <- {
-  #   # check the hash once per week
-  #   templateURL <- "https://ftp.maps.canada.ca/pub/nrcan_rncan/Forests_Foret/SCANFI/v1/SCANFI_sps_douglasFir_SW_2020_v1.2.tif"
-  #   hash <- reproducible:::getRemoteMetadata(isGDurl = FALSE, url = templateURL) |>
-  #     Cache(notOlderThan = Sys.time() - 60*60*24*7)
-  #   out <- {
-  #     prepInputs(url = templateURL, destinationPath = inputPath) |>
-  #       (\(x) {force(x); message("Aggregating to 240m..."); x})() |> # "force(x) is to get this message to print after the prepInputs previous
-  #       terra::aggregate(fact = 8, filename = file.path(inputPath, "rastTemplate_Canada.tif"),
-  #                        overwrite = TRUE)} |>
-  #     Cache(omitArgs = c("x"), .cacheExtra = list(hash$remoteHash),
-  #           # dryRun = TRUE,
-  #           .functionName = "rasterTemplate_aggregate")
-  #   out
-  # }
-  
+
   homogeneousFire <- {
-    # bbbb <<- 1#; on.exit(rm(bbbb, envir = .GlobalEnv))
     {
       scfmutils::prepInputsFireRegimePolys(type = "FRU", destinationPath = inputPath) |>
         reproducible::Cache(cacheSaveFormat = "rds")
@@ -196,8 +166,6 @@ Init <- function(sim) {
                                splitPoly = fireSenseUtils:::split_poly,
                                merge = fireSenseUtils:::mergeAndSplitRas))
   }
-  
-  
   
   # Check on what fireSense_SpreadFit has already been run
   prepInputsFSURL <- SpaDES.core::paramCheckOtherMods(sim, "spreadFitGoogleDriveFolder")
@@ -235,13 +203,19 @@ Init <- function(sim) {
     }
     
     pp <- terra::project(pp, sim$studyAreaLarge)
+    # There are holes that show up
+    # pp1 <- terra::buffer(terra::buffer(terra::aggregate(pp), width = 1000), width = -1000)
     pp <- terra::intersect(pp, sim$studyAreaLarge)
-    studyAreaELF <- studyAreaLargeELF <- terra::project(pp, ELFs$rasWhole[[1]])
+    studyAreaLargeELF <- terra::project(pp, ELFs$rasWhole[[1]])
     rr <- rasterize(studyAreaLargeELF, ELFs$rasWhole[[1]], field = "ELFind")
     rasterToMatchLargeELF <- terra::trim(rr)
     rasterToMatchELF <- rasterToMatchLargeELF
-    studyAreaLarge <- sim$studyAreaLarge
     
+    w <- 0.00000001 # the aggregate function creates artifacts --> lines that shouldn't be there
+    salELFagg <- terra::aggregate(studyAreaLargeELF)
+    studyAreaLarge <- terra::buffer(width = -w, terra::buffer(width = w, salELFagg))
+    studyAreaELF <- studyAreaLargeELF
+
   } else {
     rtml <- ELFs$rasWhole[[ELF]]
     rasterToMatchLargeELF <- {
@@ -327,12 +301,14 @@ Init <- function(sim) {
     a[a$ECOPROVINC %in% ecoprovinces] # |> terra::aggregate()
   }
   
-  
   if (is.null(sim$studyArea)) # conditional; can't put it in metadata or this will not be run first
-    studyArea <- studyAreaELF
+    studyArea <- studyAreaLarge
 
-  if (is.null(sim$rasterToMatch)) # conditional; can't put it in metadata or this will not be run first
-    rasterToMatch <- rasterToMatchELF
+  if (is.null(sim$rasterToMatch)) {# conditional; can't put it in metadata or this will not be run first
+    rasterToMatch <- postProcessTo(rastTemplate, maskTo = studyAreaLarge, cropTo = studyAreaLarge)
+    rasterToMatch <- terra::trim(rasterToMatch)
+    rasterToMatch <- ifel(!is.na(rasterToMatch), 1, NA) # needs to not be zero --> zero is like NA
+  }
   
   # Put them all in the sim
   # rm(list = "rastTemplate", envir = envir(sim)) # don't need this
@@ -443,5 +419,5 @@ plotAllELFsFn <- function(centred, crsToUse, alreadyRun, runningELFs) {
     sim$.ELFind <- "4.3"
   }
   
-  
+  sim
 }
