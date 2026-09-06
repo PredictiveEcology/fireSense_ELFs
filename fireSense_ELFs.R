@@ -21,7 +21,7 @@ defineModule(sim, list(
                   "PredictiveEcology/scfmutils@development",
                   "deldir", "withr",
                   "PredictiveEcology/fireSenseUtils@development (>= 0.2.0.9000)",
-                  "PredictiveEcology/SpaDES.project@development (>= 0.1.4)"),
+                  "PredictiveEcology/SpaDES.project@development (>= 1.0.1.9205)"),
   parameters = bindrows(
     #defineParameter("paramName", "paramClass", value, min, max, "parameter description"),
     defineParameter("sppEquivCol", "character", "LandR", NA, NA,
@@ -320,7 +320,7 @@ Init <- function(sim) {
     
     runningELFs <- NULL
     if (!is.null(Par$queue_path)) {
-      activeRunningPath <- activeRunningPathForTmux(activeRunningPath = NULL, Par$queue_path)
+      activeRunningPath <- SpaDES.project::tmuxActiveRunningPath(activeRunningPath = NULL, Par$queue_path)
       
       fi <- rownames(
         SpaDES.project:::activeRunningFileInfo(queue_path = Par$queue_path, activeRunningPath = activeRunningPath))
