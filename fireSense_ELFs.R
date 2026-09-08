@@ -10,7 +10,29 @@ defineModule(sim, list(
   keywords = "",
   authors = structure(list(list(given = c("First", "Middle"), family = "Last", role = c("aut", "cre"), email = "email@example.com", comment = NULL)), class = "person"),
   childModules = character(0),
-  version = list(fireSense_ELFs = "1.1.0"),
+  version = list(fireSense_ELFs = "1.1.1"),
+  ## This module defines the study area every other fireSense module works in, so
+  ## it has to be scheduled first. The object dependency graph only orders modules
+  ## that actually exchange objects, so a module that needs the study area
+  ## indirectly could otherwise be scheduled ahead of this one -- which is why
+  ## callers were passing a `studyAreaLarge` purely to force the order, the very
+  ## thing .assertOneStudyArea() now rejects. Naming a module that is not part of
+  ## a given run is harmless: absent names are ignored (verified against
+  ## SpaDES.core 3.2.1.9002), so this list can name the whole family.
+  loadOrder = list(before = c("fireSense",
+                              "fireSense_dataPrep",
+                              "fireSense_dataPrepFit",
+                              "fireSense_dataPrepPredict",
+                              "fireSense_EscapeFit",
+                              "fireSense_EscapePredict",
+                              "fireSense_hindcast",
+                              "fireSense_IgnitionFit",
+                              "fireSense_IgnitionPredict",
+                              "fireSense_NWT",
+                              "fireSense_NWT_DataPrep",
+                              "fireSense_SpreadFit",
+                              "fireSense_SpreadPredict",
+                              "fireSense_summary")),
   timeframe = as.POSIXlt(c(NA, NA)),
   timeunit = "year",
   citation = list("citation.bib"),
@@ -174,12 +196,23 @@ Init <- function(sim) {
   fireSenseParamsRDS <- SpaDES.core::paramCheckOtherMods(sim, "spreadFitFilename")
   # fireSenseParamsRDS <- Par$spreadFitFilename
   remoteFile <- gdLs[gdLs$name %in% fireSenseParamsRDS,]
-  digRemote <- remoteFile$drive_resource[[1]]$md5Checksum
-  gdMeta <- googledrive::drive_download(remoteFile,
-                                        path = file.path(inputPath(sim), remoteFile$name),
-                                        overwrite = TRUE) |>
-    reproducible::Cache(.cacheExtra = digRemote)
-  spreadFitPreRun <- readRDS(gdMeta$local_path)
+  ## A ledger that does not exist yet means "nothing has been fitted", which is the
+  ## normal state at the start of a new experiment: the first completed fit creates
+  ## the file. Without this, `remoteFile$drive_resource[[1]]` was a subscript error
+  ## in every job, and in fireSenseUtils::runELFs() before the queue was even built,
+  ## so pointing `spreadFitFilename` at a new file could not be done at all.
+  spreadFitPreRun <- if (NROW(remoteFile) == 0L) {
+    message("fireSense_ELFs: no '", fireSenseParamsRDS, "' in ", prepInputsFSURL,
+            " -- treating this as no pre-run SpreadFit results yet.")
+    NULL
+  } else {
+    digRemote <- remoteFile$drive_resource[[1]]$md5Checksum
+    gdMeta <- googledrive::drive_download(remoteFile,
+                                          path = file.path(inputPath(sim), remoteFile$name),
+                                          overwrite = TRUE) |>
+      reproducible::Cache(.cacheExtra = digRemote)
+    readRDS(gdMeta$local_path)
+  }
   
   
   if (hasStudyAreaLarge) {
@@ -189,6 +222,9 @@ Init <- function(sim) {
     # terra::plot(out$rast, main = "ELFs that touch Yukon/BC Mountain Caribou Ranges")
     # terra::plot(terra::project(sim$studyAreaLarge, out$rast), add = TRUE)
     ELFsNeeded <- unique(out$poly$ID)
+    ## Both study areas were supplied and they disagree: stop rather than pick one
+    ## silently, which once produced five identically-fitted "different" ELFs.
+    .assertOneStudyArea(sim$.ELFind, isTRUE(mod$ELFindSupplied), ELFsNeeded)
     v <- values(out$rast, dataframe = TRUE)
     out$rast[which(v[[1]] %in% "none")] <- NA
     out$rast <- terra::sieve(out$rast, threshold = 100, directions = 8)
@@ -415,7 +451,10 @@ plotAllELFsFn <- function(centred, crsToUse, alreadyRun, runningELFs) {
 
 .inputObjects <- function(sim) {
   
-  if (!suppliedElsewhere(".ELFind", sim)) {
+  ## Init has to tell an ELF the user asked for from the fallback below: only the
+  ## former can conflict with a `studyAreaLarge`. See .assertOneStudyArea().
+  mod$ELFindSupplied <- suppliedElsewhere(".ELFind", sim)
+  if (!mod$ELFindSupplied) {
     sim$.ELFind <- "4.3"
   }
   
