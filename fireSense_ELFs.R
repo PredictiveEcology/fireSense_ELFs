@@ -10,7 +10,7 @@ defineModule(sim, list(
   keywords = "",
   authors = structure(list(list(given = c("First", "Middle"), family = "Last", role = c("aut", "cre"), email = "email@example.com", comment = NULL)), class = "person"),
   childModules = character(0),
-  version = list(fireSense_ELFs = "1.1.0"),
+  version = list(fireSense_ELFs = "1.1.1"),
   timeframe = as.POSIXlt(c(NA, NA)),
   timeunit = "year",
   citation = list("citation.bib"),
@@ -189,6 +189,9 @@ Init <- function(sim) {
     # terra::plot(out$rast, main = "ELFs that touch Yukon/BC Mountain Caribou Ranges")
     # terra::plot(terra::project(sim$studyAreaLarge, out$rast), add = TRUE)
     ELFsNeeded <- unique(out$poly$ID)
+    ## Both study areas were supplied and they disagree: stop rather than pick one
+    ## silently, which once produced five identically-fitted "different" ELFs.
+    .assertOneStudyArea(sim$.ELFind, isTRUE(mod$ELFindSupplied), ELFsNeeded)
     v <- values(out$rast, dataframe = TRUE)
     out$rast[which(v[[1]] %in% "none")] <- NA
     out$rast <- terra::sieve(out$rast, threshold = 100, directions = 8)
@@ -415,7 +418,10 @@ plotAllELFsFn <- function(centred, crsToUse, alreadyRun, runningELFs) {
 
 .inputObjects <- function(sim) {
   
-  if (!suppliedElsewhere(".ELFind", sim)) {
+  ## Init has to tell an ELF the user asked for from the fallback below: only the
+  ## former can conflict with a `studyAreaLarge`. See .assertOneStudyArea().
+  mod$ELFindSupplied <- suppliedElsewhere(".ELFind", sim)
+  if (!mod$ELFindSupplied) {
     sim$.ELFind <- "4.3"
   }
   
