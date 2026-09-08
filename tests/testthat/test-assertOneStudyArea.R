@@ -35,3 +35,16 @@ test_that("a studyAreaLarge covering no ELF is a conflict, and says so", {
 test_that("an empty .ELFind with a real studyAreaLarge is reported, not silently accepted", {
   expect_error(.assertOneStudyArea("", TRUE, "6.1"), "<empty>")
 })
+
+## The other half of the fix: this module must be scheduled before the modules
+## that work in the study area it defines. Without it, callers forced the order by
+## passing a `studyAreaLarge` they did not want -- the cause of the incident above.
+test_that("the module declares itself before the other fireSense modules", {
+  md <- parse(testthat::test_path("..", "..", "fireSense_ELFs.R"), keep.source = TRUE)
+  dm <- Filter(function(e) grepl("^defineModule", paste(deparse(e), collapse = "")), as.list(md))
+  lo <- eval(dm[[1]][[3]]$loadOrder)
+  expect_type(lo, "list")
+  expect_true(all(c("fireSense_dataPrepFit", "fireSense_SpreadFit",
+                    "fireSense_SpreadPredict", "fireSense_dataPrepPredict") %in% lo$before))
+  expect_null(lo$after)
+})

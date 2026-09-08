@@ -11,6 +11,28 @@ defineModule(sim, list(
   authors = structure(list(list(given = c("First", "Middle"), family = "Last", role = c("aut", "cre"), email = "email@example.com", comment = NULL)), class = "person"),
   childModules = character(0),
   version = list(fireSense_ELFs = "1.1.1"),
+  ## This module defines the study area every other fireSense module works in, so
+  ## it has to be scheduled first. The object dependency graph only orders modules
+  ## that actually exchange objects, so a module that needs the study area
+  ## indirectly could otherwise be scheduled ahead of this one -- which is why
+  ## callers were passing a `studyAreaLarge` purely to force the order, the very
+  ## thing .assertOneStudyArea() now rejects. Naming a module that is not part of
+  ## a given run is harmless: absent names are ignored (verified against
+  ## SpaDES.core 3.2.1.9002), so this list can name the whole family.
+  loadOrder = list(before = c("fireSense",
+                              "fireSense_dataPrep",
+                              "fireSense_dataPrepFit",
+                              "fireSense_dataPrepPredict",
+                              "fireSense_EscapeFit",
+                              "fireSense_EscapePredict",
+                              "fireSense_hindcast",
+                              "fireSense_IgnitionFit",
+                              "fireSense_IgnitionPredict",
+                              "fireSense_NWT",
+                              "fireSense_NWT_DataPrep",
+                              "fireSense_SpreadFit",
+                              "fireSense_SpreadPredict",
+                              "fireSense_summary")),
   timeframe = as.POSIXlt(c(NA, NA)),
   timeunit = "year",
   citation = list("citation.bib"),
