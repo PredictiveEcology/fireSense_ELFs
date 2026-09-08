@@ -196,12 +196,23 @@ Init <- function(sim) {
   fireSenseParamsRDS <- SpaDES.core::paramCheckOtherMods(sim, "spreadFitFilename")
   # fireSenseParamsRDS <- Par$spreadFitFilename
   remoteFile <- gdLs[gdLs$name %in% fireSenseParamsRDS,]
-  digRemote <- remoteFile$drive_resource[[1]]$md5Checksum
-  gdMeta <- googledrive::drive_download(remoteFile,
-                                        path = file.path(inputPath(sim), remoteFile$name),
-                                        overwrite = TRUE) |>
-    reproducible::Cache(.cacheExtra = digRemote)
-  spreadFitPreRun <- readRDS(gdMeta$local_path)
+  ## A ledger that does not exist yet means "nothing has been fitted", which is the
+  ## normal state at the start of a new experiment: the first completed fit creates
+  ## the file. Without this, `remoteFile$drive_resource[[1]]` was a subscript error
+  ## in every job, and in fireSenseUtils::runELFs() before the queue was even built,
+  ## so pointing `spreadFitFilename` at a new file could not be done at all.
+  spreadFitPreRun <- if (NROW(remoteFile) == 0L) {
+    message("fireSense_ELFs: no '", fireSenseParamsRDS, "' in ", prepInputsFSURL,
+            " -- treating this as no pre-run SpreadFit results yet.")
+    NULL
+  } else {
+    digRemote <- remoteFile$drive_resource[[1]]$md5Checksum
+    gdMeta <- googledrive::drive_download(remoteFile,
+                                          path = file.path(inputPath(sim), remoteFile$name),
+                                          overwrite = TRUE) |>
+      reproducible::Cache(.cacheExtra = digRemote)
+    readRDS(gdMeta$local_path)
+  }
   
   
   if (hasStudyAreaLarge) {
