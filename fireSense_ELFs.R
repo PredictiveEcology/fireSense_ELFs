@@ -78,16 +78,26 @@ defineModule(sim, list(
     #                 "Named list of seeds to use for each event (names)."),
     defineParameter(".useCache", "logical", "init", NA, NA,
                     "Should caching of events or module be used?"),
+    defineParameter(".useCloud", c("logical", "character"), TRUE, NA, NA,
+                    paste("Share the ELF maps built in the `init` event through Google Drive, in the",
+                          "fireSense folder named by `spreadFitGoogleDriveFolder` (the same folder that",
+                          "holds the fitted-parameter file). `TRUE`: download the maps if someone has",
+                          "already built them with the same inputs, otherwise build and upload them.",
+                          "`\"pull\"`: download only, never upload (for read-only access). `FALSE`: build",
+                          "locally without Google Drive. Needs Google Drive access to that folder.")),
     defineParameter(".useCacheArgs", "list",
                     list(init = list(
                       # cacheId       = quote(paste0("fireSense_ELFs_v1.0_ELF", sim$.ELFind)),
-                      useCloud      = FALSE,
+                      useCloud      = quote(P(sim)[[".useCloud"]]),
                       # omitArgs = TRUE,
                       # .cacheExtra   = quote(sim$.ELFind),
-                      cloudFolderID = "1gCgLiF4P0kAEp37OW1gak7F_rkkkCzse"
+                      ## The same call init() uses to find the fitted-parameter file, so the
+                      ## shared maps always go to that folder
+                      cloudFolderID = quote(SpaDES.core::paramCheckOtherMods(sim, "spreadFitGoogleDriveFolder"))
                     )),
                     NA, NA,
-                    "Per-event Cache() args; cacheId pins the key for cloud reuse")
+                    paste("Extra `Cache()` arguments for each event. By default the `init` event",
+                          "uses `.useCloud` and caches to `spreadFitGoogleDriveFolder`; see `.useCloud`."))
   ),
   inputObjects = bindrows(
     #expectsInput("objectName", "objectClass", "input object description", sourceURL, ...),

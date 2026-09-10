@@ -64,6 +64,26 @@ knitr::kable(df_inputs,
   kableExtra::kable_styling(latex_options = "scale_down", full_width = TRUE)
 ```
 
+#### Sharing the ELF maps: `.useCloud`
+
+Building the ELF maps in the `init` event is slow, so its results are shared with
+everyone through Google Drive. They are saved to the same fireSense folder that holds
+the fitted-parameter file (`fireSenseParams*.rds`): the folder named by
+`spreadFitGoogleDriveFolder`. Everyone reads from and writes to this one folder.
+
+- `.useCloud = TRUE` (the default): if someone has already built the maps with the same
+  inputs, download them; otherwise build them and upload them for the next person.
+- `.useCloud = "pull"`: download if available, but never upload. Use this if you can read
+  the folder but not write to it. Uploads that fail are not fatal in any case; the run
+  carries on with the local copy.
+- `.useCloud = FALSE`: do not use Google Drive for this; build locally.
+
+This needs Google Drive access to that folder, which the module already needs: `init`
+reads the fitted-parameter file from it. Pass the folder as its bare ID, or as a link
+that has something after the ID (e.g. ending in `?usp=drive_link`); until
+reproducible's link handling is fixed, a link that ends exactly at the ID is not
+recognised, and the results go to a folder that is not shared.
+
 Summary of user-visible parameters (Table \@ref(tab:moduleParams-fireSense-ELFs))
 
 
