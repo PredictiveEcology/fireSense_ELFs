@@ -2973,7 +2973,7 @@ border-radius: 0px;
 
 <h1 class="title toc-ignore">fireSense_ELFs Manual</h1>
 <h3 class="subtitle">v.1.1.1</h3>
-<h4 class="date">Last updated: 2026-09-08</h4>
+<h4 class="date">Last updated: 2026-09-10</h4>
 
 </div>
 
@@ -3053,6 +3053,25 @@ NA
 </tr>
 </tbody>
 </table>
+<div id="sharing-the-elf-maps-.usecloud" class="section level4">
+<h4>Sharing the ELF maps: <code>.useCloud</code></h4>
+<p>Building the ELF maps in the <code>init</code> event is slow, so its results are shared with
+everyone through Google Drive. They are saved to the same fireSense folder that holds
+the fitted-parameter file (<code>fireSenseParams*.rds</code>): the folder named by
+<code>spreadFitGoogleDriveFolder</code>. Everyone reads from and writes to this one folder.</p>
+<ul>
+<li><code>.useCloud = TRUE</code> (the default): if someone has already built the maps with the same
+inputs, download them; otherwise build them and upload them for the next person.</li>
+<li><code>.useCloud = &quot;pull&quot;</code>: download if available, but never upload. Use this if you can read
+the folder but not write to it. Uploads that fail are not fatal in any case; the run
+carries on with the local copy.</li>
+<li><code>.useCloud = FALSE</code>: do not use Google Drive for this; build locally.</li>
+</ul>
+<p>This needs Google Drive access to that folder, which the module already needs: <code>init</code>
+reads the fitted-parameter file from it. Pass the folder as its bare ID, or as a link
+that has something after the ID (e.g. ending in <code>?usp=drive_link</code>); until
+reproducible’s link handling is fixed, a link that ends exactly at the ID is not
+recognised, and the results go to a folder that is not shared.</p>
 <p>Summary of user-visible parameters (Table <a href="#tab:moduleParams-fireSense-ELFs">3</a>)</p>
 <table class="table" style="margin-left: auto; margin-right: auto;">
 <caption>
@@ -3302,6 +3321,26 @@ Should caching of events or module be used?
 </tr>
 <tr>
 <td style="text-align:left;">
+.useCloud
+</td>
+<td style="text-align:left;">
+logical,….
+</td>
+<td style="text-align:left;">
+TRUE
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+Share the ELF maps built in the <code>init</code> event through Google Drive, in the fireSense folder named by <code>spreadFitGoogleDriveFolder</code> (the same folder that holds the fitted-parameter file). <code>TRUE</code>: download the maps if someone has already built them with the same inputs, otherwise build and upload them. <code>&quot;pull&quot;</code>: download only, never upload (for read-only access). <code>FALSE</code>: build locally without Google Drive. Needs Google Drive access to that folder.
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
 .useCacheArgs
 </td>
 <td style="text-align:left;">
@@ -3317,11 +3356,12 @@ NA
 NA
 </td>
 <td style="text-align:left;">
-Per-event Cache() args; cacheId pins the key for cloud reuse
+Extra <code>Cache()</code> arguments for each event. By default the <code>init</code> event uses <code>.useCloud</code> and caches to <code>spreadFitGoogleDriveFolder</code>; see <code>.useCloud</code>.
 </td>
 </tr>
 </tbody>
 </table>
+</div>
 </div>
 <div id="events" class="section level3">
 <h3>Events</h3>
