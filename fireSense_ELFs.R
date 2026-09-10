@@ -314,7 +314,7 @@ Init <- function(sim) {
     studyAreaSpp <- LandR::equivalentName(spp, LandR::sppEquivalencies_CA, column = sppEquivCol, searchColumn = column)
     
     sppEquiv <- LandR::sppEquivalencies_CA[get(sppEquivCol) %in% studyAreaSpp,]
-    sppEquiv[LANDIS_traits != "",]
+    sppEquiv <- sppEquiv[LANDIS_traits != "",]
 
     if ("PICE_ENG_GLA" %in% spp | "PICE_ENG" %in% spp) {
       #get both - treat them as the same - so 
@@ -323,6 +323,9 @@ Init <- function(sim) {
       sppEquiv[LandR == "Pice_eng_gla", LandR := "Pice_eng"]
       sppEquiv <- unique(sppEquiv)
     }
+    ## The block's value is its last expression: without this line it was the `if`
+    ## above, i.e. NULL for every ELF without Engelmann spruce.
+    sppEquiv
   }
   studyAreaPSP <- {
     a <- reproducible::prepInputs(url = paste0("https://sis.agr.gc.ca/cansis/nsdb/ecostrat/",
