@@ -93,11 +93,17 @@ defineModule(sim, list(
                       # .cacheExtra   = quote(sim$.ELFind),
                       ## The same call init() uses to find the fitted-parameter file, so the
                       ## shared maps always go to that folder
-                      cloudFolderID = quote(SpaDES.core::paramCheckOtherMods(sim, "spreadFitGoogleDriveFolder"))
+                      cloudFolderID = quote(SpaDES.core::paramCheckOtherMods(sim, "spreadFitGoogleDriveFolder")),
+                      ## init reads this table inside the function, so its contents are not
+                      ## otherwise part of the key: a LandR change to it (e.g. a FuelClass)
+                      ## would keep returning the cached, stale sppEquiv, locally and from the cloud
+                      .cacheExtra   = quote(reproducible::.robustDigest(LandR::sppEquivalencies_CA))
                     )),
                     NA, NA,
                     paste("Extra `Cache()` arguments for each event. By default the `init` event",
-                          "uses `.useCloud` and caches to `spreadFitGoogleDriveFolder`; see `.useCloud`."))
+                          "uses `.useCloud` and caches to `spreadFitGoogleDriveFolder`; see `.useCloud`.",
+                          "Its key also includes a digest of `LandR::sppEquivalencies_CA`, which `init`",
+                          "reads, so a change to that table rebuilds the ELF maps instead of reusing old ones."))
   ),
   inputObjects = bindrows(
     #expectsInput("objectName", "objectClass", "input object description", sourceURL, ...),
