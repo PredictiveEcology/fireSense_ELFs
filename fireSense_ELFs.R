@@ -8,7 +8,10 @@ defineModule(sim, list(
   name = "fireSense_ELFs",
   description = "Create ELFs for fireSense family of modules",
   keywords = "",
-  authors = structure(list(list(given = c("First", "Middle"), family = "Last", role = c("aut", "cre"), email = "email@example.com", comment = NULL)), class = "person"),
+  authors = c(
+    person("Eliot", "McIntire", email = "eliot.mcintire@nrcan-rncan.gc.ca",
+           role = c("aut", "cre"))
+  ),
   childModules = character(0),
   version = list(fireSense_ELFs = "1.1.1"),
   ## This module defines the study area every other fireSense module works in, so
