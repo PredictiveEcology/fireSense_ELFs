@@ -43,7 +43,8 @@ defineModule(sim, list(
                   "PredictiveEcology/scfmutils@development",
                   "deldir", "withr",
                   "PredictiveEcology/fireSenseUtils@development (>= 0.2.0.9000)",
-                  "PredictiveEcology/SpaDES.project@development (>= 1.0.1.9205)"),
+                  "PredictiveEcology/SpaDES.project@development (>= 1.0.1.9205)",
+                  "PredictiveEcology/LandR@development (>= 1.2.0.9012)"),
   parameters = bindrows(
     #defineParameter("paramName", "paramClass", value, min, max, "parameter description"),
     defineParameter("sppEquivCol", "character", "LandR", NA, NA,
@@ -320,29 +321,11 @@ Init <- function(sim) {
   
   
   # studyAreaReporting <- studyAreaELF
-  sppEquiv <- {
-    species <- LandR::speciesInStudyArea(studyAreaELF, dPath = inputPath) |>
-      reproducible::Cache(omitArgs = "studyArea", .cacheExtra = list(sa = attr(studyAreaELF, "tags")))
-    spp <- grep("_Spp", species$speciesList, invert = TRUE, value = TRUE)
-    column <- LandR::equivalentNameColumn(spp, LandR::sppEquivalencies_CA)
-    #for ForSITE, merge Pice_eng_gla and Pice_eng, and make sure Pinus contorta includes both variants
-    sppEquivCol <- P(sim)$sppEquivCol
-    studyAreaSpp <- LandR::equivalentName(spp, LandR::sppEquivalencies_CA, column = sppEquivCol, searchColumn = column)
-    
-    sppEquiv <- LandR::sppEquivalencies_CA[get(sppEquivCol) %in% studyAreaSpp,]
-    sppEquiv <- sppEquiv[LANDIS_traits != "",]
-
-    if ("PICE_ENG_GLA" %in% spp | "PICE_ENG" %in% spp) {
-      #get both - treat them as the same - so 
-      sppEquiv <- rbind(sppEquiv, 
-                        LandR::sppEquivalencies_CA[LandR %in% c("Pice_eng", "Pice_eng_gla")])
-      sppEquiv[LandR == "Pice_eng_gla", LandR := "Pice_eng"]
-      sppEquiv <- unique(sppEquiv)
-    }
-    ## The block's value is its last expression: without this line it was the `if`
-    ## above, i.e. NULL for every ELF without Engelmann spruce.
-    sppEquiv
-  }
+  ## The species table (no _Spp genus entries, only species with LANDIS traits, Engelmann
+  ## spruce merged into Pice_eng) comes from LandR, so every module uses the same one.
+  species <- LandR::speciesInStudyArea(studyAreaELF, sppEquivCol = P(sim)$sppEquivCol, dPath = inputPath) |>
+    reproducible::Cache(omitArgs = "studyArea", .cacheExtra = list(sa = attr(studyAreaELF, "tags")))
+  sppEquiv <- species$sppEquiv
   studyAreaPSP <- {
     a <- reproducible::prepInputs(url = paste0("https://sis.agr.gc.ca/cansis/nsdb/ecostrat/",
                                                "province/ecoprovince_shp.zip"), dPath = inputPath,
