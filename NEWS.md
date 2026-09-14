@@ -1,3 +1,10 @@
+# fireSense_ELFs 1.1.2
+
+- an ELF with no tree species now says so, once: `Init`'s `sppEquiv` block emits a single
+  message naming the ELF and stating that the run proceeds with nonForest fuel classes only.
+  It used to be silent, and the run died several modules later in "No trait values were
+  found for .". The block still returns a valid 0-row `sppEquiv` in that case, not NULL.
+
 # fireSense_ELFs 1.1.1
 
 - the module now stops when it is given both a `studyAreaLarge` and a `.ELFind`

@@ -10,7 +10,7 @@ defineModule(sim, list(
   keywords = "",
   authors = structure(list(list(given = c("First", "Middle"), family = "Last", role = c("aut", "cre"), email = "email@example.com", comment = NULL)), class = "person"),
   childModules = character(0),
-  version = list(fireSense_ELFs = "1.1.1"),
+  version = list(fireSense_ELFs = "1.1.2"),
   ## This module defines the study area every other fireSense module works in, so
   ## it has to be scheduled first. The object dependency graph only orders modules
   ## that actually exchange objects, so a module that needs the study area
@@ -331,6 +331,16 @@ Init <- function(sim) {
     
     sppEquiv <- LandR::sppEquivalencies_CA[get(sppEquivCol) %in% studyAreaSpp,]
     sppEquiv <- sppEquiv[LANDIS_traits != "",]
+
+    ## A few ELFs (3.2.1, 3.2.4, 3.2.5, 3.3.2) genuinely have no tree species; the fit then uses
+    ## nonForest fuel classes only. That used to be silent, and the run died several modules
+    ## later with "No trait values were found for ." naming nothing. This is the one place the
+    ## state is established, so it is announced here and only here.
+    if (NROW(sppEquiv) == 0L)
+      message("fireSense_ELFs: ELF ", ELF, ": no tree species found in this study area ",
+              "(LandR::speciesInStudyArea returned none with LANDIS traits). This is expected ",
+              "for a few non-forested ELFs and is not an error: the run proceeds with an empty ",
+              "sppEquiv, no species layers, no tree cohorts, and nonForest fuel classes only.")
 
     if ("PICE_ENG_GLA" %in% spp | "PICE_ENG" %in% spp) {
       #get both - treat them as the same - so 
