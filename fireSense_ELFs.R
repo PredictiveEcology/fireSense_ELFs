@@ -46,7 +46,7 @@ defineModule(sim, list(
                   "PredictiveEcology/LandR@development (>= 1.2.0.9012)",
                   "PredictiveEcology/scfmutils@development",
                   "deldir", "withr", "FOR-CAST/fireregimetools@main (>= 0.1.0.9006)",
-                  "PredictiveEcology/fireSenseUtils@development (>= 0.2.0.9000)",
+                  "PredictiveEcology/fireSenseUtils@development (>= 0.2.3.9017)",
                   "PredictiveEcology/SpaDES.project@development (>= 1.0.1.9205)"),
   parameters = bindrows(
     #defineParameter("paramName", "paramClass", value, min, max, "parameter description"),
