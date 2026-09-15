@@ -1,3 +1,19 @@
+# fireSense_ELFs 1.1.3
+
+- ELFs with too few fires can now be fitted by merging them with a neighbour. With `fireYears` set, `init`
+  counts each ELF's natural-cause ignitions (NFDB points) and fire polygons (NBAC) over those years, reading
+  the fire records as fireSense_dataPrepFit does. An ELF below `minNaturalIgnitions` or `minFirePolygons`
+  (50 each) merges with the neighbouring ELF of the same base and depth that shares the longest border, and
+  the merged ELF is named by the shared base and the members' last parts (3.2.1 with 3.2.4 is `3.2.1_4`).
+  If the pair is still too thin, neither is fitted. The results are the outputs `ELFfireStatus`, `ELFmerges`
+  and `ELFsExcluded`, which `fireSenseUtils::runELFs()` leaves out of the queue. The merge happens before this
+  run's ELF is picked, and an `.ELFind` naming a merged member runs as its merged ELF. ELFs of ecozones 1
+  and 2 are out permanently: they are neither counted nor merged. `fireYears = NULL` (the default) keeps the
+  previous behaviour.
+- The national ELF map and the fire counts are cached with `useCache = TRUE`: they do not depend on the ELF,
+  and under `spades.useCache = "eventsOnly"` a plain `Cache()` there is skipped, so every job would rebuild
+  them.
+
 # fireSense_ELFs 1.1.2
 
 - an ELF with no tree species now says so, once: `Init`'s `sppEquiv` block emits a single
