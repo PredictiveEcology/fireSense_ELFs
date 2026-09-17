@@ -1,3 +1,18 @@
+# fireSense_ELFs 1.1.4
+
+- `Init` takes its species table from `LandR::speciesInStudyArea()$sppEquiv` instead of building
+  one here. LandR applies the same rules this module did by hand -- no `_Spp` genus entries, only
+  species with `LANDIS_traits`, and the white x Engelmann spruce hybrid merged into Engelmann
+  spruce -- so the fireSense modules and the Biomass modules now read one table built in one
+  place, and its logic is tested in LandR rather than here. `sppEquivCol` is passed through, so
+  the table comes back keyed on the naming convention this run uses.
+- **needs `LandR >= 1.2.0.9021`.** `sppEquiv` was added to the return value at 1.2.0.9020, the
+  version LandR `development` already carried, so a floor of `>= 1.2.0.9020` would also be met by
+  an earlier 1.2.0.9020 whose `speciesInStudyArea()` returns no `sppEquiv` -- failing at run time
+  with an empty species table instead of at install time.
+- The no-tree-species announcement (1.1.2) is unchanged and still made here: LandR returns the
+  0-row table, this module says which ELF it belongs to.
+
 # fireSense_ELFs 1.1.3
 
 - ELFs with too few fires can now be fitted by merging them with a neighbour. With `fireYears` set, `init`

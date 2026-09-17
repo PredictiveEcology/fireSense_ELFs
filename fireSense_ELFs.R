@@ -13,7 +13,7 @@ defineModule(sim, list(
            role = c("aut", "cre"))
   ),
   childModules = character(0),
-  version = list(fireSense_ELFs = "1.1.3"),
+  version = list(fireSense_ELFs = "1.1.4"),
   ## This module defines the study area every other fireSense module works in, so
   ## it has to be scheduled first. The object dependency graph only orders modules
   ## that actually exchange objects, so a module that needs the study area
@@ -43,7 +43,7 @@ defineModule(sim, list(
   reqdPkgs = list("SpaDES.core (>= 3.0.1)", "terra", 
                   "PredictiveEcology/reproducible@development (>= 3.2.1.9025)",
                   "PredictiveEcology/SpaDES.core@development (>= 3.2.1.9003)",
-                  "PredictiveEcology/LandR@development (>= 1.2.0.9012)",
+                  "PredictiveEcology/LandR@development (>= 1.2.0.9021)",
                   "PredictiveEcology/scfmutils@development",
                   "deldir", "withr", "FOR-CAST/fireregimetools@main (>= 0.1.0.9006)",
                   "PredictiveEcology/fireSenseUtils@development (>= 0.2.3.9017)",
@@ -376,39 +376,21 @@ Init <- function(sim) {
   
   
   # studyAreaReporting <- studyAreaELF
-  sppEquiv <- {
-    species <- LandR::speciesInStudyArea(studyAreaELF, dPath = inputPath) |>
-      reproducible::Cache(omitArgs = "studyArea", .cacheExtra = list(sa = attr(studyAreaELF, "tags")))
-    spp <- grep("_Spp", species$speciesList, invert = TRUE, value = TRUE)
-    column <- LandR::equivalentNameColumn(spp, LandR::sppEquivalencies_CA)
-    #for ForSITE, merge Pice_eng_gla and Pice_eng, and make sure Pinus contorta includes both variants
-    sppEquivCol <- P(sim)$sppEquivCol
-    studyAreaSpp <- LandR::equivalentName(spp, LandR::sppEquivalencies_CA, column = sppEquivCol, searchColumn = column)
-    
-    sppEquiv <- LandR::sppEquivalencies_CA[get(sppEquivCol) %in% studyAreaSpp,]
-    sppEquiv <- sppEquiv[LANDIS_traits != "",]
+  ## The species table (no _Spp genus entries, only species with LANDIS traits, Engelmann
+  ## spruce merged into Pice_eng) comes from LandR, so every module uses the same one.
+  species <- LandR::speciesInStudyArea(studyAreaELF, sppEquivCol = P(sim)$sppEquivCol, dPath = inputPath) |>
+    reproducible::Cache(omitArgs = "studyArea", .cacheExtra = list(sa = attr(studyAreaELF, "tags")))
+  sppEquiv <- species$sppEquiv
 
-    ## A few ELFs (3.2.1, 3.2.4, 3.2.5, 3.3.2) genuinely have no tree species; the fit then uses
-    ## nonForest fuel classes only. That used to be silent, and the run died several modules
-    ## later with "No trait values were found for ." naming nothing. This is the one place the
-    ## state is established, so it is announced here and only here.
-    if (NROW(sppEquiv) == 0L)
-      message("fireSense_ELFs: ELF ", ELF, ": no tree species found in this study area ",
-              "(LandR::speciesInStudyArea returned none with LANDIS traits). This is expected ",
-              "for a few non-forested ELFs and is not an error: the run proceeds with an empty ",
-              "sppEquiv, no species layers, no tree cohorts, and nonForest fuel classes only.")
-
-    if ("PICE_ENG_GLA" %in% spp | "PICE_ENG" %in% spp) {
-      #get both - treat them as the same - so 
-      sppEquiv <- rbind(sppEquiv, 
-                        LandR::sppEquivalencies_CA[LandR %in% c("Pice_eng", "Pice_eng_gla")])
-      sppEquiv[LandR == "Pice_eng_gla", LandR := "Pice_eng"]
-      sppEquiv <- unique(sppEquiv)
-    }
-    ## The block's value is its last expression: without this line it was the `if`
-    ## above, i.e. NULL for every ELF without Engelmann spruce.
-    sppEquiv
-  }
+  ## A few ELFs (3.2.1, 3.2.4, 3.2.5, 3.3.2) genuinely have no tree species; the fit then uses
+  ## nonForest fuel classes only. That used to be silent, and the run died several modules
+  ## later with "No trait values were found for ." naming nothing. This is the one place the
+  ## state is established, so it is announced here and only here.
+  if (NROW(sppEquiv) == 0L)
+    message("fireSense_ELFs: ELF ", ELF, ": no tree species found in this study area ",
+            "(LandR::speciesInStudyArea returned none with LANDIS traits). This is expected ",
+            "for a few non-forested ELFs and is not an error: the run proceeds with an empty ",
+            "sppEquiv, no species layers, no tree cohorts, and nonForest fuel classes only.")
   studyAreaPSP <- {
     a <- reproducible::prepInputs(url = paste0("https://sis.agr.gc.ca/cansis/nsdb/ecostrat/",
                                                "province/ecoprovince_shp.zip"), dPath = inputPath,
