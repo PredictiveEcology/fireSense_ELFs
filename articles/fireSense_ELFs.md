@@ -1,7 +1,7 @@
 ---
 title: "fireSense_ELFs Manual"
-subtitle: "v.1.1.2"
-date: "Last updated: 2026-09-14"
+subtitle: "v.1.1.3"
+date: "Last updated: 2026-09-17"
 output:
   bookdown::html_document2:
     toc: true
@@ -144,6 +144,30 @@ Summary of user-visible parameters (Table \@ref(tab:moduleParams-fireSense-ELFs)
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> A character scalar indicating what the filename of the queue.rds file is from experimentTmux; if NULL, then this can't determine which ELFs are being run (no 'yellow' on the map) </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> fireYears </td>
+   <td style="text-align:left;"> integer </td>
+   <td style="text-align:left;">  </td>
+   <td style="text-align:left;"> NA </td>
+   <td style="text-align:left;"> NA </td>
+   <td style="text-align:left;"> Fire years over which each ELF's natural ignitions and fire polygons are counted. An ELF with too few is merged with a neighbour that shares its base, or not fitted (see `fireSenseUtils::ELFmergePlan()`). `NULL`: no counting and no merging. </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> minNaturalIgnitions </td>
+   <td style="text-align:left;"> numeric </td>
+   <td style="text-align:left;"> 50 </td>
+   <td style="text-align:left;"> 0 </td>
+   <td style="text-align:left;"> NA </td>
+   <td style="text-align:left;"> An ELF with fewer natural-cause ignitions than this over `fireYears` has too few fires. </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> minFirePolygons </td>
+   <td style="text-align:left;"> numeric </td>
+   <td style="text-align:left;"> 50 </td>
+   <td style="text-align:left;"> 0 </td>
+   <td style="text-align:left;"> NA </td>
+   <td style="text-align:left;"> An ELF with fewer fire polygons than this over `fireYears` has too few fires. </td>
   </tr>
   <tr>
    <td style="text-align:left;"> .plots </td>
@@ -300,6 +324,21 @@ Description of the module outputs (Table \@ref(tab:moduleOutputs-fireSense-ELFs)
    <td style="text-align:left;"> studyAreaPSP </td>
    <td style="text-align:left;"> SpatVector </td>
    <td style="text-align:left;"> NA </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> ELFsExcluded </td>
+   <td style="text-align:left;"> character </td>
+   <td style="text-align:left;"> ELFs with too few fires over `fireYears` that could not be merged; fireSenseUtils::runELFs() leaves them out of the queue. NULL when `fireYears` is NULL. </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> ELFfireStatus </td>
+   <td style="text-align:left;"> data.table </td>
+   <td style="text-align:left;"> Natural ignitions, fire polygons and zero/few/ok status of every ELF over `fireYears` (fireSenseUtils::ELFfitStatus()). NULL when `fireYears` is NULL. </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> ELFmerges </td>
+   <td style="text-align:left;"> data.table </td>
+   <td style="text-align:left;"> The merges and skips decided for ELFs with too few fires (fireSenseUtils::ELFmergePlan()). NULL when `fireYears` is NULL. </td>
   </tr>
   <tr>
    <td style="text-align:left;"> spreadFitPreRun </td>
