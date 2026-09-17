@@ -82,8 +82,11 @@ test_that("Init takes sppEquiv from LandR::speciesInStudyArea()", {
 ## (the fit uses nonForest fuel classes only); it must be announced once, here, and yield a
 ## 0-row table rather than NULL. LandR returns the 0-row table; this module announces it.
 test_that("an ELF with no tree species says so once and gets a 0-row table", {
-  withr::local_package("data.table")
-  empty <- LandR::sppEquivalencies_CA[0]
+  ## Subset the base way, never `DT[0]`: `[.data.table`'s NSE applies only to callers data.table
+  ## considers aware (`cedta()`), and a testthat frame inside this module's package namespace is
+  ## not one. There `DT[0]` is `[.data.frame`, which selects zero COLUMNS -- it passes when these
+  ## tests run from the global environment and fails under R CMD check.
+  empty <- LandR::sppEquivalencies_CA[integer(0), , drop = FALSE]
   out <- NULL
   msgs <- capture_messages(out <- runInit(empty, ELF = "3.2.1"))
 
@@ -95,7 +98,11 @@ test_that("an ELF with no tree species says so once and gets a 0-row table", {
 })
 
 test_that("an ELF with tree species emits no such message", {
-  withr::local_package("data.table")
-  msgs <- capture_messages(runInit(LandR::sppEquivalencies_CA[LandR %in% c("Abie_ama", "Pseu_men")]))
+  ## `$` rather than `[.data.table`'s NSE, for the cedta() reason above.
+  someSpecies <- LandR::sppEquivalencies_CA[
+    LandR::sppEquivalencies_CA$LandR %in% c("Abie_ama", "Pseu_men"), , drop = FALSE]
+  expect_gt(nrow(someSpecies), 0L)
+
+  msgs <- capture_messages(runInit(someSpecies))
   expect_false(any(grepl("no tree species", msgs)))
 })
