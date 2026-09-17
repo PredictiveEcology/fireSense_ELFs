@@ -24,7 +24,7 @@ sppEquivBlock <- function() {
   found
 }
 
-runBlock <- function(speciesList) {
+runBlock <- function(speciesList, ELF = "13.1") {
   local_mocked_bindings(speciesInStudyArea = function(...) list(speciesList = speciesList),
                         .package = "LandR", .env = parent.frame())
   local_mocked_bindings(Cache = function(FUN, ...) FUN, .package = "reproducible",
@@ -34,6 +34,7 @@ runBlock <- function(speciesList) {
   env$sim <- NULL
   env$studyAreaELF <- structure(list(), tags = "studyAreaELF")
   env$inputPath <- tempdir()
+  env$ELF <- ELF
   eval(sppEquivBlock(), env)
 }
 
@@ -64,4 +65,25 @@ test_that("an ELF with Engelmann spruce gets the merged Pice_eng row and the fil
   expect_false("Pice_eng_gla" %in% out$LandR)
   expect_true(all(out$LANDIS_traits != ""))
   expect_false("Popu_gra" %in% out$LandR)
+})
+
+## Four ELFs (3.2.1, 3.2.4, 3.2.5, 3.3.2) have no tree species at all. That is a valid state
+## (the fit uses nonForest fuel classes only); it must be announced once, here, and yield a
+## 0-row table rather than NULL.
+test_that("an ELF with no tree species says so once and gets a 0-row table", {
+  withr::local_package("data.table")
+  out <- NULL
+  msgs <- capture_messages(out <- runBlock(character(0), ELF = "3.2.1"))
+
+  expect_equal(sum(grepl("no tree species", msgs)), 1L)
+  expect_true(any(grepl("3.2.1", msgs)))
+  expect_s3_class(out, "data.table")
+  expect_identical(nrow(out), 0L)
+  expect_identical(names(out), names(LandR::sppEquivalencies_CA))
+})
+
+test_that("an ELF with tree species emits no such message", {
+  withr::local_package("data.table")
+  msgs <- capture_messages(runBlock(c("ABIE_AMA", "PSEU_MEN")))
+  expect_false(any(grepl("no tree species", msgs)))
 })

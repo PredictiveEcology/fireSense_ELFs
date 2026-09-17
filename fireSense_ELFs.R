@@ -8,9 +8,12 @@ defineModule(sim, list(
   name = "fireSense_ELFs",
   description = "Create ELFs for fireSense family of modules",
   keywords = "",
-  authors = structure(list(list(given = c("First", "Middle"), family = "Last", role = c("aut", "cre"), email = "email@example.com", comment = NULL)), class = "person"),
+  authors = c(
+    person("Eliot", "McIntire", email = "eliot.mcintire@nrcan-rncan.gc.ca",
+           role = c("aut", "cre"))
+  ),
   childModules = character(0),
-  version = list(fireSense_ELFs = "1.1.1"),
+  version = list(fireSense_ELFs = "1.1.3"),
   ## This module defines the study area every other fireSense module works in, so
   ## it has to be scheduled first. The object dependency graph only orders modules
   ## that actually exchange objects, so a module that needs the study area
@@ -39,10 +42,11 @@ defineModule(sim, list(
   documentation = list("NEWS.md", "README.md", "fireSense_ELFs.Rmd"),
   reqdPkgs = list("SpaDES.core (>= 3.0.1)", "terra", 
                   "PredictiveEcology/reproducible@development (>= 3.2.1.9025)",
-                  "PredictiveEcology/SpaDES.core@development (>= 3.1.2.9000)",
+                  "PredictiveEcology/SpaDES.core@development (>= 3.2.1.9003)",
+                  "PredictiveEcology/LandR@development (>= 1.2.0.9012)",
                   "PredictiveEcology/scfmutils@development",
-                  "deldir", "withr",
-                  "PredictiveEcology/fireSenseUtils@development (>= 0.2.0.9000)",
+                  "deldir", "withr", "FOR-CAST/fireregimetools@main (>= 0.1.0.9006)",
+                  "PredictiveEcology/fireSenseUtils@development (>= 0.2.3.9017)",
                   "PredictiveEcology/SpaDES.project@development (>= 1.0.1.9205)"),
   parameters = bindrows(
     #defineParameter("paramName", "paramClass", value, min, max, "parameter description"),
@@ -60,6 +64,14 @@ defineModule(sim, list(
     defineParameter("queue_path", "character", NULL,
                     NA, NA, "A character scalar indicating what the filename of the queue.rds file is from experimentTmux; ",
                     "if NULL, then this can't determine which ELFs are being run (no 'yellow' on the map)"),
+    defineParameter("fireYears", "integer", NULL, NA, NA,
+                    paste("Fire years over which each ELF's natural ignitions and fire polygons are counted.",
+                          "An ELF with too few is merged with a neighbour that shares its base, or not fitted",
+                          "(see `fireSenseUtils::ELFmergePlan()`). `NULL`: no counting and no merging.")),
+    defineParameter("minNaturalIgnitions", "numeric", 50, 0, NA,
+                    "An ELF with fewer natural-cause ignitions than this over `fireYears` has too few fires."),
+    defineParameter("minFirePolygons", "numeric", 50, 0, NA,
+                    "An ELF with fewer fire polygons than this over `fireYears` has too few fires."),
     defineParameter(".plots", "character", "screen", NA, NA,
                     "Used by Plots function, which can be optionally used here"),
     defineParameter(".plotInitialTime", "numeric", start(sim), NA, NA,
@@ -93,11 +105,17 @@ defineModule(sim, list(
                       # .cacheExtra   = quote(sim$.ELFind),
                       ## The same call init() uses to find the fitted-parameter file, so the
                       ## shared maps always go to that folder
-                      cloudFolderID = quote(SpaDES.core::paramCheckOtherMods(sim, "spreadFitGoogleDriveFolder"))
+                      cloudFolderID = quote(SpaDES.core::paramCheckOtherMods(sim, "spreadFitGoogleDriveFolder")),
+                      ## init reads this table inside the function, so its contents are not
+                      ## otherwise part of the key: a LandR change to it (e.g. a FuelClass)
+                      ## would keep returning the cached, stale sppEquiv, locally and from the cloud
+                      .cacheExtra   = quote(reproducible::.robustDigest(LandR::sppEquivalencies_CA))
                     )),
                     NA, NA,
                     paste("Extra `Cache()` arguments for each event. By default the `init` event",
-                          "uses `.useCloud` and caches to `spreadFitGoogleDriveFolder`; see `.useCloud`."))
+                          "uses `.useCloud` and caches to `spreadFitGoogleDriveFolder`; see `.useCloud`.",
+                          "Its key also includes a digest of `LandR::sppEquivalencies_CA`, which `init`",
+                          "reads, so a change to that table rebuilds the ELF maps instead of reusing old ones."))
   ),
   inputObjects = bindrows(
     #expectsInput("objectName", "objectClass", "input object description", sourceURL, ...),
@@ -129,6 +147,15 @@ defineModule(sim, list(
     # createsOutput("studyAreaReporting", objectClass = "SpatVector", desc = NA),
     createsOutput("sppEquiv", objectClass = "data.table", desc = NA),
     createsOutput("studyAreaPSP", objectClass = "SpatVector", desc = NA),
+    createsOutput("ELFsExcluded", "character",
+                  desc = paste("ELFs with too few fires over `fireYears` that could not be merged; fireSenseUtils::runELFs()",
+                               "leaves them out of the queue. NULL when `fireYears` is NULL.")),
+    createsOutput("ELFfireStatus", "data.table",
+                  desc = paste("Natural ignitions, fire polygons and zero/few/ok status of every ELF over `fireYears`",
+                               "(fireSenseUtils::ELFfitStatus()). NULL when `fireYears` is NULL.")),
+    createsOutput("ELFmerges", "data.table",
+                  desc = paste("The merges and skips decided for ELFs with too few fires (fireSenseUtils::ELFmergePlan()).",
+                               "NULL when `fireYears` is NULL.")),
     createsOutput("spreadFitPreRun", "data.frame",
                   desc = paste("This is a data.frame that has a geometry list column, so it can be ",
                                "converted to a sf or SpatVector (e.g., `terra::vect(sf::st_as_sf(sim$spreadFitPreRun))` ",
@@ -191,7 +218,8 @@ Init <- function(sim) {
     # fireSenseUtils::makeELFs(homogeneousFire, desiredBuffer = 20000, destinationPath = inputPath) |>
     fireSenseUtils::makeELFs(rastTemplate, desiredBuffer = 20000, destinationPath = inputPath, 
                              singleSpatVector = hasStudyAreaLarge) |>
-      Cache(omitArgs = "nationalForestPolygon",
+      ## the map does not depend on the ELF: cache it even when only events are cached (see below)
+      Cache(omitArgs = "nationalForestPolygon", useCache = TRUE,
             .cacheExtra = list(rt = attr(rastTemplate, "tags"),
                                makeELFs = fireSenseUtils::makeELFs,
                                bufferOutFn = fireSenseUtils:::bufferOut,
@@ -199,6 +227,40 @@ Init <- function(sim) {
                                merge = fireSenseUtils:::mergeAndSplitRas))
   }
   
+  ## ELFs with too few fires over `fireYears` are merged with a neighbour that shares their base, or
+  ## not fitted (fireSenseUtils::ELFmergePlan()). This must come before this run's ELF is picked out
+  ## of the map, since a merged ELF has its own layers. The counts do not depend on which ELF this run
+  ## is for, so their Cache has useCache = TRUE: under spades.useCache = "eventsOnly" a plain Cache()
+  ## is skipped and every job would recount the national fire records. The shapefiles' names carry the
+  ## release, so they key the result; their local paths differ per job and do not.
+  ELFsExcluded <- ELFfireStatus <- ELFmerges <- NULL
+  if (!is.null(Par$fireYears)) {
+    nfdbShp <- fireRecordShapefile(fireSenseUtils::nfdbPointUrl(), destinationPath = inputPath)
+    nbacShp <- fireRecordShapefile(fireSenseUtils::latestNBACUrl(), destinationPath = inputPath)
+    fewFire <- fewFireELFs(ELFs, fireYears = Par$fireYears,
+                           pixelAreaHa = prod(terra::res(rastTemplate)) / 1e4,
+                           nfdbShp = nfdbShp, nbacShp = nbacShp,
+                           minNaturalIgnitions = Par$minNaturalIgnitions,
+                           minFirePolygons = Par$minFirePolygons) |>
+      Cache(useCache = TRUE, omitArgs = c("nfdbShp", "nbacShp"),
+            .functionName = "fewFireELFs",
+            .cacheExtra = list(basename(nfdbShp), basename(nbacShp), fewFireELFs,
+                               fireSenseUtils::ELFfireCounts, fireSenseUtils::ELFfitStatus,
+                               fireSenseUtils::ELFneighbours, fireSenseUtils::ELFmergePlan,
+                               fireSenseUtils::mergeELFs))
+    ELFs <- fewFire$ELFs
+    ELFsExcluded <- fewFire$excluded
+    ELFfireStatus <- fewFire$status
+    ELFmerges <- fewFire$plan
+    ## A job is queued under a merged ELF's name, but the default `.ELFind` (e.g. from global.R) may
+    ## name one of its members
+    runAs <- fireSenseUtils::ELFrunName(ELF, ELFmerges)
+    if (!identical(runAs, ELF)) {
+      message("fireSense_ELFs: ELF ", ELF, " is part of merged ELF ", runAs, "; using ", runAs)
+      ELF <- runAs
+    }
+  }
+
   # Check on what fireSense_SpreadFit has already been run
   prepInputsFSURL <- SpaDES.core::paramCheckOtherMods(sim, "spreadFitGoogleDriveFolder")
   # prepInputsFSURL <- Par$spreadFitGoogleDriveFolder
@@ -325,6 +387,16 @@ Init <- function(sim) {
     
     sppEquiv <- LandR::sppEquivalencies_CA[get(sppEquivCol) %in% studyAreaSpp,]
     sppEquiv <- sppEquiv[LANDIS_traits != "",]
+
+    ## A few ELFs (3.2.1, 3.2.4, 3.2.5, 3.3.2) genuinely have no tree species; the fit then uses
+    ## nonForest fuel classes only. That used to be silent, and the run died several modules
+    ## later with "No trait values were found for ." naming nothing. This is the one place the
+    ## state is established, so it is announced here and only here.
+    if (NROW(sppEquiv) == 0L)
+      message("fireSense_ELFs: ELF ", ELF, ": no tree species found in this study area ",
+              "(LandR::speciesInStudyArea returned none with LANDIS traits). This is expected ",
+              "for a few non-forested ELFs and is not an error: the run proceeds with an empty ",
+              "sppEquiv, no species layers, no tree cohorts, and nonForest fuel classes only.")
 
     if ("PICE_ENG_GLA" %in% spp | "PICE_ENG" %in% spp) {
       #get both - treat them as the same - so 
