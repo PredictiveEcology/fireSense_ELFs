@@ -70,12 +70,605 @@
 
       </header><div class="row">
   <div class="contents col-md-9">
-
-<p>After knitting and rendering <code>fireSense_ELFs.Rmd</code>, overwrite this file with a symlink to <code>fireSense_ELFs.md</code>.</p>
-<p>E.g., on Linux/macOS from terminal:</p>
-<div class="sourceCode" id="cb1"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a><span class="bu">cd</span> /home/emcintir/GitHub/FireSenseTesting/modules/fireSense_ELFs</span>
-<span id="cb1-2"><a href="#cb1-2" tabindex="-1"></a><span class="fu">rm</span> README.md <span class="kw">&amp;&amp;</span> <span class="fu">ln</span> <span class="at">-s</span> fireSense_ELFs.md README.md</span></code></pre></div>
-
+<div class="section level1">
+<div class="page-header"><h1 id="firesense_elfs-module">fireSense_ELFs Module<a class="anchor" aria-label="anchor" href="#firesense_elfs-module"></a>
+</h1></div>
+<!-- the following are text references used in captions for LaTeX compatibility -->
+<p>(ref:fireSense-ELFs) <em>fireSense_ELFs</em></p>
+<p><a href="https://commonmark.org" class="external-link"><img src="figures/markdownBadge.png" alt="made-with-Markdown"></a></p>
+<!-- if knitting to pdf remember to add the pandoc_args: ["--extract-media", "."] option to yml in order to get the badge images -->
+<div class="section level4">
+<h4 id="authors">Authors:<a class="anchor" aria-label="anchor" href="#authors"></a>
+</h4>
+<p>Eliot McIntire <a href="mailto:eliot.mcintire@nrcan-rncan.gc.ca" class="email">eliot.mcintire@nrcan-rncan.gc.ca</a> [aut, cre] <!-- ideally separate authors with new lines, '\n' not working --></p>
+</div>
+<div class="section level2">
+<h2 id="module-overview">Module Overview<a class="anchor" aria-label="anchor" href="#module-overview"></a>
+</h2>
+<div class="section level3">
+<h3 id="module-summary">Module summary<a class="anchor" aria-label="anchor" href="#module-summary"></a>
+</h3>
+<p>Provide a brief summary of what the module does / how to use the module.</p>
+<p>Module documentation should be written so that others can use your module. This is a template for module documentation, and should be changed to reflect your module.</p>
+</div>
+<div class="section level3">
+<h3 id="module-inputs-and-parameters">Module inputs and parameters<a class="anchor" aria-label="anchor" href="#module-inputs-and-parameters"></a>
+</h3>
+<p>Describe input data required by the module and how to obtain it (e.g., directly from online sources or supplied by other modules) If <code>sourceURL</code> is specified, <code>downloadData("fireSense_ELFs", "..")</code> may be sufficient.</p>
+<p>Table @ref(tab:moduleInputs-fireSense-ELFs) shows the full list of module inputs.</p>
+<table class="table table" style="margin-left: auto; margin-right: auto;">
+<caption>
+(#tab:moduleInputs-fireSense-ELFs)(#tab:moduleInputs-fireSense-ELFs)List of (ref:fireSense-ELFs) input objects and their description.
+</caption>
+<thead><tr>
+<th style="text-align:left;">
+objectName
+</th>
+<th style="text-align:left;">
+objectClass
+</th>
+<th style="text-align:left;">
+desc
+</th>
+<th style="text-align:left;">
+sourceURL
+</th>
+</tr></thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+.ELFind
+</td>
+<td style="text-align:left;">
+character
+</td>
+<td style="text-align:left;">
+Some descriptive, short name for this fitting, e.g., ELF14.1
+</td>
+<td style="text-align:left;">
+NA
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+studyAreaLarge
+</td>
+<td style="text-align:left;">
+SpatVector
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+NA
+</td>
+</tr>
+</tbody>
+</table>
+<div class="section level4">
+<h4 id="sharing-the-elf-maps-usecloud">Sharing the ELF maps: <code>.useCloud</code>
+<a class="anchor" aria-label="anchor" href="#sharing-the-elf-maps-usecloud"></a>
+</h4>
+<p>Building the ELF maps in the <code>init</code> event is slow, so its results are shared with everyone through Google Drive. They are saved to the same fireSense folder that holds the fitted-parameter file (<code>fireSenseParams*.rds</code>): the folder named by <code>spreadFitGoogleDriveFolder</code>. Everyone reads from and writes to this one folder.</p>
+<ul>
+<li>
+<code>.useCloud = TRUE</code> (the default): if someone has already built the maps with the same inputs, download them; otherwise build them and upload them for the next person.</li>
+<li>
+<code>.useCloud = "pull"</code>: download if available, but never upload. Use this if you can read the folder but not write to it. Uploads that fail are not fatal in any case; the run carries on with the local copy.</li>
+<li>
+<code>.useCloud = FALSE</code>: do not use Google Drive for this; build locally.</li>
+</ul>
+<p>This needs Google Drive access to that folder, which the module already needs: <code>init</code> reads the fitted-parameter file from it. Pass the folder as its bare ID, or as a link that has something after the ID (e.g. ending in <code>?usp=drive_link</code>); until reproducible’s link handling is fixed, a link that ends exactly at the ID is not recognised, and the results go to a folder that is not shared.</p>
+<p>Summary of user-visible parameters (Table @ref(tab:moduleParams-fireSense-ELFs))</p>
+<table class="table table" style="margin-left: auto; margin-right: auto;">
+<caption>
+(#tab:moduleParams-fireSense-ELFs)(#tab:moduleParams-fireSense-ELFs)List of (ref:fireSense-ELFs) parameters and their description.
+</caption>
+<thead><tr>
+<th style="text-align:left;">
+paramName
+</th>
+<th style="text-align:left;">
+paramClass
+</th>
+<th style="text-align:left;">
+default
+</th>
+<th style="text-align:left;">
+min
+</th>
+<th style="text-align:left;">
+max
+</th>
+<th style="text-align:left;">
+paramDesc
+</th>
+</tr></thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+sppEquivCol
+</td>
+<td style="text-align:left;">
+character
+</td>
+<td style="text-align:left;">
+LandR
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+The column in <code>sim$speciesEquivalency</code> data.table to use as a naming convention.
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+spreadFitFilename
+</td>
+<td style="text-align:left;">
+character
+</td>
+<td style="text-align:left;">
+fireSens….
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+A Googledrive folder url where a file with fireSense studyArea exists as an ‘sf’ class object
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+spreadFitGoogleDriveFolder
+</td>
+<td style="text-align:left;">
+character
+</td>
+<td style="text-align:left;">
+<a href="https://" class="external-link uri">https://</a>….
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+A Googledrive folder url where a file with fireSense studyArea exists as an ‘sf’ class object
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+queue_path
+</td>
+<td style="text-align:left;">
+character
+</td>
+<td style="text-align:left;">
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+A character scalar indicating what the filename of the queue.rds file is from experimentTmux; if NULL, then this can’t determine which ELFs are being run (no ‘yellow’ on the map)
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+fireYears
+</td>
+<td style="text-align:left;">
+integer
+</td>
+<td style="text-align:left;">
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+Fire years over which each ELF’s natural ignitions and fire polygons are counted. An ELF with too few is merged with a neighbour that shares its base, or not fitted (see <code><a href="https://rdrr.io/pkg/fireSenseUtils/man/ELFmergePlan.html" class="external-link">fireSenseUtils::ELFmergePlan()</a></code>). <code>NULL</code>: no counting and no merging.
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+minNaturalIgnitions
+</td>
+<td style="text-align:left;">
+numeric
+</td>
+<td style="text-align:left;">
+50
+</td>
+<td style="text-align:left;">
+0
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+An ELF with fewer natural-cause ignitions than this over <code>fireYears</code> has too few fires.
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+minFirePolygons
+</td>
+<td style="text-align:left;">
+numeric
+</td>
+<td style="text-align:left;">
+50
+</td>
+<td style="text-align:left;">
+0
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+An ELF with fewer fire polygons than this over <code>fireYears</code> has too few fires.
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+.plots
+</td>
+<td style="text-align:left;">
+character
+</td>
+<td style="text-align:left;">
+screen
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+Used by Plots function, which can be optionally used here
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+.plotInitialTime
+</td>
+<td style="text-align:left;">
+numeric
+</td>
+<td style="text-align:left;">
+0
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+Describes the simulation time at which the first plot event should occur.
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+.plotInterval
+</td>
+<td style="text-align:left;">
+numeric
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+Describes the simulation time interval between plot events.
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+.saveInitialTime
+</td>
+<td style="text-align:left;">
+numeric
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+Describes the simulation time at which the first save event should occur.
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+.saveInterval
+</td>
+<td style="text-align:left;">
+numeric
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+This describes the simulation time interval between save events.
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+.studyAreaName
+</td>
+<td style="text-align:left;">
+character
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+Human-readable name for the study area used - e.g., a hash of the studyarea obtained using <code><a href="https://reproducible.predictiveecology.org/reference/studyAreaName.html" class="external-link">reproducible::studyAreaName()</a></code>
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+.useCache
+</td>
+<td style="text-align:left;">
+logical
+</td>
+<td style="text-align:left;">
+init
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+Should caching of events or module be used?
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+.useCloud
+</td>
+<td style="text-align:left;">
+logical,….
+</td>
+<td style="text-align:left;">
+TRUE
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+Share the ELF maps built in the <code>init</code> event through Google Drive, in the fireSense folder named by <code>spreadFitGoogleDriveFolder</code> (the same folder that holds the fitted-parameter file). <code>TRUE</code>: download the maps if someone has already built them with the same inputs, otherwise build and upload them. <code>"pull"</code>: download only, never upload (for read-only access). <code>FALSE</code>: build locally without Google Drive. Needs Google Drive access to that folder.
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+.useCacheArgs
+</td>
+<td style="text-align:left;">
+list
+</td>
+<td style="text-align:left;">
+list(use….
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+Extra <code>Cache()</code> arguments for each event. By default the <code>init</code> event uses <code>.useCloud</code> and caches to <code>spreadFitGoogleDriveFolder</code>; see <code>.useCloud</code>. Its key also includes a digest of <code><a href="https://landr.predictiveecology.org/reference/sppEquivalencies_CA.html" class="external-link">LandR::sppEquivalencies_CA</a></code>, which <code>init</code> reads, so a change to that table rebuilds the ELF maps instead of reusing old ones.
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div class="section level3">
+<h3 id="events">Events<a class="anchor" aria-label="anchor" href="#events"></a>
+</h3>
+<p>Describe what happens for each event type.</p>
+</div>
+<div class="section level3">
+<h3 id="plotting">Plotting<a class="anchor" aria-label="anchor" href="#plotting"></a>
+</h3>
+<p>Write what is plotted.</p>
+</div>
+<div class="section level3">
+<h3 id="saving">Saving<a class="anchor" aria-label="anchor" href="#saving"></a>
+</h3>
+<p>Write what is saved.</p>
+</div>
+<div class="section level3">
+<h3 id="module-outputs">Module outputs<a class="anchor" aria-label="anchor" href="#module-outputs"></a>
+</h3>
+<p>Description of the module outputs (Table @ref(tab:moduleOutputs-fireSense-ELFs)).</p>
+<table class="table table" style="margin-left: auto; margin-right: auto;">
+<caption>
+(#tab:moduleOutputs-fireSense-ELFs)(#tab:moduleOutputs-fireSense-ELFs)List of (ref:fireSense-ELFs) outputs and their description.
+</caption>
+<thead><tr>
+<th style="text-align:left;">
+objectName
+</th>
+<th style="text-align:left;">
+objectClass
+</th>
+<th style="text-align:left;">
+desc
+</th>
+</tr></thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+homogeneousFire
+</td>
+<td style="text-align:left;">
+SpatRaster
+</td>
+<td style="text-align:left;">
+NA
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+ELFs
+</td>
+<td style="text-align:left;">
+SpatRaster
+</td>
+<td style="text-align:left;">
+NA
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+rasterToMatchLargeELF
+</td>
+<td style="text-align:left;">
+SpatRaster
+</td>
+<td style="text-align:left;">
+A very coarse rasterToMatch (5kmx5km); with the ELF values on it
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+rasterToMatchELF
+</td>
+<td style="text-align:left;">
+SpatRaster
+</td>
+<td style="text-align:left;">
+This will be smaller than rasterToMatchLargeELF if the studyAreaLarge covers less than one ELF, i.e., the buffers will be removed. But if there are no buffers (i.e., studyAreaLarge covers more than one ELF), then it will be same as rasterToMatchLargeELF
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+rasterToMatch
+</td>
+<td style="text-align:left;">
+SpatRaster
+</td>
+<td style="text-align:left;">
+If not supplied from another source, it will be studyArea, with metadata from trim(ELFs<span class="math inline">$rasCentred) &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; studyArea &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; SpatVector &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; NA &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; studyAreaLarge &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; SpatVector &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; This will be the inputted studyAreaLarge, but intersected with the ELFs that have results for them &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; studyAreaLargeELF &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; SpatVector &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; NA &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; studyAreaELF &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; SpatVector &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; NA &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; sppEquiv &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; data.table &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; NA &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; studyAreaPSP &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; SpatVector &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; NA &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; ELFsExcluded &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; character &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; ELFs with too few fires over `fireYears` that could not be merged; fireSenseUtils::runELFs() leaves them out of the queue. NULL when `fireYears` is NULL. &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; ELFfireStatus &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; data.table &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; Natural ignitions, fire polygons and zero/few/ok status of every ELF over `fireYears` (fireSenseUtils::ELFfitStatus()). NULL when `fireYears` is NULL. &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; ELFmerges &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; data.table &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; The merges and skips decided for ELFs with too few fires (fireSenseUtils::ELFmergePlan()). NULL when `fireYears` is NULL. &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; spreadFitPreRun &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; data.frame &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; This is a data.frame that has a geometry list column, so it can be converted to a sf or SpatVector (e.g., `terra::vect(sf::st_as_sf(sim$</span>spreadFitPreRun))` , plus other mostly list columns: numIterations, objFunVal (not list), params, sppEquiv, nonForestedLCCGroups, missingLCCgroup, and polygonID. These are from previously fitted SpreadFit. If no pre-existing object exists from CacheGeo, this will be NULL
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section level3">
+<h3 id="links-to-other-modules">Links to other modules<a class="anchor" aria-label="anchor" href="#links-to-other-modules"></a>
+</h3>
+<p>Describe any anticipated linkages to other modules, such as modules that supply input data or do post-hoc analysis.</p>
+</div>
+<div class="section level3">
+<h3 id="getting-help">Getting help<a class="anchor" aria-label="anchor" href="#getting-help"></a>
+</h3>
+<ul>
+<li>provide a way for people to obtain help (e.g., module repository issues page)</li>
+</ul>
+</div>
+</div>
+<div class="section level2">
+<h2 id="references">References<a class="anchor" aria-label="anchor" href="#references"></a>
+</h2>
+<!-- autogenerated from bibligraphy -->
+</div>
+</div>
   </div>
 
   <div class="col-md-3 hidden-xs hidden-sm" id="pkgdown-sidebar">
