@@ -1,20 +1,38 @@
-## ELFs with too few fires: count the fires in every ELF, merge each thin ELF with a neighbour that
-## shares its base, and list the ones that still cannot be fitted (fireSenseUtils::ELFmergePlan()).
-## Eliot, 2026-09-14: "The ELFs that have too few fires need to have the possibility of being merged
-## with a neighbor."
-##
 ## Fire records are fetched and read as fireSense_dataPrepFit reads them for the fit
 ## (fireSense_dataPrepFit/R/fireRecords.R): archives through reproducible::preProcess(), shapefiles
 ## through fireregimetools, fires of every size. So the gate and the fit count the same fires.
 
-## The shapefile in the fire-record archive at `url`, downloaded into `destinationPath` if needed. Its
-## name carries the release, so callers key their Cache on the name.
+#' Path to the shapefile in a fire-record archive
+#'
+#' Downloads the archive if needed. The shapefile's name carries the release, so
+#' callers key their Cache on the name.
+#'
+#' @param url URL of the archive.
+#' @param destinationPath Directory to download and extract into.
+#' @param ... Passed to `reproducible::preProcess()`.
+#'
+#' @return Character path(s) of the `.shp` file(s) in the archive.
 fireRecordShapefile <- function(url, destinationPath, ...) {
   files <- reproducible::preProcess(url = url, destinationPath = destinationPath, fun = NA, ...)$targetFilePath
   grep("\\.shp$", files, value = TRUE)
 }
 
-## Fire status of every ELF, the merge plan, the merged maps and the ELFs not fitted.
+#' Count fires per ELF and merge ELFs with too few
+#'
+#' Merges each ELF with too few fires with a neighbour that shares its base
+#' (`fireSenseUtils::ELFmergePlan()`). Arctic ELFs (`fireSenseUtils::ELFsArctic()`)
+#' are neither counted nor merged.
+#'
+#' @param ELFs List from `fireSenseUtils::makeELFs()`.
+#' @param fireYears Integer vector of years to count fires over.
+#' @param pixelAreaHa Area of one pixel of the ELF rasters, in ha.
+#' @param nfdbShp Path to the NFDB fire points shapefile.
+#' @param nbacShp Path to the NBAC fire polygons shapefile.
+#' @param minNaturalIgnitions Fewer natural-cause ignitions than this is too few.
+#' @param minFirePolygons Fewer fire polygons than this is too few.
+#'
+#' @return List: `ELFs` (the merged maps), `status` (`fireSenseUtils::ELFfitStatus()`),
+#'   `plan` (`fireSenseUtils::ELFmergePlan()`) and `excluded` (names of ELFs not fitted).
 fewFireELFs <- function(ELFs, fireYears, pixelAreaHa, nfdbShp, nbacShp,
                         minNaturalIgnitions = 50, minFirePolygons = 50) {
   ## ecozones 1 and 2 are out permanently: not counted, not merged (fireSenseUtils::ELFsArctic())

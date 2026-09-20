@@ -45,15 +45,21 @@ download.file(url = "https://img.shields.io/badge/Made%20with-Markdown-1f425f.pn
 
 ### Module summary
 
-Provide a brief summary of what the module does / how to use the module.
+ELFs (Ecologically-based Low Fractal-dimensional polygons) are the buffered regions of Canada that the fireSense models are fitted in, one at a time (`fireSenseUtils::makeELFs()`).
+This module makes the national ELF maps and the study area objects every other fireSense module uses: `studyArea`, `studyAreaLarge`, `rasterToMatch`, their `*ELF` versions, `sppEquiv` and `studyAreaPSP`.
+It is scheduled before the other fireSense modules.
 
-Module documentation should be written so that others can use your module.
-This is a template for module documentation, and should be changed to reflect your module.
+The study area is chosen in one of two ways. Supplying both is an error unless they agree.
+
+- `.ELFind` (e.g. `"4.3"`): that single ELF. `*LargeELF` objects include its 20 km buffer; `*ELF` objects do not. This is what fitting uses.
+- `studyAreaLarge`: the ELFs the polygon overlaps that already have fitted SpreadFit parameters. This is what prediction uses.
+
+If `fireYears` is set, ELFs with too few natural ignitions (`minNaturalIgnitions`) or fire polygons (`minFirePolygons`) over those years are merged with a neighbour that shares their base, or listed in `ELFsExcluded` (`fireSenseUtils::ELFmergePlan()`).
+
+The module also reads the previously fitted SpreadFit parameters (`spreadFitFilename` in `spreadFitGoogleDriveFolder`) into `spreadFitPreRun`; a missing file means nothing has been fitted yet.
+It needs Google Drive access to that folder.
 
 ### Module inputs and parameters
-
-Describe input data required by the module and how to obtain it (e.g., directly from online sources or supplied by other modules)
-If `sourceURL` is specified, `downloadData("fireSense_ELFs", "..")` may be sufficient.
 
 Table \@ref(tab:moduleInputs-fireSense-ELFs) shows the full list of module inputs.
 
@@ -95,15 +101,15 @@ knitr::kable(df_params, caption = "List of (ref:fireSense-ELFs) parameters and t
 
 ### Events
 
-Describe what happens for each event type.
+`init` only; it does everything above.
 
 ### Plotting
 
-Write what is plotted.
+Unless `.plots` is `NA`, `init` plots a map of all ELFs (green: already fitted; yellow: running now, if `queue_path` is given) and the study areas of this run. Plot files go to `inputPath`.
 
 ### Saving
 
-Write what is saved.
+Nothing is saved apart from the rasters and downloads written to `inputPath`.
 
 ### Module outputs
 
@@ -115,13 +121,26 @@ knitr::kable(df_outputs, caption = "List of (ref:fireSense-ELFs) outputs and the
   kableExtra::kable_styling(latex_options = "scale_down", full_width = TRUE)
 ```
 
+### Usage
+
+```{r module usage example, eval = FALSE}
+library(SpaDES.core)
+
+mySim <- simInit(times = list(start = 2011, end = 2011),
+                 modules = list("fireSense_ELFs"),
+                 objects = list(.ELFind = "4.3"),
+                 params = list(fireSense_ELFs = list(.useCloud = "pull")),
+                 paths = list(modulePath = ".."))
+mySim <- spades(mySim)
+```
+
 ### Links to other modules
 
-Describe any anticipated linkages to other modules, such as modules that supply input data or do post-hoc analysis.
+All other fireSense modules, and the LandR modules run with them, take their study area, `rasterToMatch` and `sppEquiv` from this module.
 
 ### Getting help
 
--   provide a way for people to obtain help (e.g., module repository issues page)
+- <https://github.com/PredictiveEcology/fireSense_ELFs/issues>
 
 ## References
 
