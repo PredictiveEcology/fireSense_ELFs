@@ -44,7 +44,6 @@ defineModule(sim, list(
                   "PredictiveEcology/reproducible@development (>= 3.2.1.9025)",
                   "PredictiveEcology/SpaDES.core@development (>= 3.2.1.9003)",
                   "PredictiveEcology/LandR@development (>= 1.2.0.9021)",
-                  "PredictiveEcology/scfmutils@development",
                   "deldir", "withr", "FOR-CAST/fireregimetools@main (>= 0.1.0.9006)",
                   "PredictiveEcology/fireSenseUtils@development (>= 0.2.3.9017)",
                   "PredictiveEcology/SpaDES.project@development (>= 1.0.1.9205)"),
@@ -107,8 +106,6 @@ defineModule(sim, list(
                  sourceURL = NA) # nolint: in_no_default
   ),
   outputObjects = bindrows(
-    createsOutput("homogeneousFire", objectClass = "SpatRaster",
-                  desc = "Fire regime units from `scfmutils::prepInputsFireRegimePolys(type = \"FRU\")`."),
     createsOutput("ELFs", objectClass = "SpatRaster",
                   desc = paste("All ELFs, from `fireSenseUtils::makeELFs()`: a list with `rasWhole` and `rasCentered`",
                                "(one SpatRaster per ELF), plus `poly` when `studyAreaLarge` is supplied.")),
@@ -130,8 +127,6 @@ defineModule(sim, list(
                   desc = "Polygons of `rasterToMatchELF`."),
     createsOutput("sppEquiv", objectClass = "data.table",
                   desc = "Species table for `studyAreaELF` from `LandR::speciesInStudyArea()`. Zero rows for a few non-forested ELFs."),
-    createsOutput("studyAreaPSP", objectClass = "SpatVector",
-                  desc = "The ecoprovinces that overlap `studyAreaLarge`; an input of `Biomass_speciesParameters`."),
     createsOutput("ELFsExcluded", "character",
                   desc = paste("ELFs with too few fires over `fireYears` that could not be merged; fireSenseUtils::runELFs()",
                                "leaves them out of the queue. NULL when `fireYears` is NULL.")),
@@ -176,7 +171,7 @@ doEvent.fireSense_ELFs = function(sim, eventTime, eventType) {
 #'
 #' Makes the national ELF maps, optionally merges ELFs with too few fires, reads
 #' the previously fitted SpreadFit parameters from Google Drive, then derives the
-#' study areas, rasters to match, `sppEquiv` and `studyAreaPSP` for `.ELFind` or
+#' study areas, rasters to match and `sppEquiv` for `.ELFind` or
 #' for the ELFs under `studyAreaLarge`. Plots them if `.plots` asks for it.
 #'
 #' @param sim A `simList`.
@@ -196,12 +191,6 @@ Init <- function(sim) {
   #   will be cleaned up at the end of the function
   rastTemplate <- ELFtemplateRaster(inputPath)
 
-  homogeneousFire <- {
-    {
-      scfmutils::prepInputsFireRegimePolys(type = "FRU", destinationPath = inputPath) |>
-        reproducible::Cache(cacheSaveFormat = "rds")
-    }}
-  
   hasStudyAreaLarge <- !is.null(sim$studyAreaLarge)
   ELFs <- {
     fireSenseUtils::makeELFs(rastTemplate, desiredBuffer = 20000, destinationPath = inputPath, 
@@ -360,18 +349,6 @@ Init <- function(sim) {
             "(LandR::speciesInStudyArea returned none with LANDIS traits). This is expected ",
             "for a few non-forested ELFs and is not an error: the run proceeds with an empty ",
             "sppEquiv, no species layers, no tree cohorts, and nonForest fuel classes only.")
-  studyAreaPSP <- {
-    a <- reproducible::prepInputs(url = paste0("https://sis.agr.gc.ca/cansis/nsdb/ecostrat/",
-                                               "province/ecoprovince_shp.zip"), dPath = inputPath,
-                                  fun = "terra::vect", projectTo = studyAreaELF) |>
-      reproducible::Cache(.functionName = "prepInputs_ecoprovince",
-                          omitArgs = "projectTo", .cacheExtra = list(sa = attr(studyAreaELF, "tags")))
-    b <- reproducible::postProcess(a, studyArea = studyAreaLarge) |>
-      reproducible::Cache(omitArgs = c("x", "studyArea"), .cacheExtra = list(sa = attr(studyAreaLarge, "tags"),
-                                                                             sa = attr(a, "tags")))
-    ecoprovinces <- unique(b$ECOPROVINC)
-    a[a$ECOPROVINC %in% ecoprovinces]
-  }
   
   if (is.null(sim$studyArea)) # conditional; can't put it in metadata or this will not be run first
     studyArea <- studyAreaLarge

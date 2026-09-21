@@ -46,7 +46,7 @@ download.file(url = "https://img.shields.io/badge/Made%20with-Markdown-1f425f.pn
 ### Module summary
 
 ELFs (Ecologically-based Low Fractal-dimensional polygons) are the buffered regions of Canada that the fireSense models are fitted in, one at a time (`fireSenseUtils::makeELFs()`).
-This module makes the national ELF maps and the study area objects every other fireSense module uses: `studyArea`, `studyAreaLarge`, `rasterToMatch`, their `*ELF` versions, `sppEquiv` and `studyAreaPSP`.
+This module makes the national ELF maps and the study area objects every other fireSense module uses: `studyArea`, `studyAreaLarge`, `rasterToMatch`, their `*ELF` versions and `sppEquiv`.
 It is scheduled before the other fireSense modules.
 
 The study area is chosen in one of two ways. Supplying both is an error unless they agree.
