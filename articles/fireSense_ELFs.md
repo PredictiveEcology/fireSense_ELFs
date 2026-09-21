@@ -1,7 +1,7 @@
 ---
 title: "fireSense_ELFs Manual"
 subtitle: "v.1.1.4"
-date: "Last updated: 2026-09-18"
+date: "Last updated: 2026-09-21"
 output:
   bookdown::html_document2:
     toc: true
@@ -39,15 +39,21 @@ Eliot McIntire <eliot.mcintire@nrcan-rncan.gc.ca> [aut, cre]
 
 ### Module summary
 
-Provide a brief summary of what the module does / how to use the module.
+ELFs (Ecologically-based Low Fractal-dimensional polygons) are the buffered regions of Canada that the fireSense models are fitted in, one at a time (`fireSenseUtils::makeELFs()`).
+This module makes the national ELF maps and the study area objects every other fireSense module uses: `studyArea`, `studyAreaLarge`, `rasterToMatch`, their `*ELF` versions and `sppEquiv`.
+It is scheduled before the other fireSense modules.
 
-Module documentation should be written so that others can use your module.
-This is a template for module documentation, and should be changed to reflect your module.
+The study area is chosen in one of two ways. Supplying both is an error unless they agree.
+
+- `.ELFind` (e.g. `"4.3"`): that single ELF. `*LargeELF` objects include its 20 km buffer; `*ELF` objects do not. This is what fitting uses.
+- `studyAreaLarge`: the ELFs the polygon overlaps that already have fitted SpreadFit parameters. This is what prediction uses.
+
+If `fireYears` is set, ELFs with too few natural ignitions (`minNaturalIgnitions`) or fire polygons (`minFirePolygons`) over those years are merged with a neighbour that shares their base, or listed in `ELFsExcluded` (`fireSenseUtils::ELFmergePlan()`).
+
+The module also reads the previously fitted SpreadFit parameters (`spreadFitFilename` in `spreadFitGoogleDriveFolder`) into `spreadFitPreRun`; a missing file means nothing has been fitted yet.
+It needs Google Drive access to that folder.
 
 ### Module inputs and parameters
-
-Describe input data required by the module and how to obtain it (e.g., directly from online sources or supplied by other modules)
-If `sourceURL` is specified, `downloadData("fireSense_ELFs", "..")` may be sufficient.
 
 Table \@ref(tab:moduleInputs-fireSense-ELFs) shows the full list of module inputs.
 
@@ -65,13 +71,13 @@ Table \@ref(tab:moduleInputs-fireSense-ELFs) shows the full list of module input
   <tr>
    <td style="text-align:left;"> .ELFind </td>
    <td style="text-align:left;"> character </td>
-   <td style="text-align:left;"> Some descriptive, short name for this fitting, e.g., ELF14.1 </td>
+   <td style="text-align:left;"> Name of the ELF to use as the study area, e.g. "4.3" (the default). </td>
    <td style="text-align:left;"> NA </td>
   </tr>
   <tr>
    <td style="text-align:left;"> studyAreaLarge </td>
    <td style="text-align:left;"> SpatVector </td>
-   <td style="text-align:left;"> NA </td>
+   <td style="text-align:left;"> Optional. If supplied, the study area is the ELFs it overlaps that have fitted SpreadFit parameters, instead of `.ELFind`. Supply one or the other, not both. </td>
    <td style="text-align:left;"> NA </td>
   </tr>
 </tbody>
@@ -127,7 +133,7 @@ Summary of user-visible parameters (Table \@ref(tab:moduleParams-fireSense-ELFs)
    <td style="text-align:left;"> fireSens.... </td>
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> NA </td>
-   <td style="text-align:left;"> A Googledrive folder url where a file with fireSense studyArea exists as an 'sf' class object </td>
+   <td style="text-align:left;"> Name of the file in `spreadFitGoogleDriveFolder` that holds previously fitted SpreadFit parameters. </td>
   </tr>
   <tr>
    <td style="text-align:left;"> spreadFitGoogleDriveFolder </td>
@@ -135,7 +141,7 @@ Summary of user-visible parameters (Table \@ref(tab:moduleParams-fireSense-ELFs)
    <td style="text-align:left;"> https://.... </td>
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> NA </td>
-   <td style="text-align:left;"> A Googledrive folder url where a file with fireSense studyArea exists as an 'sf' class object </td>
+   <td style="text-align:left;"> Google Drive folder URL that holds `spreadFitFilename` and, with `.useCloud`, the shared ELF maps. </td>
   </tr>
   <tr>
    <td style="text-align:left;"> queue_path </td>
@@ -175,7 +181,7 @@ Summary of user-visible parameters (Table \@ref(tab:moduleParams-fireSense-ELFs)
    <td style="text-align:left;"> screen </td>
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> NA </td>
-   <td style="text-align:left;"> Used by Plots function, which can be optionally used here </td>
+   <td style="text-align:left;"> Passed to `types` in `Plots()`. If any, `init` plots the map of all ELFs and this run's study areas. </td>
   </tr>
   <tr>
    <td style="text-align:left;"> .plotInitialTime </td>
@@ -183,31 +189,7 @@ Summary of user-visible parameters (Table \@ref(tab:moduleParams-fireSense-ELFs)
    <td style="text-align:left;"> 0 </td>
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> NA </td>
-   <td style="text-align:left;"> Describes the simulation time at which the first plot event should occur. </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> .plotInterval </td>
-   <td style="text-align:left;"> numeric </td>
-   <td style="text-align:left;"> NA </td>
-   <td style="text-align:left;"> NA </td>
-   <td style="text-align:left;"> NA </td>
-   <td style="text-align:left;"> Describes the simulation time interval between plot events. </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> .saveInitialTime </td>
-   <td style="text-align:left;"> numeric </td>
-   <td style="text-align:left;"> NA </td>
-   <td style="text-align:left;"> NA </td>
-   <td style="text-align:left;"> NA </td>
-   <td style="text-align:left;"> Describes the simulation time at which the first save event should occur. </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> .saveInterval </td>
-   <td style="text-align:left;"> numeric </td>
-   <td style="text-align:left;"> NA </td>
-   <td style="text-align:left;"> NA </td>
-   <td style="text-align:left;"> NA </td>
-   <td style="text-align:left;"> This describes the simulation time interval between save events. </td>
+   <td style="text-align:left;"> `NA` turns off screen plots in `Plots()`. No plot event is scheduled. </td>
   </tr>
   <tr>
    <td style="text-align:left;"> .studyAreaName </td>
@@ -215,7 +197,7 @@ Summary of user-visible parameters (Table \@ref(tab:moduleParams-fireSense-ELFs)
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> NA </td>
-   <td style="text-align:left;"> Human-readable name for the study area used - e.g., a hash of the studyarea obtained using `reproducible::studyAreaName()` </td>
+   <td style="text-align:left;"> Human-readable name for the study area; used in the filename of the single-ELF raster. </td>
   </tr>
   <tr>
    <td style="text-align:left;"> .useCache </td>
@@ -223,7 +205,7 @@ Summary of user-visible parameters (Table \@ref(tab:moduleParams-fireSense-ELFs)
    <td style="text-align:left;"> init </td>
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> NA </td>
-   <td style="text-align:left;"> Should caching of events or module be used? </td>
+   <td style="text-align:left;"> Events to cache. The default caches `init`; see `.useCloud`. </td>
   </tr>
   <tr>
    <td style="text-align:left;"> .useCloud </td>
@@ -246,15 +228,15 @@ Summary of user-visible parameters (Table \@ref(tab:moduleParams-fireSense-ELFs)
 
 ### Events
 
-Describe what happens for each event type.
+`init` only; it does everything above.
 
 ### Plotting
 
-Write what is plotted.
+Unless `.plots` is `NA`, `init` plots a map of all ELFs (green: already fitted; yellow: running now, if `queue_path` is given) and the study areas of this run. Plot files go to `inputPath`.
 
 ### Saving
 
-Write what is saved.
+Nothing is saved apart from the rasters and downloads written to `inputPath`.
 
 ### Module outputs
 
@@ -271,59 +253,49 @@ Description of the module outputs (Table \@ref(tab:moduleOutputs-fireSense-ELFs)
  </thead>
 <tbody>
   <tr>
-   <td style="text-align:left;"> homogeneousFire </td>
-   <td style="text-align:left;"> SpatRaster </td>
-   <td style="text-align:left;"> NA </td>
-  </tr>
-  <tr>
    <td style="text-align:left;"> ELFs </td>
    <td style="text-align:left;"> SpatRaster </td>
-   <td style="text-align:left;"> NA </td>
+   <td style="text-align:left;"> All ELFs, from `fireSenseUtils::makeELFs()`: a list with `rasWhole` and `rasCentered` (one SpatRaster per ELF), plus `poly` when `studyAreaLarge` is supplied. </td>
   </tr>
   <tr>
    <td style="text-align:left;"> rasterToMatchLargeELF </td>
    <td style="text-align:left;"> SpatRaster </td>
-   <td style="text-align:left;"> A very coarse rasterToMatch (5kmx5km); with the ELF values on it </td>
+   <td style="text-align:left;"> Raster of the ELF(s) in the study area, including the ELF buffer when a single ELF is used. </td>
   </tr>
   <tr>
    <td style="text-align:left;"> rasterToMatchELF </td>
    <td style="text-align:left;"> SpatRaster </td>
-   <td style="text-align:left;"> This will be smaller than rasterToMatchLargeELF if the studyAreaLarge covers less than one ELF, i.e., the buffers will be removed. But if there are no buffers (i.e., studyAreaLarge covers more than one ELF), then it will be same as rasterToMatchLargeELF </td>
+   <td style="text-align:left;"> `rasterToMatchLargeELF` without the buffer when a single ELF is used; identical to it when `studyAreaLarge` is supplied. </td>
   </tr>
   <tr>
    <td style="text-align:left;"> rasterToMatch </td>
    <td style="text-align:left;"> SpatRaster </td>
-   <td style="text-align:left;"> If not supplied from another source, it will be studyArea, with metadata from trim(ELFs$rasCentred) </td>
+   <td style="text-align:left;"> Only if not already in the `simList`: the national template raster cropped and masked to `studyAreaLarge`; 1 inside, `NA` outside. </td>
   </tr>
   <tr>
    <td style="text-align:left;"> studyArea </td>
    <td style="text-align:left;"> SpatVector </td>
-   <td style="text-align:left;"> NA </td>
+   <td style="text-align:left;"> Only if not already in the `simList`: same as `studyAreaLarge`. </td>
   </tr>
   <tr>
    <td style="text-align:left;"> studyAreaLarge </td>
    <td style="text-align:left;"> SpatVector </td>
-   <td style="text-align:left;"> This will be the inputted studyAreaLarge, but intersected with the ELFs that have results for them </td>
+   <td style="text-align:left;"> Single ELF: the buffered ELF. `studyAreaLarge` supplied: the supplied polygon intersected with the ELFs that have fitted SpreadFit parameters, dissolved. </td>
   </tr>
   <tr>
    <td style="text-align:left;"> studyAreaLargeELF </td>
    <td style="text-align:left;"> SpatVector </td>
-   <td style="text-align:left;"> NA </td>
+   <td style="text-align:left;"> Polygons of `rasterToMatchLargeELF`. </td>
   </tr>
   <tr>
    <td style="text-align:left;"> studyAreaELF </td>
    <td style="text-align:left;"> SpatVector </td>
-   <td style="text-align:left;"> NA </td>
+   <td style="text-align:left;"> Polygons of `rasterToMatchELF`. </td>
   </tr>
   <tr>
    <td style="text-align:left;"> sppEquiv </td>
    <td style="text-align:left;"> data.table </td>
-   <td style="text-align:left;"> NA </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> studyAreaPSP </td>
-   <td style="text-align:left;"> SpatVector </td>
-   <td style="text-align:left;"> NA </td>
+   <td style="text-align:left;"> Species table for `studyAreaELF` from `LandR::speciesInStudyArea()`. Zero rows for a few non-forested ELFs. </td>
   </tr>
   <tr>
    <td style="text-align:left;"> ELFsExcluded </td>
@@ -348,13 +320,27 @@ Description of the module outputs (Table \@ref(tab:moduleOutputs-fireSense-ELFs)
 </tbody>
 </table>
 
+### Usage
+
+
+``` r
+library(SpaDES.core)
+
+mySim <- simInit(times = list(start = 2011, end = 2011),
+                 modules = list("fireSense_ELFs"),
+                 objects = list(.ELFind = "4.3"),
+                 params = list(fireSense_ELFs = list(.useCloud = "pull")),
+                 paths = list(modulePath = "../.."))
+mySim <- spades(mySim)
+```
+
 ### Links to other modules
 
-Describe any anticipated linkages to other modules, such as modules that supply input data or do post-hoc analysis.
+All other fireSense modules, and the LandR modules run with them, take their study area, `rasterToMatch` and `sppEquiv` from this module.
 
 ### Getting help
 
--   provide a way for people to obtain help (e.g., module repository issues page)
+- <https://github.com/PredictiveEcology/fireSense_ELFs/issues>
 
 ## References
 
