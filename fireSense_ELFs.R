@@ -44,23 +44,17 @@ defineModule(sim, list(
                   "PredictiveEcology/reproducible@development (>= 3.2.1.9025)",
                   "PredictiveEcology/SpaDES.core@development (>= 3.2.1.9003)",
                   "PredictiveEcology/LandR@development (>= 1.2.0.9021)",
-                  "PredictiveEcology/scfmutils@development",
                   "deldir", "withr", "FOR-CAST/fireregimetools@main (>= 0.1.0.9006)",
                   "PredictiveEcology/fireSenseUtils@development (>= 0.2.3.9017)",
                   "PredictiveEcology/SpaDES.project@development (>= 1.0.1.9205)"),
   parameters = bindrows(
-    #defineParameter("paramName", "paramClass", value, min, max, "parameter description"),
     defineParameter("sppEquivCol", "character", "LandR", NA, NA,
                     "The column in `sim$speciesEquivalency` data.table to use as a naming convention."),
     defineParameter("spreadFitFilename", "character", "fireSenseParams.rds",
-                    NA, NA, "A Googledrive folder url where a file with fireSense studyArea exists as an 'sf' class object"),
+                    NA, NA, "Name of the file in `spreadFitGoogleDriveFolder` that holds previously fitted SpreadFit parameters."),
     defineParameter("spreadFitGoogleDriveFolder", "character",
                     "https://drive.google.com/drive/folders/1X9-mRjyLMNpgkP_cfqhbr_AQEPOsVCHf",
-                    # KNN pre Oct 2025: "https://drive.google.com/drive/u/0/folders/1spxq7CnL4kNcJoUQlRek2CmBJ1InAmbP",
-                    NA, NA, "A Googledrive folder url where a file with fireSense studyArea exists as an 'sf' class object"),
-    # defineParameter("hashSpreadFitRemoteFile", "character", NULL,
-    #                 NA, NA, "A character scalar with the remote hash value e.g., from reproducible:::getRemoteMetadata, ",
-    #                 " which will determine whether the module needs to be rerun"),
+                    NA, NA, "Google Drive folder URL that holds `spreadFitFilename` and, with `.useCloud`, the shared ELF maps."),
     defineParameter("queue_path", "character", NULL,
                     NA, NA, "A character scalar indicating what the filename of the queue.rds file is from experimentTmux; ",
                     "if NULL, then this can't determine which ELFs are being run (no 'yellow' on the map)"),
@@ -73,23 +67,13 @@ defineModule(sim, list(
     defineParameter("minFirePolygons", "numeric", 50, 0, NA,
                     "An ELF with fewer fire polygons than this over `fireYears` has too few fires."),
     defineParameter(".plots", "character", "screen", NA, NA,
-                    "Used by Plots function, which can be optionally used here"),
+                    "Passed to `types` in `Plots()`. If any, `init` plots the map of all ELFs and this run's study areas."),
     defineParameter(".plotInitialTime", "numeric", start(sim), NA, NA,
-                    "Describes the simulation time at which the first plot event should occur."),
-    defineParameter(".plotInterval", "numeric", NA, NA, NA,
-                    "Describes the simulation time interval between plot events."),
-    defineParameter(".saveInitialTime", "numeric", NA, NA, NA,
-                    "Describes the simulation time at which the first save event should occur."),
-    defineParameter(".saveInterval", "numeric", NA, NA, NA,
-                    "This describes the simulation time interval between save events."),
+                    "`NA` turns off screen plots in `Plots()`. No plot event is scheduled."),
     defineParameter(".studyAreaName", "character", NA, NA, NA,
-                    "Human-readable name for the study area used - e.g., a hash of the study",
-                          "area obtained using `reproducible::studyAreaName()`"),
-    ## .seed is optional: `list('init' = 123)` will `set.seed(123)` for the `init` event only.
-    # defineParameter(".seed", "list", list('init' = 123), NA, NA,
-    #                 "Named list of seeds to use for each event (names)."),
+                    "Human-readable name for the study area; used in the filename of the single-ELF raster."),
     defineParameter(".useCache", "logical", "init", NA, NA,
-                    "Should caching of events or module be used?"),
+                    "Events to cache. The default caches `init`; see `.useCloud`."),
     defineParameter(".useCloud", c("logical", "character"), TRUE, NA, NA,
                     paste("Share the ELF maps built in the `init` event through Google Drive, in the",
                           "fireSense folder named by `spreadFitGoogleDriveFolder` (the same folder that",
@@ -99,10 +83,7 @@ defineModule(sim, list(
                           "locally without Google Drive. Needs Google Drive access to that folder.")),
     defineParameter(".useCacheArgs", "list",
                     list(init = list(
-                      # cacheId       = quote(paste0("fireSense_ELFs_v1.0_ELF", sim$.ELFind)),
                       useCloud      = quote(P(sim)[[".useCloud"]]),
-                      # omitArgs = TRUE,
-                      # .cacheExtra   = quote(sim$.ELFind),
                       ## The same call init() uses to find the fitted-parameter file, so the
                       ## shared maps always go to that folder
                       cloudFolderID = quote(SpaDES.core::paramCheckOtherMods(sim, "spreadFitGoogleDriveFolder")),
@@ -118,35 +99,34 @@ defineModule(sim, list(
                           "reads, so a change to that table rebuilds the ELF maps instead of reusing old ones."))
   ),
   inputObjects = bindrows(
-    #expectsInput("objectName", "objectClass", "input object description", sourceURL, ...),
-    expectsInput(".ELFind", "character", "Some descriptive, short name for this fitting, e.g., ELF14.1"),
-    expectsInput("studyAreaLarge", objectClass = "SpatVector", desc = NA, sourceURL = NA) # nolint: in_no_default
-    
+    expectsInput(".ELFind", "character", "Name of the ELF to use as the study area, e.g. \"4.3\" (the default)."),
+    expectsInput("studyAreaLarge", objectClass = "SpatVector",
+                 desc = paste("Optional. If supplied, the study area is the ELFs it overlaps that have fitted",
+                              "SpreadFit parameters, instead of `.ELFind`. Supply one or the other, not both."),
+                 sourceURL = NA) # nolint: in_no_default
   ),
   outputObjects = bindrows(
-    #createsOutput("objectName", "objectClass", "output object description", ...),
-    # createsOutput("rastTemplate", obje$tClass = "SpatRaster", desc = NA),
-    createsOutput("homogeneousFire", objectClass = "SpatRaster", desc = NA),
-    createsOutput("ELFs", objectClass = "SpatRaster", desc = NA),
+    createsOutput("ELFs", objectClass = "SpatRaster",
+                  desc = paste("All ELFs, from `fireSenseUtils::makeELFs()`: a list with `rasWhole` and `rasCentered`",
+                               "(one SpatRaster per ELF), plus `poly` when `studyAreaLarge` is supplied.")),
     createsOutput("rasterToMatchLargeELF", objectClass = "SpatRaster", 
-                  desc = "A very coarse rasterToMatch (5kmx5km); with the ELF values on it"),
-    createsOutput("rasterToMatchELF", objectClass = "SpatRaster", desc = "This will be smaller than ",
-                  "rasterToMatchLargeELF if the studyAreaLarge covers less than one ELF, ",
-                  "i.e., the buffers will be removed. But if there are no buffers (i.e., ",
-                  "studyAreaLarge covers more than one ELF), then it will be same as ", 
-                  "rasterToMatchLargeELF"),
+                  desc = "Raster of the ELF(s) in the study area, including the ELF buffer when a single ELF is used."),
+    createsOutput("rasterToMatchELF", objectClass = "SpatRaster",
+                  desc = paste("`rasterToMatchLargeELF` without the buffer when a single ELF is used;",
+                               "identical to it when `studyAreaLarge` is supplied.")),
     createsOutput("rasterToMatch", objectClass = "SpatRaster",
-                  desc = "If not supplied from another source, it will be studyArea, ",
-                  "with metadata from trim(ELFs$rasCentred)"),
-    createsOutput("studyArea", objectClass = "SpatVector", desc = NA),
+                  desc = "Only if not already in the `simList`: the national template raster cropped and masked to `studyAreaLarge`; 1 inside, `NA` outside."),
+    createsOutput("studyArea", objectClass = "SpatVector",
+                  desc = "Only if not already in the `simList`: same as `studyAreaLarge`."),
     createsOutput("studyAreaLarge", objectClass = "SpatVector", 
-                  desc = "This will be the inputted studyAreaLarge, but intersected with ", 
-                  "the ELFs that have results for them"),
-    createsOutput("studyAreaLargeELF", objectClass = "SpatVector", desc = NA),
-    createsOutput("studyAreaELF", objectClass = "SpatVector", desc = NA),
-    # createsOutput("studyAreaReporting", objectClass = "SpatVector", desc = NA),
-    createsOutput("sppEquiv", objectClass = "data.table", desc = NA),
-    createsOutput("studyAreaPSP", objectClass = "SpatVector", desc = NA),
+                  desc = paste("Single ELF: the buffered ELF. `studyAreaLarge` supplied: the supplied polygon intersected",
+                               "with the ELFs that have fitted SpreadFit parameters, dissolved.")),
+    createsOutput("studyAreaLargeELF", objectClass = "SpatVector",
+                  desc = "Polygons of `rasterToMatchLargeELF`."),
+    createsOutput("studyAreaELF", objectClass = "SpatVector",
+                  desc = "Polygons of `rasterToMatchELF`."),
+    createsOutput("sppEquiv", objectClass = "data.table",
+                  desc = "Species table for `studyAreaELF` from `LandR::speciesInStudyArea()`. Zero rows for a few non-forested ELFs."),
     createsOutput("ELFsExcluded", "character",
                   desc = paste("ELFs with too few fires over `fireYears` that could not be merged; fireSenseUtils::runELFs()",
                                "leaves them out of the queue. NULL when `fireYears` is NULL.")),
@@ -164,34 +144,39 @@ defineModule(sim, list(
                                "nonForestedLCCGroups, missingLCCgroup, and polygonID. These are from ",
                                "previously fitted SpreadFit. If no pre-existing object exists from ",
                                "CacheGeo, this will be NULL"))
-    
   )
 ))
 
+#' Event dispatcher
+#'
+#' The only event is `init`.
+#'
+#' @param sim A `simList`.
+#' @param eventTime Time of the event.
+#' @param eventType `"init"`.
+#'
+#' @return The `simList`, invisibly.
 doEvent.fireSense_ELFs = function(sim, eventTime, eventType) {
   switch(
     eventType,
     init = {
-      ### check for more detailed object dependencies:
-      ### (use `checkObject` or similar)
-
-      # do stuff for this event
       sim <- Init(sim)
-
-      # schedule future event(s)
-      # sim <- scheduleEvent(sim, P(sim)$.plotInitialTime, "fireSense_ELFs", "plot")
-      # sim <- scheduleEvent(sim, P(sim)$.saveInitialTime, "fireSense_ELFs", "save")
     },
-    plot = {
-      plotFun(sim) # example of a plotting function
-    },
-    save = {},
     warning(noEventWarning(sim))
   )
   return(invisible(sim))
 }
 
-### template initialization
+#' Build the ELF maps and this run's study area objects
+#'
+#' Makes the national ELF maps, optionally merges ELFs with too few fires, reads
+#' the previously fitted SpreadFit parameters from Google Drive, then derives the
+#' study areas, rasters to match and `sppEquiv` for `.ELFind` or
+#' for the ELFs under `studyAreaLarge`. Plots them if `.plots` asks for it.
+#'
+#' @param sim A `simList`.
+#'
+#' @return The `simList`, invisibly, with every declared output assigned.
 Init <- function(sim) {
   # The generation of the ELFs has a tiny bit of randomness; we don't actually
   #   want this; they should be identical
@@ -200,22 +185,14 @@ Init <- function(sim) {
   
   inputPath <- inputPath(sim)
   ELF <- as.character(sim$.ELFind)
-  # ll <- list(
 
   # This template is not specific to any one ELF; it is the same for all; so the 
   #   sequence below allows the Cache to find it once, because it is in memory; it
   #   will be cleaned up at the end of the function
   rastTemplate <- ELFtemplateRaster(inputPath)
 
-  homogeneousFire <- {
-    {
-      scfmutils::prepInputsFireRegimePolys(type = "FRU", destinationPath = inputPath) |>
-        reproducible::Cache(cacheSaveFormat = "rds")
-    }}
-  
   hasStudyAreaLarge <- !is.null(sim$studyAreaLarge)
   ELFs <- {
-    # fireSenseUtils::makeELFs(homogeneousFire, desiredBuffer = 20000, destinationPath = inputPath) |>
     fireSenseUtils::makeELFs(rastTemplate, desiredBuffer = 20000, destinationPath = inputPath, 
                              singleSpatVector = hasStudyAreaLarge) |>
       ## the map does not depend on the ELF: cache it even when only events are cached (see below)
@@ -263,10 +240,8 @@ Init <- function(sim) {
 
   # Check on what fireSense_SpreadFit has already been run
   prepInputsFSURL <- SpaDES.core::paramCheckOtherMods(sim, "spreadFitGoogleDriveFolder")
-  # prepInputsFSURL <- Par$spreadFitGoogleDriveFolder
   gdLs <- googledrive::drive_ls(prepInputsFSURL)
   fireSenseParamsRDS <- SpaDES.core::paramCheckOtherMods(sim, "spreadFitFilename")
-  # fireSenseParamsRDS <- Par$spreadFitFilename
   remoteFile <- gdLs[gdLs$name %in% fireSenseParamsRDS,]
   ## A ledger that does not exist yet means "nothing has been fitted", which is the
   ## normal state at the start of a new experiment: the first completed fit creates
@@ -291,8 +266,6 @@ Init <- function(sim) {
 
     out <- ELFsInStudyArea(sim$studyAreaLarge, ELFsRaster = ELFs["rasWhole"], 
                            ELFsPolygon = ELFs$poly, inputPath = inputPath(sim))
-    # terra::plot(out$rast, main = "ELFs that touch Yukon/BC Mountain Caribou Ranges")
-    # terra::plot(terra::project(sim$studyAreaLarge, out$rast), add = TRUE)
     ELFsNeeded <- unique(out$poly$ID)
     ## Both study areas were supplied and they disagree: stop rather than pick one
     ## silently, which once produced five identically-fitted "different" ELFs.
@@ -311,8 +284,6 @@ Init <- function(sim) {
     }
     
     pp <- terra::project(pp, sim$studyAreaLarge)
-    # There are holes that show up
-    # pp1 <- terra::buffer(terra::buffer(terra::aggregate(pp), width = 1000), width = -1000)
     pp <- terra::intersect(pp, sim$studyAreaLarge)
     studyAreaLargeELF <- terra::project(pp, ELFs$rasWhole[[1]])
     rr <- rasterize(studyAreaLargeELF, ELFs$rasWhole[[1]], field = "ELFind")
@@ -327,7 +298,6 @@ Init <- function(sim) {
   } else {
     rtml <- ELFs$rasWhole[[ELF]]
     rasterToMatchLargeELF <- {
-      # rtml <- ELFs$rasWhole[[ELF]]
       if (identical(1, terra::freq(is.na(rtml))$value))
         stop("This ELF has no data")
       rtml[rtml[] == 0] <- NA
@@ -343,9 +313,7 @@ Init <- function(sim) {
     }
     studyAreaLargeELF <- {
       {
-        terra::as.polygons(rasterToMatchLargeELF > 0) # |>
-        #  terra::buffer(width = d1) |>
-        #  terra::buffer(width = -d1)
+        terra::as.polygons(rasterToMatchLargeELF > 0)
       } |> Cache(omitArgs = c("x"), .functionName = "studyAreaLargeELF",
                  .cacheExtra = list(rtml = attr(rasterToMatchLargeELF, "tags")))
     }
@@ -360,22 +328,12 @@ Init <- function(sim) {
     }
     studyAreaELF <- {
       terra::as.polygons(rasterToMatchELF) |>
-        #  terra::buffer(width = d1) |>
-        #  terra::buffer(width = -d1)
         Cache(omitArgs = c("x"), .functionName = "studyArea",
               .cacheExtra = list(rtm = attr(rasterToMatchELF, "tags")))
     }
     studyAreaLarge <- studyAreaLargeELF
   }
   
-  # rastTemplate <- { # This is HUGE 2+GB
-  #   { postProcess(rastTemplate, to = rasterToMatchLargeELF,
-  #                 writeTo = file.path(inputPath, paste0("rasterTemplate_", ELF,".tif")))} |>
-  #     Cache(omitArgs = c("x"), .cacheExtra = attr(rastTemplate, "tags"))
-  # }
-  
-  
-  # studyAreaReporting <- studyAreaELF
   ## The species table (no _Spp genus entries, only species with LANDIS traits, Engelmann
   ## spruce merged into Pice_eng) comes from LandR, so every module uses the same one.
   species <- LandR::speciesInStudyArea(studyAreaELF, sppEquivCol = P(sim)$sppEquivCol, dPath = inputPath) |>
@@ -391,18 +349,6 @@ Init <- function(sim) {
             "(LandR::speciesInStudyArea returned none with LANDIS traits). This is expected ",
             "for a few non-forested ELFs and is not an error: the run proceeds with an empty ",
             "sppEquiv, no species layers, no tree cohorts, and nonForest fuel classes only.")
-  studyAreaPSP <- {
-    a <- reproducible::prepInputs(url = paste0("https://sis.agr.gc.ca/cansis/nsdb/ecostrat/",
-                                               "province/ecoprovince_shp.zip"), dPath = inputPath,
-                                  fun = "terra::vect", projectTo = studyAreaELF) |>
-      reproducible::Cache(.functionName = "prepInputs_ecoprovince",
-                          omitArgs = "projectTo", .cacheExtra = list(sa = attr(studyAreaELF, "tags")))
-    b <- reproducible::postProcess(a, studyArea = studyAreaLarge) |>
-      reproducible::Cache(omitArgs = c("x", "studyArea"), .cacheExtra = list(sa = attr(studyAreaLarge, "tags"),
-                                                                             sa = attr(a, "tags")))
-    ecoprovinces <- unique(b$ECOPROVINC)
-    a[a$ECOPROVINC %in% ecoprovinces] # |> terra::aggregate()
-  }
   
   if (is.null(sim$studyArea)) # conditional; can't put it in metadata or this will not be run first
     studyArea <- studyAreaLarge
@@ -414,10 +360,8 @@ Init <- function(sim) {
   }
   
   # Put them all in the sim
-  # rm(list = "rastTemplate", envir = envir(sim)) # don't need this
   objsHere <- depends(sim)@dependencies[[currentModule(sim)]]@outputObjects$objectName
   list2env(mget(objsHere, envir = environment()), envir = envir(sim))
-  ## 
   
   if (anyPlotting(Par$.plots)) {
     
@@ -444,9 +388,7 @@ Init <- function(sim) {
           fn = SpaDES.project::plotSAs,
           filename = paste0("studyAreas", sim$.ELFind),
           path = inputPath,
-          # ggsaveArgs = list(width = 11, height = 8, units = "in", res = 300),
           ggsaveArgs = list(width = 11, height = 8, units = "in"),
-          # deviceArgs = list(width = 11, height = 8, units = "in", res = 300),
           useCache = TRUE)
     
   }
@@ -459,33 +401,15 @@ Init <- function(sim) {
   
   return(invisible(sim))
 }
-### template for save events
-Save <- function(sim) {
-  # ! ----- EDIT BELOW ----- ! #
-  # do stuff for this event
-  sim <- saveFiles(sim)
 
-  # ! ----- STOP EDITING ----- ! #
-  return(invisible(sim))
-}
-
-### template for plot events
-plotFun <- function(sim) {
-  # ! ----- EDIT BELOW ----- ! #
-  # do stuff for this event
-  sampleData <- data.frame("TheSample" = sample(1:10, replace = TRUE))
-  Plots(sampleData, fn = ggplotFn) # needs ggplot2
-
-  # ! ----- STOP EDITING ----- ! #
-  return(invisible(sim))
-}
-
-ggplotFn <- function(data, ...) {
-  ggplot2::ggplot(data, ggplot2::aes(TheSample)) +
-    ggplot2::geom_histogram(...)
-}
-
-
+#' Plot all ELFs, marking those already fitted and those running
+#'
+#' @param centred List of per-ELF `SpatRaster`s (`ELFs$rasCentered`); cells equal to 2 are the ELF without its buffer.
+#' @param crsToUse CRS that all ELFs are projected to for plotting.
+#' @param alreadyRun `data.frame` with a geometry column (`sim$spreadFitPreRun`); drawn green. May be `NULL`.
+#' @param runningELFs Character vector of ELF names that are running; drawn yellow. May be `NULL`.
+#'
+#' @return Called for its plot.
 plotAllELFsFn <- function(centred, crsToUse, alreadyRun, runningELFs) {
   allELFs <- { Map(r = centred, function(r) {
     r2 <- r == 2
@@ -516,6 +440,14 @@ plotAllELFsFn <- function(centred, crsToUse, alreadyRun, runningELFs) {
   terra::text(cen, label = gsub("^X", "", names(allELFs)), cex = 0.8)
 }
 
+#' Default `.ELFind`
+#'
+#' Sets `sim$.ELFind` to `"4.3"` if not supplied, and records in
+#' `mod$ELFindSupplied` whether it was.
+#'
+#' @param sim A `simList`.
+#'
+#' @return The `simList`.
 .inputObjects <- function(sim) {
   
   ## Init has to tell an ELF the user asked for from the fallback below: only the
