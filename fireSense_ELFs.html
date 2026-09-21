@@ -2973,7 +2973,7 @@ border-radius: 0px;
 
 <h1 class="title toc-ignore">fireSense_ELFs Manual</h1>
 <h3 class="subtitle">v.1.1.4</h3>
-<h4 class="date">Last updated: 2026-09-18</h4>
+<h4 class="date">Last updated: 2026-09-21</h4>
 
 </div>
 
@@ -2993,14 +2993,20 @@ border-radius: 0px;
 <h2>Module Overview</h2>
 <div id="module-summary" class="section level3">
 <h3>Module summary</h3>
-<p>Provide a brief summary of what the module does / how to use the module.</p>
-<p>Module documentation should be written so that others can use your module.
-This is a template for module documentation, and should be changed to reflect your module.</p>
+<p>ELFs (Ecologically-based Low Fractal-dimensional polygons) are the buffered regions of Canada that the fireSense models are fitted in, one at a time (<code>fireSenseUtils::makeELFs()</code>).
+This module makes the national ELF maps and the study area objects every other fireSense module uses: <code>studyArea</code>, <code>studyAreaLarge</code>, <code>rasterToMatch</code>, their <code>*ELF</code> versions and <code>sppEquiv</code>.
+It is scheduled before the other fireSense modules.</p>
+<p>The study area is chosen in one of two ways. Supplying both is an error unless they agree.</p>
+<ul>
+<li><code>.ELFind</code> (e.g. <code>&quot;4.3&quot;</code>): that single ELF. <code>*LargeELF</code> objects include its 20 km buffer; <code>*ELF</code> objects do not. This is what fitting uses.</li>
+<li><code>studyAreaLarge</code>: the ELFs the polygon overlaps that already have fitted SpreadFit parameters. This is what prediction uses.</li>
+</ul>
+<p>If <code>fireYears</code> is set, ELFs with too few natural ignitions (<code>minNaturalIgnitions</code>) or fire polygons (<code>minFirePolygons</code>) over those years are merged with a neighbour that shares their base, or listed in <code>ELFsExcluded</code> (<code>fireSenseUtils::ELFmergePlan()</code>).</p>
+<p>The module also reads the previously fitted SpreadFit parameters (<code>spreadFitFilename</code> in <code>spreadFitGoogleDriveFolder</code>) into <code>spreadFitPreRun</code>; a missing file means nothing has been fitted yet.
+It needs Google Drive access to that folder.</p>
 </div>
 <div id="module-inputs-and-parameters" class="section level3">
 <h3>Module inputs and parameters</h3>
-<p>Describe input data required by the module and how to obtain it (e.g., directly from online sources or supplied by other modules)
-If <code>sourceURL</code> is specified, <code>downloadData(&quot;fireSense_ELFs&quot;, &quot;..&quot;)</code> may be sufficient.</p>
 <p>Table <a href="#tab:moduleInputs-fireSense-ELFs">1</a> shows the full list of module inputs.</p>
 <table class="table" style="margin-left: auto; margin-right: auto;">
 <caption>
@@ -3031,7 +3037,7 @@ sourceURL
 character
 </td>
 <td style="text-align:left;">
-Some descriptive, short name for this fitting, e.g., ELF14.1
+Name of the ELF to use as the study area, e.g. “4.3” (the default).
 </td>
 <td style="text-align:left;">
 NA
@@ -3045,7 +3051,7 @@ studyAreaLarge
 SpatVector
 </td>
 <td style="text-align:left;">
-NA
+Optional. If supplied, the study area is the ELFs it overlaps that have fitted SpreadFit parameters, instead of <code>.ELFind</code>. Supply one or the other, not both.
 </td>
 <td style="text-align:left;">
 NA
@@ -3137,7 +3143,7 @@ NA
 NA
 </td>
 <td style="text-align:left;">
-A Googledrive folder url where a file with fireSense studyArea exists as an ‘sf’ class object
+Name of the file in <code>spreadFitGoogleDriveFolder</code> that holds previously fitted SpreadFit parameters.
 </td>
 </tr>
 <tr>
@@ -3157,7 +3163,7 @@ NA
 NA
 </td>
 <td style="text-align:left;">
-A Googledrive folder url where a file with fireSense studyArea exists as an ‘sf’ class object
+Google Drive folder URL that holds <code>spreadFitFilename</code> and, with <code>.useCloud</code>, the shared ELF maps.
 </td>
 </tr>
 <tr>
@@ -3255,7 +3261,7 @@ NA
 NA
 </td>
 <td style="text-align:left;">
-Used by Plots function, which can be optionally used here
+Passed to <code>types</code> in <code>Plots()</code>. If any, <code>init</code> plots the map of all ELFs and this run’s study areas.
 </td>
 </tr>
 <tr>
@@ -3275,67 +3281,7 @@ NA
 NA
 </td>
 <td style="text-align:left;">
-Describes the simulation time at which the first plot event should occur.
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-.plotInterval
-</td>
-<td style="text-align:left;">
-numeric
-</td>
-<td style="text-align:left;">
-NA
-</td>
-<td style="text-align:left;">
-NA
-</td>
-<td style="text-align:left;">
-NA
-</td>
-<td style="text-align:left;">
-Describes the simulation time interval between plot events.
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-.saveInitialTime
-</td>
-<td style="text-align:left;">
-numeric
-</td>
-<td style="text-align:left;">
-NA
-</td>
-<td style="text-align:left;">
-NA
-</td>
-<td style="text-align:left;">
-NA
-</td>
-<td style="text-align:left;">
-Describes the simulation time at which the first save event should occur.
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-.saveInterval
-</td>
-<td style="text-align:left;">
-numeric
-</td>
-<td style="text-align:left;">
-NA
-</td>
-<td style="text-align:left;">
-NA
-</td>
-<td style="text-align:left;">
-NA
-</td>
-<td style="text-align:left;">
-This describes the simulation time interval between save events.
+<code>NA</code> turns off screen plots in <code>Plots()</code>. No plot event is scheduled.
 </td>
 </tr>
 <tr>
@@ -3355,7 +3301,7 @@ NA
 NA
 </td>
 <td style="text-align:left;">
-Human-readable name for the study area used - e.g., a hash of the studyarea obtained using <code>reproducible::studyAreaName()</code>
+Human-readable name for the study area; used in the filename of the single-ELF raster.
 </td>
 </tr>
 <tr>
@@ -3375,7 +3321,7 @@ NA
 NA
 </td>
 <td style="text-align:left;">
-Should caching of events or module be used?
+Events to cache. The default caches <code>init</code>; see <code>.useCloud</code>.
 </td>
 </tr>
 <tr>
@@ -3424,15 +3370,15 @@ Extra <code>Cache()</code> arguments for each event. By default the <code>init</
 </div>
 <div id="events" class="section level3">
 <h3>Events</h3>
-<p>Describe what happens for each event type.</p>
+<p><code>init</code> only; it does everything above.</p>
 </div>
 <div id="plotting" class="section level3">
 <h3>Plotting</h3>
-<p>Write what is plotted.</p>
+<p>Unless <code>.plots</code> is <code>NA</code>, <code>init</code> plots a map of all ELFs (green: already fitted; yellow: running now, if <code>queue_path</code> is given) and the study areas of this run. Plot files go to <code>inputPath</code>.</p>
 </div>
 <div id="saving" class="section level3">
 <h3>Saving</h3>
-<p>Write what is saved.</p>
+<p>Nothing is saved apart from the rasters and downloads written to <code>inputPath</code>.</p>
 </div>
 <div id="module-outputs" class="section level3">
 <h3>Module outputs</h3>
@@ -3457,24 +3403,13 @@ desc
 <tbody>
 <tr>
 <td style="text-align:left;">
-homogeneousFire
-</td>
-<td style="text-align:left;">
-SpatRaster
-</td>
-<td style="text-align:left;">
-NA
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
 ELFs
 </td>
 <td style="text-align:left;">
 SpatRaster
 </td>
 <td style="text-align:left;">
-NA
+All ELFs, from <code>fireSenseUtils::makeELFs()</code>: a list with <code>rasWhole</code> and <code>rasCentered</code> (one SpatRaster per ELF), plus <code>poly</code> when <code>studyAreaLarge</code> is supplied.
 </td>
 </tr>
 <tr>
@@ -3485,7 +3420,7 @@ rasterToMatchLargeELF
 SpatRaster
 </td>
 <td style="text-align:left;">
-A very coarse rasterToMatch (5kmx5km); with the ELF values on it
+Raster of the ELF(s) in the study area, including the ELF buffer when a single ELF is used.
 </td>
 </tr>
 <tr>
@@ -3496,7 +3431,7 @@ rasterToMatchELF
 SpatRaster
 </td>
 <td style="text-align:left;">
-This will be smaller than rasterToMatchLargeELF if the studyAreaLarge covers less than one ELF, i.e., the buffers will be removed. But if there are no buffers (i.e., studyAreaLarge covers more than one ELF), then it will be same as rasterToMatchLargeELF
+<code>rasterToMatchLargeELF</code> without the buffer when a single ELF is used; identical to it when <code>studyAreaLarge</code> is supplied.
 </td>
 </tr>
 <tr>
@@ -3507,70 +3442,130 @@ rasterToMatch
 SpatRaster
 </td>
 <td style="text-align:left;">
-If not supplied from another source, it will be studyArea, with metadata from trim(ELFs<span class="math inline">\(rasCentred) &lt;/td&gt;
-  &lt;/tr&gt;
-  &lt;tr&gt;
-   &lt;td style=&quot;text-align:left;&quot;&gt; studyArea &lt;/td&gt;
-   &lt;td style=&quot;text-align:left;&quot;&gt; SpatVector &lt;/td&gt;
-   &lt;td style=&quot;text-align:left;&quot;&gt; NA &lt;/td&gt;
-  &lt;/tr&gt;
-  &lt;tr&gt;
-   &lt;td style=&quot;text-align:left;&quot;&gt; studyAreaLarge &lt;/td&gt;
-   &lt;td style=&quot;text-align:left;&quot;&gt; SpatVector &lt;/td&gt;
-   &lt;td style=&quot;text-align:left;&quot;&gt; This will be the inputted studyAreaLarge, but intersected with the ELFs that have results for them &lt;/td&gt;
-  &lt;/tr&gt;
-  &lt;tr&gt;
-   &lt;td style=&quot;text-align:left;&quot;&gt; studyAreaLargeELF &lt;/td&gt;
-   &lt;td style=&quot;text-align:left;&quot;&gt; SpatVector &lt;/td&gt;
-   &lt;td style=&quot;text-align:left;&quot;&gt; NA &lt;/td&gt;
-  &lt;/tr&gt;
-  &lt;tr&gt;
-   &lt;td style=&quot;text-align:left;&quot;&gt; studyAreaELF &lt;/td&gt;
-   &lt;td style=&quot;text-align:left;&quot;&gt; SpatVector &lt;/td&gt;
-   &lt;td style=&quot;text-align:left;&quot;&gt; NA &lt;/td&gt;
-  &lt;/tr&gt;
-  &lt;tr&gt;
-   &lt;td style=&quot;text-align:left;&quot;&gt; sppEquiv &lt;/td&gt;
-   &lt;td style=&quot;text-align:left;&quot;&gt; data.table &lt;/td&gt;
-   &lt;td style=&quot;text-align:left;&quot;&gt; NA &lt;/td&gt;
-  &lt;/tr&gt;
-  &lt;tr&gt;
-   &lt;td style=&quot;text-align:left;&quot;&gt; studyAreaPSP &lt;/td&gt;
-   &lt;td style=&quot;text-align:left;&quot;&gt; SpatVector &lt;/td&gt;
-   &lt;td style=&quot;text-align:left;&quot;&gt; NA &lt;/td&gt;
-  &lt;/tr&gt;
-  &lt;tr&gt;
-   &lt;td style=&quot;text-align:left;&quot;&gt; ELFsExcluded &lt;/td&gt;
-   &lt;td style=&quot;text-align:left;&quot;&gt; character &lt;/td&gt;
-   &lt;td style=&quot;text-align:left;&quot;&gt; ELFs with too few fires over `fireYears` that could not be merged; fireSenseUtils::runELFs() leaves them out of the queue. NULL when `fireYears` is NULL. &lt;/td&gt;
-  &lt;/tr&gt;
-  &lt;tr&gt;
-   &lt;td style=&quot;text-align:left;&quot;&gt; ELFfireStatus &lt;/td&gt;
-   &lt;td style=&quot;text-align:left;&quot;&gt; data.table &lt;/td&gt;
-   &lt;td style=&quot;text-align:left;&quot;&gt; Natural ignitions, fire polygons and zero/few/ok status of every ELF over `fireYears` (fireSenseUtils::ELFfitStatus()). NULL when `fireYears` is NULL. &lt;/td&gt;
-  &lt;/tr&gt;
-  &lt;tr&gt;
-   &lt;td style=&quot;text-align:left;&quot;&gt; ELFmerges &lt;/td&gt;
-   &lt;td style=&quot;text-align:left;&quot;&gt; data.table &lt;/td&gt;
-   &lt;td style=&quot;text-align:left;&quot;&gt; The merges and skips decided for ELFs with too few fires (fireSenseUtils::ELFmergePlan()). NULL when `fireYears` is NULL. &lt;/td&gt;
-  &lt;/tr&gt;
-  &lt;tr&gt;
-   &lt;td style=&quot;text-align:left;&quot;&gt; spreadFitPreRun &lt;/td&gt;
-   &lt;td style=&quot;text-align:left;&quot;&gt; data.frame &lt;/td&gt;
-   &lt;td style=&quot;text-align:left;&quot;&gt; This is a data.frame that has a geometry list column, so it can be converted to a sf or SpatVector (e.g., `terra::vect(sf::st_as_sf(sim\)</span>spreadFitPreRun))` , plus other mostly list columns: numIterations, objFunVal (not list), params, sppEquiv, nonForestedLCCGroups, missingLCCgroup, and polygonID. These are from previously fitted SpreadFit. If no pre-existing object exists from CacheGeo, this will be NULL
+Only if not already in the <code>simList</code>: the national template raster cropped and masked to <code>studyAreaLarge</code>; 1 inside, <code>NA</code> outside.
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+studyArea
+</td>
+<td style="text-align:left;">
+SpatVector
+</td>
+<td style="text-align:left;">
+Only if not already in the <code>simList</code>: same as <code>studyAreaLarge</code>.
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+studyAreaLarge
+</td>
+<td style="text-align:left;">
+SpatVector
+</td>
+<td style="text-align:left;">
+Single ELF: the buffered ELF. <code>studyAreaLarge</code> supplied: the supplied polygon intersected with the ELFs that have fitted SpreadFit parameters, dissolved.
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+studyAreaLargeELF
+</td>
+<td style="text-align:left;">
+SpatVector
+</td>
+<td style="text-align:left;">
+Polygons of <code>rasterToMatchLargeELF</code>.
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+studyAreaELF
+</td>
+<td style="text-align:left;">
+SpatVector
+</td>
+<td style="text-align:left;">
+Polygons of <code>rasterToMatchELF</code>.
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+sppEquiv
+</td>
+<td style="text-align:left;">
+data.table
+</td>
+<td style="text-align:left;">
+Species table for <code>studyAreaELF</code> from <code>LandR::speciesInStudyArea()</code>. Zero rows for a few non-forested ELFs.
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+ELFsExcluded
+</td>
+<td style="text-align:left;">
+character
+</td>
+<td style="text-align:left;">
+ELFs with too few fires over <code>fireYears</code> that could not be merged; fireSenseUtils::runELFs() leaves them out of the queue. NULL when <code>fireYears</code> is NULL.
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+ELFfireStatus
+</td>
+<td style="text-align:left;">
+data.table
+</td>
+<td style="text-align:left;">
+Natural ignitions, fire polygons and zero/few/ok status of every ELF over <code>fireYears</code> (fireSenseUtils::ELFfitStatus()). NULL when <code>fireYears</code> is NULL.
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+ELFmerges
+</td>
+<td style="text-align:left;">
+data.table
+</td>
+<td style="text-align:left;">
+The merges and skips decided for ELFs with too few fires (fireSenseUtils::ELFmergePlan()). NULL when <code>fireYears</code> is NULL.
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+spreadFitPreRun
+</td>
+<td style="text-align:left;">
+data.frame
+</td>
+<td style="text-align:left;">
+This is a data.frame that has a geometry list column, so it can be converted to a sf or SpatVector (e.g., <code>terra::vect(sf::st_as_sf(sim$spreadFitPreRun))</code> , plus other mostly list columns: numIterations, objFunVal (not list), params, sppEquiv, nonForestedLCCGroups, missingLCCgroup, and polygonID. These are from previously fitted SpreadFit. If no pre-existing object exists from CacheGeo, this will be NULL
 </td>
 </tr>
 </tbody>
 </table>
 </div>
+<div id="usage" class="section level3">
+<h3>Usage</h3>
+<pre class="r"><code>library(SpaDES.core)
+
+mySim &lt;- simInit(times = list(start = 2011, end = 2011),
+                 modules = list(&quot;fireSense_ELFs&quot;),
+                 objects = list(.ELFind = &quot;4.3&quot;),
+                 params = list(fireSense_ELFs = list(.useCloud = &quot;pull&quot;)),
+                 paths = list(modulePath = &quot;..&quot;))
+mySim &lt;- spades(mySim)</code></pre>
+</div>
 <div id="links-to-other-modules" class="section level3">
 <h3>Links to other modules</h3>
-<p>Describe any anticipated linkages to other modules, such as modules that supply input data or do post-hoc analysis.</p>
+<p>All other fireSense modules, and the LandR modules run with them, take their study area, <code>rasterToMatch</code> and <code>sppEquiv</code> from this module.</p>
 </div>
 <div id="getting-help" class="section level3">
 <h3>Getting help</h3>
 <ul>
-<li>provide a way for people to obtain help (e.g., module repository issues page)</li>
+<li><a href="https://github.com/PredictiveEcology/fireSense_ELFs/issues" class="uri">https://github.com/PredictiveEcology/fireSense_ELFs/issues</a></li>
 </ul>
 </div>
 </div>
