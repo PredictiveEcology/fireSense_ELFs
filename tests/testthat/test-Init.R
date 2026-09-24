@@ -100,7 +100,7 @@ test_that("every declared output except the fire-count ones is created", {
 })
 
 test_that("a missing fitted-parameter file means nothing has been fitted yet, and says so", {
-  sim <- toySimInit(objects = list(.ELFind = "3.1.2"))
+  sim <- toySimInit(objects = list(.ELFind = "3.1.2"), params = list(spreadFitFilename = "fireSenseParams.rds"))
   mockInitWorld()
   msgs <- capture_messages(out <- runInit(sim))
   expect_null(out$spreadFitPreRun)
@@ -109,7 +109,7 @@ test_that("a missing fitted-parameter file means nothing has been fitted yet, an
 })
 
 test_that("the fitted-parameter file is read from the folder when it is there", {
-  sim <- toySimInit(objects = list(.ELFind = "3.1.2"))
+  sim <- toySimInit(objects = list(.ELFind = "3.1.2"), params = list(spreadFitFilename = "fireSenseParams.rds"))
   files <- data.frame(name = c("other.rds", "fireSenseParams.rds"))
   files$drive_resource <- list(list(md5Checksum = "aaa"), list(md5Checksum = "bbb"))
   mockInitWorld(driveFiles = files)
@@ -127,6 +127,19 @@ test_that("spreadFitFilename chooses which file in the folder is read", {
   msgs <- capture_messages(out <- runInit(sim))
   expect_null(out$spreadFitPreRun)
   expect_true(any(grepl("no 'mine.rds' in ", msgs, fixed = TRUE)))
+})
+
+test_that("by default (\"latest\") the fits come from the newest current-model file, not a named one", {
+  sim <- toySimInit(objects = list(.ELFind = "3.1.2"))
+  files <- data.frame(name = c("fireSenseParams.rds", "fireSenseParams_1985-2024_linearFuel.rds"))
+  files$drive_resource <- list(list(md5Checksum = "bbb", modifiedTime = "2026-09-25T00:00:00Z"),
+                               list(md5Checksum = "ccc", modifiedTime = "2026-09-20T00:00:00Z"))
+  mockInitWorld(driveFiles = files)
+  unlink(file.path(toyPaths()$inputPath, c("fireSenseParams.rds", "fireSenseParams_1985-2024_linearFuel.rds")))
+  out <- suppressMessages(runInit(sim))
+  expect_identical(out$spreadFitPreRun$polygonID, c("3.1.2", "5.1"))
+  expect_true(file.exists(file.path(toyPaths()$inputPath, "fireSenseParams_1985-2024_linearFuel.rds")))
+  expect_false(file.exists(file.path(toyPaths()$inputPath, "fireSenseParams.rds")))
 })
 
 test_that("an ELF with no cells stops with 'This ELF has no data'", {

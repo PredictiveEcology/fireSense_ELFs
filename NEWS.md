@@ -1,3 +1,10 @@
+# fireSense_ELFs 1.1.6
+
+- `spreadFitFilename` now defaults to `"latest"`: each ELF's fit comes from the most recent
+  `fireSenseParams_*_linearFuel.rds` file in `spreadFitGoogleDriveFolder` that has it
+  (`fireSenseUtils::latestSpreadFits()`), so `spreadFitPreRun` lists every ELF fitted with the current
+  model. A named file is read as before.
+
 # fireSense_ELFs 1.1.5
 
 - **needs `fireregimetools >= 0.1.0.9008`.** `fewFireELFs()` reads NFDB and NBAC through
