@@ -17,7 +17,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="index.html">fireSense_ELFs</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">1.1.4</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">1.1.5</span>
       </span>
     </div>
 
@@ -64,12 +64,17 @@
 <h2 id="module-overview">Module Overview<a class="anchor" aria-label="anchor" href="#module-overview"></a></h2>
 <div class="section level3">
 <h3 id="module-summary">Module summary<a class="anchor" aria-label="anchor" href="#module-summary"></a></h3>
-<p>Provide a brief summary of what the module does / how to use the module.</p>
-<p>Module documentation should be written so that others can use your module. This is a template for module documentation, and should be changed to reflect your module.</p>
+<p>ELFs (Ecologically-based Low Fractal-dimensional polygons) are the buffered regions of Canada that the fireSense models are fitted in, one at a time (<code><a href="https://rdrr.io/pkg/fireSenseUtils/man/makeELFs.html" class="external-link">fireSenseUtils::makeELFs()</a></code>). This module makes the national ELF maps and the study area objects every other fireSense module uses: <code>studyArea</code>, <code>studyAreaLarge</code>, <code>rasterToMatch</code>, their <code>*ELF</code> versions and <code>sppEquiv</code>. It is scheduled before the other fireSense modules.</p>
+<p>The study area is chosen in one of two ways. Supplying both is an error unless they agree.</p>
+<ul><li>
+<code>.ELFind</code> (e.g. <code>"4.3"</code>): that single ELF. <code>*LargeELF</code> objects include its 20 km buffer; <code>*ELF</code> objects do not. This is what fitting uses.</li>
+<li>
+<code>studyAreaLarge</code>: the ELFs the polygon overlaps that already have fitted SpreadFit parameters. This is what prediction uses.</li>
+</ul><p>If <code>fireYears</code> is set, ELFs with too few natural ignitions (<code>minNaturalIgnitions</code>) or fire polygons (<code>minFirePolygons</code>) over those years are merged with a neighbour that shares their base, or listed in <code>ELFsExcluded</code> (<code><a href="https://rdrr.io/pkg/fireSenseUtils/man/ELFmergePlan.html" class="external-link">fireSenseUtils::ELFmergePlan()</a></code>).</p>
+<p>The module also reads the previously fitted SpreadFit parameters (<code>spreadFitFilename</code> in <code>spreadFitGoogleDriveFolder</code>) into <code>spreadFitPreRun</code>; a missing file means nothing has been fitted yet. It needs Google Drive access to that folder.</p>
 </div>
 <div class="section level3">
 <h3 id="module-inputs-and-parameters">Module inputs and parameters<a class="anchor" aria-label="anchor" href="#module-inputs-and-parameters"></a></h3>
-<p>Describe input data required by the module and how to obtain it (e.g., directly from online sources or supplied by other modules) If <code>sourceURL</code> is specified, <code>downloadData("fireSense_ELFs", "..")</code> may be sufficient.</p>
 <p>Table @ref(tab:moduleInputs-fireSense-ELFs) shows the full list of module inputs.</p>
 <table class="table table" style="margin-left: auto; margin-right: auto;"><caption>
 (#tab:moduleInputs-fireSense-ELFs)(#tab:moduleInputs-fireSense-ELFs)List of (ref:fireSense-ELFs) input objects and their description.
@@ -93,7 +98,7 @@ sourceURL
 character
 </td>
 <td style="text-align:left;">
-Some descriptive, short name for this fitting, e.g., ELF14.1
+Name of the ELF to use as the study area, e.g. “4.3” (the default).
 </td>
 <td style="text-align:left;">
 NA
@@ -105,7 +110,7 @@ studyAreaLarge
 SpatVector
 </td>
 <td style="text-align:left;">
-NA
+Optional. If supplied, the study area is the ELFs it overlaps that have fitted SpreadFit parameters, instead of <code>.ELFind</code>. Supply one or the other, not both.
 </td>
 <td style="text-align:left;">
 NA
@@ -177,7 +182,7 @@ NA
 NA
 </td>
 <td style="text-align:left;">
-A Googledrive folder url where a file with fireSense studyArea exists as an ‘sf’ class object
+Name of the file in <code>spreadFitGoogleDriveFolder</code> that holds previously fitted SpreadFit parameters.
 </td>
 </tr><tr><td style="text-align:left;">
 spreadFitGoogleDriveFolder
@@ -195,7 +200,7 @@ NA
 NA
 </td>
 <td style="text-align:left;">
-A Googledrive folder url where a file with fireSense studyArea exists as an ‘sf’ class object
+Google Drive folder URL that holds <code>spreadFitFilename</code> and, with <code>.useCloud</code>, the shared ELF maps.
 </td>
 </tr><tr><td style="text-align:left;">
 queue_path
@@ -283,7 +288,7 @@ NA
 NA
 </td>
 <td style="text-align:left;">
-Used by Plots function, which can be optionally used here
+Passed to <code>types</code> in <code><a href="https://spades-core.predictiveecology.org/reference/Plots.html" class="external-link">Plots()</a></code>. If any, <code>init</code> plots the map of all ELFs and this run’s study areas.
 </td>
 </tr><tr><td style="text-align:left;">
 .plotInitialTime
@@ -301,61 +306,7 @@ NA
 NA
 </td>
 <td style="text-align:left;">
-Describes the simulation time at which the first plot event should occur.
-</td>
-</tr><tr><td style="text-align:left;">
-.plotInterval
-</td>
-<td style="text-align:left;">
-numeric
-</td>
-<td style="text-align:left;">
-NA
-</td>
-<td style="text-align:left;">
-NA
-</td>
-<td style="text-align:left;">
-NA
-</td>
-<td style="text-align:left;">
-Describes the simulation time interval between plot events.
-</td>
-</tr><tr><td style="text-align:left;">
-.saveInitialTime
-</td>
-<td style="text-align:left;">
-numeric
-</td>
-<td style="text-align:left;">
-NA
-</td>
-<td style="text-align:left;">
-NA
-</td>
-<td style="text-align:left;">
-NA
-</td>
-<td style="text-align:left;">
-Describes the simulation time at which the first save event should occur.
-</td>
-</tr><tr><td style="text-align:left;">
-.saveInterval
-</td>
-<td style="text-align:left;">
-numeric
-</td>
-<td style="text-align:left;">
-NA
-</td>
-<td style="text-align:left;">
-NA
-</td>
-<td style="text-align:left;">
-NA
-</td>
-<td style="text-align:left;">
-This describes the simulation time interval between save events.
+<code>NA</code> turns off screen plots in <code><a href="https://spades-core.predictiveecology.org/reference/Plots.html" class="external-link">Plots()</a></code>. No plot event is scheduled.
 </td>
 </tr><tr><td style="text-align:left;">
 .studyAreaName
@@ -373,7 +324,7 @@ NA
 NA
 </td>
 <td style="text-align:left;">
-Human-readable name for the study area used - e.g., a hash of the studyarea obtained using <code><a href="https://reproducible.predictiveecology.org/reference/studyAreaName.html" class="external-link">reproducible::studyAreaName()</a></code>
+Human-readable name for the study area; used in the filename of the single-ELF raster.
 </td>
 </tr><tr><td style="text-align:left;">
 .useCache
@@ -391,7 +342,7 @@ NA
 NA
 </td>
 <td style="text-align:left;">
-Should caching of events or module be used?
+Events to cache. The default caches <code>init</code>; see <code>.useCloud</code>.
 </td>
 </tr><tr><td style="text-align:left;">
 .useCloud
@@ -427,21 +378,21 @@ NA
 NA
 </td>
 <td style="text-align:left;">
-Extra <code>Cache()</code> arguments for each event. By default the <code>init</code> event uses <code>.useCloud</code> and caches to <code>spreadFitGoogleDriveFolder</code>; see <code>.useCloud</code>. Its key also includes a digest of <code><a href="https://landr.predictiveecology.org/reference/sppEquivalencies_CA.html" class="external-link">LandR::sppEquivalencies_CA</a></code>, which <code>init</code> reads, so a change to that table rebuilds the ELF maps instead of reusing old ones.
+Extra <code><a href="https://reproducible.predictiveecology.org/reference/Cache.html" class="external-link">Cache()</a></code> arguments for each event. By default the <code>init</code> event uses <code>.useCloud</code> and caches to <code>spreadFitGoogleDriveFolder</code>; see <code>.useCloud</code>. Its key also includes a digest of <code><a href="https://landr.predictiveecology.org/reference/sppEquivalencies_CA.html" class="external-link">LandR::sppEquivalencies_CA</a></code>, which <code>init</code> reads, so a change to that table rebuilds the ELF maps instead of reusing old ones.
 </td>
 </tr></tbody></table></div>
 </div>
 <div class="section level3">
 <h3 id="events">Events<a class="anchor" aria-label="anchor" href="#events"></a></h3>
-<p>Describe what happens for each event type.</p>
+<p><code>init</code> only; it does everything above.</p>
 </div>
 <div class="section level3">
 <h3 id="plotting">Plotting<a class="anchor" aria-label="anchor" href="#plotting"></a></h3>
-<p>Write what is plotted.</p>
+<p>Unless <code>.plots</code> is <code>NA</code>, <code>init</code> plots a map of all ELFs (green: already fitted; yellow: running now, if <code>queue_path</code> is given) and the study areas of this run. Plot files go to <code>inputPath</code>.</p>
 </div>
 <div class="section level3">
 <h3 id="saving">Saving<a class="anchor" aria-label="anchor" href="#saving"></a></h3>
-<p>Write what is saved.</p>
+<p>Nothing is saved apart from the rasters and downloads written to <code>inputPath</code>.</p>
 </div>
 <div class="section level3">
 <h3 id="module-outputs">Module outputs<a class="anchor" aria-label="anchor" href="#module-outputs"></a></h3>
@@ -459,22 +410,13 @@ objectClass
 desc
 </th>
 </tr></thead><tbody><tr><td style="text-align:left;">
-homogeneousFire
-</td>
-<td style="text-align:left;">
-SpatRaster
-</td>
-<td style="text-align:left;">
-NA
-</td>
-</tr><tr><td style="text-align:left;">
 ELFs
 </td>
 <td style="text-align:left;">
 SpatRaster
 </td>
 <td style="text-align:left;">
-NA
+All ELFs, from <code><a href="https://rdrr.io/pkg/fireSenseUtils/man/makeELFs.html" class="external-link">fireSenseUtils::makeELFs()</a></code>: a list with <code>rasWhole</code> and <code>rasCentered</code> (one SpatRaster per ELF), plus <code>poly</code> when <code>studyAreaLarge</code> is supplied.
 </td>
 </tr><tr><td style="text-align:left;">
 rasterToMatchLargeELF
@@ -483,7 +425,7 @@ rasterToMatchLargeELF
 SpatRaster
 </td>
 <td style="text-align:left;">
-A very coarse rasterToMatch (5kmx5km); with the ELF values on it
+Raster of the ELF(s) in the study area, including the ELF buffer when a single ELF is used.
 </td>
 </tr><tr><td style="text-align:left;">
 rasterToMatchELF
@@ -492,7 +434,7 @@ rasterToMatchELF
 SpatRaster
 </td>
 <td style="text-align:left;">
-This will be smaller than rasterToMatchLargeELF if the studyAreaLarge covers less than one ELF, i.e., the buffers will be removed. But if there are no buffers (i.e., studyAreaLarge covers more than one ELF), then it will be same as rasterToMatchLargeELF
+<code>rasterToMatchLargeELF</code> without the buffer when a single ELF is used; identical to it when <code>studyAreaLarge</code> is supplied.
 </td>
 </tr><tr><td style="text-align:left;">
 rasterToMatch
@@ -501,66 +443,109 @@ rasterToMatch
 SpatRaster
 </td>
 <td style="text-align:left;">
-If not supplied from another source, it will be studyArea, with metadata from trim(ELFs<span class="math inline">$rasCentred) &lt;/td&gt;
-  &lt;/tr&gt;
-  &lt;tr&gt;
-   &lt;td style="text-align:left;"&gt; studyArea &lt;/td&gt;
-   &lt;td style="text-align:left;"&gt; SpatVector &lt;/td&gt;
-   &lt;td style="text-align:left;"&gt; NA &lt;/td&gt;
-  &lt;/tr&gt;
-  &lt;tr&gt;
-   &lt;td style="text-align:left;"&gt; studyAreaLarge &lt;/td&gt;
-   &lt;td style="text-align:left;"&gt; SpatVector &lt;/td&gt;
-   &lt;td style="text-align:left;"&gt; This will be the inputted studyAreaLarge, but intersected with the ELFs that have results for them &lt;/td&gt;
-  &lt;/tr&gt;
-  &lt;tr&gt;
-   &lt;td style="text-align:left;"&gt; studyAreaLargeELF &lt;/td&gt;
-   &lt;td style="text-align:left;"&gt; SpatVector &lt;/td&gt;
-   &lt;td style="text-align:left;"&gt; NA &lt;/td&gt;
-  &lt;/tr&gt;
-  &lt;tr&gt;
-   &lt;td style="text-align:left;"&gt; studyAreaELF &lt;/td&gt;
-   &lt;td style="text-align:left;"&gt; SpatVector &lt;/td&gt;
-   &lt;td style="text-align:left;"&gt; NA &lt;/td&gt;
-  &lt;/tr&gt;
-  &lt;tr&gt;
-   &lt;td style="text-align:left;"&gt; sppEquiv &lt;/td&gt;
-   &lt;td style="text-align:left;"&gt; data.table &lt;/td&gt;
-   &lt;td style="text-align:left;"&gt; NA &lt;/td&gt;
-  &lt;/tr&gt;
-  &lt;tr&gt;
-   &lt;td style="text-align:left;"&gt; studyAreaPSP &lt;/td&gt;
-   &lt;td style="text-align:left;"&gt; SpatVector &lt;/td&gt;
-   &lt;td style="text-align:left;"&gt; NA &lt;/td&gt;
-  &lt;/tr&gt;
-  &lt;tr&gt;
-   &lt;td style="text-align:left;"&gt; ELFsExcluded &lt;/td&gt;
-   &lt;td style="text-align:left;"&gt; character &lt;/td&gt;
-   &lt;td style="text-align:left;"&gt; ELFs with too few fires over `fireYears` that could not be merged; fireSenseUtils::runELFs() leaves them out of the queue. NULL when `fireYears` is NULL. &lt;/td&gt;
-  &lt;/tr&gt;
-  &lt;tr&gt;
-   &lt;td style="text-align:left;"&gt; ELFfireStatus &lt;/td&gt;
-   &lt;td style="text-align:left;"&gt; data.table &lt;/td&gt;
-   &lt;td style="text-align:left;"&gt; Natural ignitions, fire polygons and zero/few/ok status of every ELF over `fireYears` (fireSenseUtils::ELFfitStatus()). NULL when `fireYears` is NULL. &lt;/td&gt;
-  &lt;/tr&gt;
-  &lt;tr&gt;
-   &lt;td style="text-align:left;"&gt; ELFmerges &lt;/td&gt;
-   &lt;td style="text-align:left;"&gt; data.table &lt;/td&gt;
-   &lt;td style="text-align:left;"&gt; The merges and skips decided for ELFs with too few fires (fireSenseUtils::ELFmergePlan()). NULL when `fireYears` is NULL. &lt;/td&gt;
-  &lt;/tr&gt;
-  &lt;tr&gt;
-   &lt;td style="text-align:left;"&gt; spreadFitPreRun &lt;/td&gt;
-   &lt;td style="text-align:left;"&gt; data.frame &lt;/td&gt;
-   &lt;td style="text-align:left;"&gt; This is a data.frame that has a geometry list column, so it can be converted to a sf or SpatVector (e.g., `terra::vect(sf::st_as_sf(sim$</span>spreadFitPreRun))` , plus other mostly list columns: numIterations, objFunVal (not list), params, sppEquiv, nonForestedLCCGroups, missingLCCgroup, and polygonID. These are from previously fitted SpreadFit. If no pre-existing object exists from CacheGeo, this will be NULL
+Only if not already in the <code>simList</code>: the national template raster cropped and masked to <code>studyAreaLarge</code>; 1 inside, <code>NA</code> outside.
+</td>
+</tr><tr><td style="text-align:left;">
+studyArea
+</td>
+<td style="text-align:left;">
+SpatVector
+</td>
+<td style="text-align:left;">
+Only if not already in the <code>simList</code>: same as <code>studyAreaLarge</code>.
+</td>
+</tr><tr><td style="text-align:left;">
+studyAreaLarge
+</td>
+<td style="text-align:left;">
+SpatVector
+</td>
+<td style="text-align:left;">
+Single ELF: the buffered ELF. <code>studyAreaLarge</code> supplied: the supplied polygon intersected with the ELFs that have fitted SpreadFit parameters, dissolved.
+</td>
+</tr><tr><td style="text-align:left;">
+studyAreaLargeELF
+</td>
+<td style="text-align:left;">
+SpatVector
+</td>
+<td style="text-align:left;">
+Polygons of <code>rasterToMatchLargeELF</code>.
+</td>
+</tr><tr><td style="text-align:left;">
+studyAreaELF
+</td>
+<td style="text-align:left;">
+SpatVector
+</td>
+<td style="text-align:left;">
+Polygons of <code>rasterToMatchELF</code>.
+</td>
+</tr><tr><td style="text-align:left;">
+sppEquiv
+</td>
+<td style="text-align:left;">
+data.table
+</td>
+<td style="text-align:left;">
+Species table for <code>studyAreaELF</code> from <code><a href="https://landr.predictiveecology.org/reference/speciesInStudyArea.html" class="external-link">LandR::speciesInStudyArea()</a></code>. Zero rows for a few non-forested ELFs.
+</td>
+</tr><tr><td style="text-align:left;">
+ELFsExcluded
+</td>
+<td style="text-align:left;">
+character
+</td>
+<td style="text-align:left;">
+ELFs with too few fires over <code>fireYears</code> that could not be merged; fireSenseUtils::runELFs() leaves them out of the queue. NULL when <code>fireYears</code> is NULL.
+</td>
+</tr><tr><td style="text-align:left;">
+ELFfireStatus
+</td>
+<td style="text-align:left;">
+data.table
+</td>
+<td style="text-align:left;">
+Natural ignitions, fire polygons and zero/few/ok status of every ELF over <code>fireYears</code> (fireSenseUtils::ELFfitStatus()). NULL when <code>fireYears</code> is NULL.
+</td>
+</tr><tr><td style="text-align:left;">
+ELFmerges
+</td>
+<td style="text-align:left;">
+data.table
+</td>
+<td style="text-align:left;">
+The merges and skips decided for ELFs with too few fires (fireSenseUtils::ELFmergePlan()). NULL when <code>fireYears</code> is NULL.
+</td>
+</tr><tr><td style="text-align:left;">
+spreadFitPreRun
+</td>
+<td style="text-align:left;">
+data.frame
+</td>
+<td style="text-align:left;">
+This is a data.frame that has a geometry list column, so it can be converted to a sf or SpatVector (e.g., <code>terra::vect(sf::st_as_sf(sim$spreadFitPreRun))</code> , plus other mostly list columns: numIterations, objFunVal (not list), params, sppEquiv, nonForestedLCCGroups, missingLCCgroup, and polygonID. These are from previously fitted SpreadFit. If no pre-existing object exists from CacheGeo, this will be NULL
 </td>
 </tr></tbody></table></div>
 <div class="section level3">
+<h3 id="usage">Usage<a class="anchor" aria-label="anchor" href="#usage"></a></h3>
+<div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://spades-core.predictiveecology.org/" class="external-link">SpaDES.core</a></span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">mySim</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://spades-core.predictiveecology.org/reference/simInit.html" class="external-link">simInit</a></span><span class="op">(</span>times <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>start <span class="op">=</span> <span class="fl">2011</span>, end <span class="op">=</span> <span class="fl">2011</span><span class="op">)</span>,</span>
+<span>                 modules <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="st">"fireSense_ELFs"</span><span class="op">)</span>,</span>
+<span>                 objects <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>.ELFind <span class="op">=</span> <span class="st">"4.3"</span><span class="op">)</span>,</span>
+<span>                 params <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>fireSense_ELFs <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>.useCloud <span class="op">=</span> <span class="st">"pull"</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>                 paths <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>modulePath <span class="op">=</span> <span class="st">".."</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">mySim</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://spades-core.predictiveecology.org/reference/spades.html" class="external-link">spades</a></span><span class="op">(</span><span class="va">mySim</span><span class="op">)</span></span></code></pre></div>
+</div>
+<div class="section level3">
 <h3 id="links-to-other-modules">Links to other modules<a class="anchor" aria-label="anchor" href="#links-to-other-modules"></a></h3>
-<p>Describe any anticipated linkages to other modules, such as modules that supply input data or do post-hoc analysis.</p>
+<p>All other fireSense modules, and the LandR modules run with them, take their study area, <code>rasterToMatch</code> and <code>sppEquiv</code> from this module.</p>
 </div>
 <div class="section level3">
 <h3 id="getting-help">Getting help<a class="anchor" aria-label="anchor" href="#getting-help"></a></h3>
-<ul><li>provide a way for people to obtain help (e.g., module repository issues page)</li>
+<ul><li><a href="https://github.com/PredictiveEcology/fireSense_ELFs/issues" class="external-link uri">https://github.com/PredictiveEcology/fireSense_ELFs/issues</a></li>
 </ul></div>
 </div>
 <div class="section level2">
