@@ -13,7 +13,7 @@ defineModule(sim, list(
            role = c("aut", "cre"))
   ),
   childModules = character(0),
-  version = list(fireSense_ELFs = "1.1.4"),
+  version = list(fireSense_ELFs = "1.1.5"),
   ## This module defines the study area every other fireSense module works in, so
   ## it has to be scheduled first. The object dependency graph only orders modules
   ## that actually exchange objects, so a module that needs the study area
@@ -44,7 +44,7 @@ defineModule(sim, list(
                   "PredictiveEcology/reproducible@development (>= 3.2.1.9025)",
                   "PredictiveEcology/SpaDES.core@development (>= 3.2.1.9003)",
                   "PredictiveEcology/LandR@development (>= 1.2.0.9021)",
-                  "deldir", "withr", "FOR-CAST/fireregimetools@main (>= 0.1.0.9006)",
+                  "deldir", "withr", "FOR-CAST/fireregimetools@main (>= 0.1.0.9008)",
                   "PredictiveEcology/fireSenseUtils@development (>= 0.2.3.9017)",
                   "PredictiveEcology/SpaDES.project@development (>= 1.0.1.9205)"),
   parameters = bindrows(
