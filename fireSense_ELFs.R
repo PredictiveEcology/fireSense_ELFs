@@ -13,7 +13,7 @@ defineModule(sim, list(
            role = c("aut", "cre"))
   ),
   childModules = character(0),
-  version = list(fireSense_ELFs = "1.1.5"),
+  version = list(fireSense_ELFs = "1.1.6"),
   ## This module defines the study area every other fireSense module works in, so
   ## it has to be scheduled first. The object dependency graph only orders modules
   ## that actually exchange objects, so a module that needs the study area
@@ -45,13 +45,15 @@ defineModule(sim, list(
                   "PredictiveEcology/SpaDES.core@development (>= 3.2.1.9003)",
                   "PredictiveEcology/LandR@development (>= 1.2.0.9021)",
                   "deldir", "withr", "FOR-CAST/fireregimetools@main (>= 0.1.0.9008)",
-                  "PredictiveEcology/fireSenseUtils@development (>= 0.2.3.9017)",
+                  "PredictiveEcology/fireSenseUtils@development (>= 0.2.3.9043)",
                   "PredictiveEcology/SpaDES.project@development (>= 1.0.1.9205)"),
   parameters = bindrows(
     defineParameter("sppEquivCol", "character", "LandR", NA, NA,
                     "The column in `sim$speciesEquivalency` data.table to use as a naming convention."),
-    defineParameter("spreadFitFilename", "character", "fireSenseParams.rds",
-                    NA, NA, "Name of the file in `spreadFitGoogleDriveFolder` that holds previously fitted SpreadFit parameters."),
+    defineParameter("spreadFitFilename", "character", "latest",
+                    NA, NA, paste("Name of the file in `spreadFitGoogleDriveFolder` that holds previously fitted SpreadFit",
+                                  "parameters. `\"latest\"` (the default) takes each ELF's fit from the most recent",
+                                  "file that has it (`fireSenseUtils::latestSpreadFits()`).")),
     defineParameter("spreadFitGoogleDriveFolder", "character",
                     "https://drive.google.com/drive/folders/1X9-mRjyLMNpgkP_cfqhbr_AQEPOsVCHf",
                     NA, NA, "Google Drive folder URL that holds `spreadFitFilename` and, with `.useCloud`, the shared ELF maps."),
@@ -240,15 +242,18 @@ Init <- function(sim) {
 
   # Check on what fireSense_SpreadFit has already been run
   prepInputsFSURL <- SpaDES.core::paramCheckOtherMods(sim, "spreadFitGoogleDriveFolder")
-  gdLs <- googledrive::drive_ls(prepInputsFSURL)
   fireSenseParamsRDS <- SpaDES.core::paramCheckOtherMods(sim, "spreadFitFilename")
+  latest <- identical(fireSenseParamsRDS, "latest")
+  gdLs <- if (!latest) googledrive::drive_ls(prepInputsFSURL)
   remoteFile <- gdLs[gdLs$name %in% fireSenseParamsRDS,]
   ## A ledger that does not exist yet means "nothing has been fitted", which is the
   ## normal state at the start of a new experiment: the first completed fit creates
   ## the file. Without this, `remoteFile$drive_resource[[1]]` was a subscript error
   ## in every job, and in fireSenseUtils::runELFs() before the queue was even built,
   ## so pointing `spreadFitFilename` at a new file could not be done at all.
-  spreadFitPreRun <- if (NROW(remoteFile) == 0L) {
+  spreadFitPreRun <- if (latest) {
+    fireSenseUtils::latestSpreadFits(prepInputsFSURL, destinationPath = inputPath(sim))
+  } else if (NROW(remoteFile) == 0L) {
     message("fireSense_ELFs: no '", fireSenseParamsRDS, "' in ", prepInputsFSURL,
             " -- treating this as no pre-run SpreadFit results yet.")
     NULL

@@ -53,7 +53,7 @@ test_that("no parameter has been removed or retyped", {
 test_that("parameter defaults are unchanged", {
   p <- SpaDES.core::params(toySimInit(params = list(.useCache = NULL, .useCloud = NULL, .plots = NULL)))$fireSense_ELFs
   expect_identical(p$sppEquivCol, "LandR")
-  expect_identical(p$spreadFitFilename, "fireSenseParams.rds")
+  expect_identical(p$spreadFitFilename, "latest")
   expect_identical(p$spreadFitGoogleDriveFolder,
                    "https://drive.google.com/drive/folders/1X9-mRjyLMNpgkP_cfqhbr_AQEPOsVCHf")
   expect_null(p$queue_path)
