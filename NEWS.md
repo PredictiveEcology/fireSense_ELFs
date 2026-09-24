@@ -1,3 +1,12 @@
+# fireSense_ELFs 1.1.5
+
+- **needs `fireregimetools >= 0.1.0.9008`.** `fewFireELFs()` reads NFDB and NBAC through
+  `load_nfdb_points()` and `load_nbac_polys()` with a study area. From 0.1.0.9007 these read only the
+  study area's extent instead of the whole national file (FOR-CAST/fireregimetools#2), and 0.1.0.9008
+  builds that extent from the study area's outline so records just inside a curved or reprojected edge
+  are kept. 0.1.0.9007 is also the version of a superseded fork, so 0.1.0.9008 is the first version
+  that is unambiguously the merged code.
+
 # fireSense_ELFs 1.1.4
 
 - `Init` takes its species table from `LandR::speciesInStudyArea()$sppEquiv` instead of building
