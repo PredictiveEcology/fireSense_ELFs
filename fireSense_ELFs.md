@@ -1,6 +1,6 @@
 ---
 title: "fireSense_ELFs Manual"
-subtitle: "v.1.1.5"
+subtitle: "v.1.1.6"
 date: "Last updated: 2026-09-24"
 output:
   bookdown::html_document2:
@@ -128,10 +128,10 @@ Summary of user-visible parameters (Table \@ref(tab:moduleParams-fireSense-ELFs)
   <tr>
    <td style="text-align:left;"> spreadFitFilename </td>
    <td style="text-align:left;"> character </td>
-   <td style="text-align:left;"> fireSens.... </td>
+   <td style="text-align:left;"> latest </td>
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> NA </td>
-   <td style="text-align:left;"> Name of the file in `spreadFitGoogleDriveFolder` that holds previously fitted SpreadFit parameters. </td>
+   <td style="text-align:left;"> Name of the file in `spreadFitGoogleDriveFolder` that holds previously fitted SpreadFit parameters. `"latest"` (the default) takes each ELF's fit from the most recent file that has it (`fireSenseUtils::latestSpreadFits()`). </td>
   </tr>
   <tr>
    <td style="text-align:left;"> spreadFitGoogleDriveFolder </td>
