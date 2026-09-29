@@ -1,6 +1,6 @@
 ---
 title: "fireSense_ELFs Manual"
-subtitle: "v.1.1.7"
+subtitle: "v.1.1.8"
 date: "Last updated: 2026-09-29"
 output:
   bookdown::html_document2:
@@ -140,6 +140,14 @@ Summary of user-visible parameters (Table \@ref(tab:moduleParams-fireSense-ELFs)
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> Google Drive folder URL that holds `spreadFitFilename` and, with `.useCloud`, the shared ELF maps. </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> heldOutFold </td>
+   <td style="text-align:left;"> integer </td>
+   <td style="text-align:left;"> NA </td>
+   <td style="text-align:left;"> NA </td>
+   <td style="text-align:left;"> NA </td>
+   <td style="text-align:left;"> NA (default): unchanged. `1` or `2`: a cross-validation fold is being fitted (the same parameter as in `fireSense_spreadFit`), so the SpreadFit ledger is not relevant and is not read: `spreadFitPreRun` is NULL, no ELF counts as fitted, and `studyAreaLarge` is not masked to fitted ELFs. Set it for every fireSense module at once with `.globals = list(heldOutFold = 1L)`; `init` stops if `fireSense_spreadFit` has a different value. Any other value is an error. </td>
   </tr>
   <tr>
    <td style="text-align:left;"> queue_path </td>
