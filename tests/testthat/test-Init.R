@@ -131,14 +131,16 @@ test_that("spreadFitFilename chooses which file in the folder is read", {
 
 test_that("by default (\"latest\") the fits come from the newest current-model file, not a named one", {
   sim <- toySimInit(objects = list(.ELFind = "3.1.2"))
-  files <- data.frame(name = c("fireSenseParams.rds", "fireSenseParams_1985-2024_linearFuel.rds"))
+  ## the current model's file name carries fireSenseUtils::spreadFitFileTag, which changes with the model
+  current <- fireSenseUtils::spreadFitFilenameFor(1985:2024)
+  files <- data.frame(name = c("fireSenseParams.rds", current))
   files$drive_resource <- list(list(md5Checksum = "bbb", modifiedTime = "2026-09-25T00:00:00Z"),
                                list(md5Checksum = "ccc", modifiedTime = "2026-09-20T00:00:00Z"))
   mockInitWorld(driveFiles = files)
-  unlink(file.path(toyPaths()$inputPath, c("fireSenseParams.rds", "fireSenseParams_1985-2024_linearFuel.rds")))
+  unlink(file.path(toyPaths()$inputPath, c("fireSenseParams.rds", current)))
   out <- suppressMessages(runInit(sim))
   expect_identical(out$spreadFitPreRun$polygonID, c("3.1.2", "5.1"))
-  expect_true(file.exists(file.path(toyPaths()$inputPath, "fireSenseParams_1985-2024_linearFuel.rds")))
+  expect_true(file.exists(file.path(toyPaths()$inputPath, current)))
   expect_false(file.exists(file.path(toyPaths()$inputPath, "fireSenseParams.rds")))
 })
 
