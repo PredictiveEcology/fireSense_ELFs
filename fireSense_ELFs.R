@@ -26,8 +26,6 @@ defineModule(sim, list(
                               "fireSense_dataPrep",
                               "fireSense_dataPrepFit",
                               "fireSense_dataPrepPredict",
-                              "fireSense_EscapeFit",
-                              "fireSense_EscapePredict",
                               "fireSense_hindcast",
                               "fireSense_ignitionFit",
                               "fireSense_ignitionPredict",

@@ -2,7 +2,7 @@
 
 - Scheduled before `fireSense_burn` (renamed from `fireSense`) and the renamed `fireSense_ignitionFit`, `fireSense_spreadFit`,
   `fireSense_ignitionPredict` and `fireSense_spreadPredict` (formerly `fireSense_IgnitionFit`, `fireSense_SpreadFit`,
-  `fireSense_IgnitionPredict`, `fireSense_SpreadPredict`); the module names in `loadOrder` were updated. Projects must use the new names.
+  `fireSense_IgnitionPredict`, `fireSense_SpreadPredict`); the module names in `loadOrder` were updated. Projects must use the new names. `fireSense_EscapeFit` and `fireSense_EscapePredict`, modules that no longer exist (fireSense_ignitionFit and fireSense_ignitionPredict handle escapes), were removed from `loadOrder`, and a test now checks that they are absent.
 
 # fireSense_ELFs 1.1.6
 
