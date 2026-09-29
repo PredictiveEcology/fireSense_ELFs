@@ -1,3 +1,7 @@
+# fireSense_ELFs 1.1.8
+
+- New parameter `heldOutFold` (`NA`, `1` or `2`; the same parameter as in `fireSense_spreadFit`). With `1` or `2`, `init` does not read the SpreadFit ledger (no `drive_ls`, `drive_download` or `latestSpreadFits`): `spreadFitPreRun` is NULL, and `studyAreaLarge` is not masked to the ELFs that have a fit. `paramCheckOtherMods()` stops if `fireSense_spreadFit` has a different value; set all three modules with `.globals = list(heldOutFold = ...)`.
+
 # fireSense_ELFs 1.1.7
 
 - Scheduled before `fireSense_burn` (renamed from `fireSense`) and the renamed `fireSense_ignitionFit`, `fireSense_spreadFit`,
