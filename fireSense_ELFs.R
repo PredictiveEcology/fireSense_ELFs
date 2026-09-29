@@ -13,7 +13,7 @@ defineModule(sim, list(
            role = c("aut", "cre"))
   ),
   childModules = character(0),
-  version = list(fireSense_ELFs = "1.1.7"),
+  version = list(fireSense_ELFs = "1.1.8"),
   ## This module defines the study area every other fireSense module works in, so
   ## it has to be scheduled first. The object dependency graph only orders modules
   ## that actually exchange objects, so a module that needs the study area
@@ -55,6 +55,12 @@ defineModule(sim, list(
     defineParameter("spreadFitGoogleDriveFolder", "character",
                     "https://drive.google.com/drive/folders/1X9-mRjyLMNpgkP_cfqhbr_AQEPOsVCHf",
                     NA, NA, "Google Drive folder URL that holds `spreadFitFilename` and, with `.useCloud`, the shared ELF maps."),
+    defineParameter("heldOutFold", "integer", default = NA, NA, NA,
+                    paste("NA (default): unchanged. `1` or `2`: a cross-validation fold is being fitted (the same",
+                          "parameter as in `fireSense_spreadFit`), so the SpreadFit ledger is not relevant and is not",
+                          "read: `spreadFitPreRun` is NULL, no ELF counts as fitted, and `studyAreaLarge` is not masked to",
+                          "fitted ELFs. Set it for every fireSense module at once with `.globals = list(heldOutFold = 1L)`;",
+                          "`init` stops if `fireSense_spreadFit` has a different value. Any other value is an error.")),
     defineParameter("queue_path", "character", NULL,
                     NA, NA, "A character scalar indicating what the filename of the queue.rds file is from experimentTmux; ",
                     "if NULL, then this can't determine which ELFs are being run (no 'yellow' on the map)"),
@@ -238,18 +244,26 @@ Init <- function(sim) {
     }
   }
 
-  # Check on what fireSense_spreadFit has already been run
+  # Check on what fireSense_spreadFit has already been run.
+  # A held-out fold is fitted without the ledger: it is not read, and nothing counts as fitted.
+  heldOutFold <- SpaDES.core::paramCheckOtherMods(sim, "heldOutFold")
+  if (!isTRUE(is.na(heldOutFold)) && !(length(heldOutFold) == 1L && heldOutFold %in% 1:2))
+    stop("fireSense_ELFs: parameter 'heldOutFold' must be NA, 1L or 2L; got: ",
+         paste(format(heldOutFold), collapse = ", "))
+  heldOut <- !isTRUE(is.na(heldOutFold))
   prepInputsFSURL <- SpaDES.core::paramCheckOtherMods(sim, "spreadFitGoogleDriveFolder")
   fireSenseParamsRDS <- SpaDES.core::paramCheckOtherMods(sim, "spreadFitFilename")
   latest <- identical(fireSenseParamsRDS, "latest")
-  gdLs <- if (!latest) googledrive::drive_ls(prepInputsFSURL)
+  gdLs <- if (!latest && !heldOut) googledrive::drive_ls(prepInputsFSURL)
   remoteFile <- gdLs[gdLs$name %in% fireSenseParamsRDS,]
   ## A ledger that does not exist yet means "nothing has been fitted", which is the
   ## normal state at the start of a new experiment: the first completed fit creates
   ## the file. Without this, `remoteFile$drive_resource[[1]]` was a subscript error
   ## in every job, and in fireSenseUtils::runELFs() before the queue was even built,
   ## so pointing `spreadFitFilename` at a new file could not be done at all.
-  spreadFitPreRun <- if (latest) {
+  spreadFitPreRun <- if (heldOut) {
+    NULL
+  } else if (latest) {
     fireSenseUtils::latestSpreadFits(prepInputsFSURL, destinationPath = inputPath(sim))
   } else if (NROW(remoteFile) == 0L) {
     message("fireSense_ELFs: no '", fireSenseParamsRDS, "' in ", prepInputsFSURL,
@@ -281,7 +295,7 @@ Init <- function(sim) {
     
     # Not all will have SpreadFit yet
     hasELFFittedData <- pp$ELFind %in% spreadFitPreRun$polygonID
-    if (any(!hasELFFittedData)) {
+    if (any(!hasELFFittedData) && !heldOut) {
       warning("Not all the ELFs have SpreadFit parameters; masking studyAreaLarge to ONLY the ELFs that have data")
       pp <- pp[pp$ELFind %in% spreadFitPreRun$polygonID,]
     }

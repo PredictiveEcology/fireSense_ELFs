@@ -171,3 +171,63 @@ test_that("init completes and schedules nothing further", {
   ev <- SpaDES.core::events(out)
   expect_identical(sum(ev$moduleName == "fireSense_ELFs"), 0L)
 })
+
+## `heldOutFold` (the same parameter as fireSense_spreadFit's): a held-out fold is fitted without the
+## SpreadFit ledger, so `init` must not read it, and must proceed as for an ELF nothing has been fitted for.
+
+## Any read of the ledger is an error
+mockNoLedger <- function(env = parent.frame()) {
+  local_mocked_bindings(
+    drive_ls = function(...) stop("ledger read: drive_ls"),
+    drive_download = function(...) stop("ledger read: drive_download"),
+    .package = "googledrive", .env = env)
+  local_mocked_bindings(latestSpreadFits = function(...) stop("ledger read: latestSpreadFits"),
+                        .package = "fireSenseUtils", .env = env)
+}
+
+test_that("with heldOutFold 1 the ledger is not read, whichever spreadFitFilename, and nothing is fitted", {
+  for (filename in list("latest", "fireSenseParams.rds")) {
+    sim <- toySimInit(objects = list(.ELFind = "3.1.2"),
+                      params = list(heldOutFold = 1L, spreadFitFilename = filename))
+    mockInitWorld()
+    mockNoLedger()
+    out <- suppressMessages(runInit(sim))
+    expect_null(out$spreadFitPreRun)
+    expect_identical(dim(out$rasterToMatchELF)[1:2], c(4, 3))       # init still ran to the end
+  }
+})
+
+test_that("with heldOutFold NA the ledger is read as before", {
+  sim <- toySimInit(objects = list(.ELFind = "3.1.2"), params = list(heldOutFold = NA))
+  mockInitWorld()
+  called <- FALSE
+  local_mocked_bindings(latestSpreadFits = function(...) {
+    called <<- TRUE
+    NULL
+  }, .package = "fireSenseUtils")
+  suppressMessages(runInit(sim))
+  expect_true(called)
+})
+
+test_that("a heldOutFold that is not NA, 1 or 2 is an error", {
+  sim <- toySimInit(objects = list(.ELFind = "3.1.2"), params = list(heldOutFold = 3L))
+  mockInitWorld()
+  mockNoLedger()
+  expect_error(suppressMessages(runInit(sim)), "heldOutFold")
+})
+
+test_that("stops when fireSense_spreadFit has a different heldOutFold", {
+  sim <- toySimInit(objects = list(.ELFind = "3.1.2"), params = list(heldOutFold = NA))
+  sim@params$fireSense_spreadFit <- list(heldOutFold = 1L)
+  mockInitWorld()
+  mockNoLedger()
+  expect_error(suppressMessages(runInit(sim)), "multiple values for heldOutFold")
+})
+
+test_that("agrees when fireSense_spreadFit has the same heldOutFold", {
+  sim <- toySimInit(objects = list(.ELFind = "3.1.2"), params = list(heldOutFold = 2L))
+  sim@params$fireSense_spreadFit <- list(heldOutFold = 2L)
+  mockInitWorld()
+  mockNoLedger()
+  expect_no_error(suppressMessages(runInit(sim)))
+})
