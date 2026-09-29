@@ -13,7 +13,7 @@ defineModule(sim, list(
            role = c("aut", "cre"))
   ),
   childModules = character(0),
-  version = list(fireSense_ELFs = "1.1.6"),
+  version = list(fireSense_ELFs = "1.1.7"),
   ## This module defines the study area every other fireSense module works in, so
   ## it has to be scheduled first. The object dependency graph only orders modules
   ## that actually exchange objects, so a module that needs the study area
@@ -22,19 +22,19 @@ defineModule(sim, list(
   ## thing .assertOneStudyArea() now rejects. Naming a module that is not part of
   ## a given run is harmless: absent names are ignored (verified against
   ## SpaDES.core 3.2.1.9002), so this list can name the whole family.
-  loadOrder = list(before = c("fireSense",
+  loadOrder = list(before = c("fireSense_burn",
                               "fireSense_dataPrep",
                               "fireSense_dataPrepFit",
                               "fireSense_dataPrepPredict",
                               "fireSense_EscapeFit",
                               "fireSense_EscapePredict",
                               "fireSense_hindcast",
-                              "fireSense_IgnitionFit",
-                              "fireSense_IgnitionPredict",
+                              "fireSense_ignitionFit",
+                              "fireSense_ignitionPredict",
                               "fireSense_NWT",
                               "fireSense_NWT_DataPrep",
-                              "fireSense_SpreadFit",
-                              "fireSense_SpreadPredict",
+                              "fireSense_spreadFit",
+                              "fireSense_spreadPredict",
                               "fireSense_summary")),
   timeframe = as.POSIXlt(c(NA, NA)),
   timeunit = "year",
@@ -240,7 +240,7 @@ Init <- function(sim) {
     }
   }
 
-  # Check on what fireSense_SpreadFit has already been run
+  # Check on what fireSense_spreadFit has already been run
   prepInputsFSURL <- SpaDES.core::paramCheckOtherMods(sim, "spreadFitGoogleDriveFolder")
   fireSenseParamsRDS <- SpaDES.core::paramCheckOtherMods(sim, "spreadFitFilename")
   latest <- identical(fireSenseParamsRDS, "latest")

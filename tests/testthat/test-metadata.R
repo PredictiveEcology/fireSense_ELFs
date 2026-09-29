@@ -10,9 +10,9 @@ test_that("the module is named fireSense_ELFs and runs before the other fireSens
   expect_identical(md$timeunit, "year")
   ## moduleMetadata() does not return `loadOrder`; the parsed module in a simList has it
   loadOrder <- SpaDES.core::depends(toySimInit())@dependencies$fireSense_ELFs@loadOrder
-  expect_true(all(c("fireSense", "fireSense_dataPrepFit", "fireSense_IgnitionFit", "fireSense_EscapeFit",
-                    "fireSense_SpreadFit", "fireSense_dataPrepPredict", "fireSense_IgnitionPredict",
-                    "fireSense_EscapePredict", "fireSense_SpreadPredict", "fireSense_summary")
+  expect_true(all(c("fireSense_burn", "fireSense_dataPrepFit", "fireSense_ignitionFit", "fireSense_EscapeFit",
+                    "fireSense_spreadFit", "fireSense_dataPrepPredict", "fireSense_ignitionPredict",
+                    "fireSense_EscapePredict", "fireSense_spreadPredict", "fireSense_summary")
                   %in% loadOrder$before))
   expect_null(loadOrder$after)
 })

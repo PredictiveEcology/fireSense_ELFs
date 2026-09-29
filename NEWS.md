@@ -1,3 +1,9 @@
+# fireSense_ELFs 1.1.7
+
+- Scheduled before `fireSense_burn` (renamed from `fireSense`) and the renamed `fireSense_ignitionFit`, `fireSense_spreadFit`,
+  `fireSense_ignitionPredict` and `fireSense_spreadPredict` (formerly `fireSense_IgnitionFit`, `fireSense_SpreadFit`,
+  `fireSense_IgnitionPredict`, `fireSense_SpreadPredict`); the module names in `loadOrder` were updated. Projects must use the new names.
+
 # fireSense_ELFs 1.1.6
 
 - `spreadFitFilename` now defaults to `"latest"`: each ELF's fit comes from the most recent
