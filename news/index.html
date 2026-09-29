@@ -17,7 +17,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">fireSense_ELFs</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">1.1.6</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">1.1.7</span>
       </span>
     </div>
 
@@ -51,6 +51,10 @@
 
     </div>
 
+    <div class="section level2">
+<h2 class="page-header" data-toc-text="1.1.7" id="firesense_elfs-117">fireSense_ELFs 1.1.7<a class="anchor" aria-label="anchor" href="#firesense_elfs-117"></a></h2>
+<ul><li>Scheduled before <code>fireSense_burn</code> (renamed from <code>fireSense</code>) and the renamed <code>fireSense_ignitionFit</code>, <code>fireSense_spreadFit</code>, <code>fireSense_ignitionPredict</code> and <code>fireSense_spreadPredict</code> (formerly <code>fireSense_IgnitionFit</code>, <code>fireSense_SpreadFit</code>, <code>fireSense_IgnitionPredict</code>, <code>fireSense_SpreadPredict</code>); the module names in <code>loadOrder</code> were updated. Projects must use the new names. <code>fireSense_EscapeFit</code> and <code>fireSense_EscapePredict</code>, modules that no longer exist (fireSense_ignitionFit and fireSense_ignitionPredict handle escapes), were removed from <code>loadOrder</code>, and a test now checks that they are absent.</li>
+</ul></div>
     <div class="section level2">
 <h2 class="page-header" data-toc-text="1.1.6" id="firesense_elfs-116">fireSense_ELFs 1.1.6<a class="anchor" aria-label="anchor" href="#firesense_elfs-116"></a></h2>
 <ul><li>
