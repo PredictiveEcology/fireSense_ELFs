@@ -32,7 +32,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">fireSense_ELFs</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">1.1.7</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">1.1.8</span>
       </span>
     </div>
 
@@ -71,7 +71,7 @@
   <div class="col-md-9 contents">
     <div class="page-header toc-ignore">
       <h1 data-toc-skip>fireSense_ELFs Manual</h1>
-            <h3 data-toc-skip class="subtitle">v.1.1.7</h3>
+            <h3 data-toc-skip class="subtitle">v.1.1.8</h3>
             
             <h4 data-toc-skip class="date">Last updated: 2026-09-29</h4>
       
@@ -275,6 +275,26 @@ NA
 </td>
 <td style="text-align:left;">
 Google Drive folder URL that holds <code>spreadFitFilename</code> and, with <code>.useCloud</code>, the shared ELF maps.
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+heldOutFold
+</td>
+<td style="text-align:left;">
+integer
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+NA (default): unchanged. <code>1</code> or <code>2</code>: a cross-validation fold is being fitted (the same parameter as in <code>fireSense_spreadFit</code>), so the SpreadFit ledger is not relevant and is not read: <code>spreadFitPreRun</code> is NULL, no ELF counts as fitted, and <code>studyAreaLarge</code> is not masked to fitted ELFs. Set it for every fireSense module at once with <code>.globals = list(heldOutFold = 1L)</code>; <code>init</code> stops if <code>fireSense_spreadFit</code> has a different value. Any other value is an error.
 </td>
 </tr>
 <tr>
