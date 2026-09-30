@@ -23,13 +23,24 @@ mockInitWorld <- function(ELFs = toyELFs(), driveFiles = NULL, env = parent.fram
     drive_ls = function(...) {
       if (is.null(driveFiles)) data.frame(name = character(0)) else driveFiles
     },
-    drive_download = function(file, path, ...) {
-      saveRDS(data.frame(polygonID = c("3.1.2", "5.1"), objFunVal = c(0.25, 0.5)), path)
-      list(local_path = path)
-    },
+    ## a direct download writes the file in place, where a job reading it meanwhile can see it half-written
+    drive_download = function(...) stop("googledrive::drive_download() must not be called"),
     .package = "googledrive", .env = env)
+  ## the ledger is fetched with reproducible's downloader; the mock records its arguments in `driveCalls`
+  driveCalls <- new.env()
+  driveCalls$calls <- list()
+  local_mocked_bindings(
+    preProcess = function(targetFile = NULL, url = NULL, destinationPath = ".", purge = FALSE, ...) {
+      driveCalls$calls[[length(driveCalls$calls) + 1L]] <- list(
+        targetFile = targetFile, url = url, destinationPath = destinationPath, purge = purge)
+      path <- file.path(destinationPath, targetFile)
+      saveRDS(data.frame(polygonID = c("3.1.2", "5.1"), objFunVal = c(0.25, 0.5)), path)
+      list(targetFilePath = path)
+    },
+    .package = "reproducible", .env = env)
   local_mocked_bindings(speciesInStudyArea = function(...) list(sppEquiv = toySppEquiv()),
                         .package = "LandR", .env = env)
+  invisible(driveCalls)
 }
 
 runInit <- function(sim) {
@@ -111,12 +122,31 @@ test_that("a missing fitted-parameter file means nothing has been fitted yet, an
 test_that("the fitted-parameter file is read from the folder when it is there", {
   sim <- toySimInit(objects = list(.ELFind = "3.1.2"), params = list(spreadFitFilename = "fireSenseParams.rds"))
   files <- data.frame(name = c("other.rds", "fireSenseParams.rds"))
+  files$id <- c("id_other", "id_params")
   files$drive_resource <- list(list(md5Checksum = "aaa"), list(md5Checksum = "bbb"))
-  mockInitWorld(driveFiles = files)
+  drive <- mockInitWorld(driveFiles = files)
+  unlink(file.path(toyPaths()$inputPath, "fireSenseParams.rds"))
   out <- suppressMessages(runInit(sim))
   expect_identical(out$spreadFitPreRun,
                    data.frame(polygonID = c("3.1.2", "5.1"), objFunVal = c(0.25, 0.5)))
   expect_true(file.exists(file.path(toyPaths()$inputPath, "fireSenseParams.rds")))
+  ## fetched with reproducible, into inputPath, by the file's Drive id
+  expect_length(drive$calls, 1L)
+  expect_identical(drive$calls[[1]]$targetFile, "fireSenseParams.rds")
+  expect_identical(normalizePath(drive$calls[[1]]$destinationPath), normalizePath(toyPaths()$inputPath))
+  expect_match(drive$calls[[1]]$url, "id_params", fixed = TRUE)
+  expect_false(isTRUE(drive$calls[[1]]$purge == 7))                # no local copy yet
+})
+
+test_that("a local copy that differs from Drive's md5 is fetched again", {
+  sim <- toySimInit(objects = list(.ELFind = "3.1.2"), params = list(spreadFitFilename = "fireSenseParams.rds"))
+  files <- data.frame(name = "fireSenseParams.rds", id = "id_params")
+  files$drive_resource <- list(list(md5Checksum = "bbb"))
+  drive <- mockInitWorld(driveFiles = files)
+  writeBin(as.raw(1:3), file.path(toyPaths()$inputPath, "fireSenseParams.rds"))
+  out <- suppressMessages(runInit(sim))
+  expect_identical(drive$calls[[1]]$purge, 7)
+  expect_identical(out$spreadFitPreRun$polygonID, c("3.1.2", "5.1"))
 })
 
 test_that("spreadFitFilename chooses which file in the folder is read", {
