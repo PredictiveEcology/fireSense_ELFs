@@ -1,3 +1,7 @@
+# fireSense_ELFs 1.1.9
+
+- reqdPkgs now lists `googledrive` and `sf`, which the module calls with `::` but did not list. Version 1.1.9.
+
 # fireSense_ELFs 1.1.8
 
 - New parameter `heldOutFold` (`NA`, `1` or `2`; the same parameter as in `fireSense_spreadFit`). With `1` or `2`, `init` does not read the SpreadFit ledger (no `drive_ls`, `drive_download` or `latestSpreadFits`): `spreadFitPreRun` is NULL, and `studyAreaLarge` is not masked to the ELFs that have a fit. `paramCheckOtherMods()` stops if `fireSense_spreadFit` has a different value; set all three modules with `.globals = list(heldOutFold = ...)`.
