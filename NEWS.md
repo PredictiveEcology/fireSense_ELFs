@@ -1,3 +1,7 @@
+# fireSense_ELFs 1.1.9
+
+- A named `spreadFitFilename` is downloaded from Google Drive with `reproducible::preProcess()` instead of `googledrive::drive_download()`. The direct download wrote the file in place in `inputPath`, so a second job on the same ELF could find it missing or half-written; `preProcess()` downloads into a temporary folder first. A local copy whose md5 differs from Drive's is fetched again (`purge = 7`), and the `Cache()` wrapper, which only avoided repeat downloads, is gone. Needs `fireSenseUtils` >= 0.2.3.9068, whose `latestSpreadFits()` does the same.
+
 # fireSense_ELFs 1.1.8
 
 - New parameter `heldOutFold` (`NA`, `1` or `2`; the same parameter as in `fireSense_spreadFit`). With `1` or `2`, `init` does not read the SpreadFit ledger (no `drive_ls`, `drive_download` or `latestSpreadFits`): `spreadFitPreRun` is NULL, and `studyAreaLarge` is not masked to the ELFs that have a fit. `paramCheckOtherMods()` stops if `fireSense_spreadFit` has a different value; set all three modules with `.globals = list(heldOutFold = ...)`.
