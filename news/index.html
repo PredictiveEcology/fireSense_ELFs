@@ -17,7 +17,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">fireSense_ELFs</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">1.1.8</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">1.1.9</span>
       </span>
     </div>
 
@@ -51,6 +51,10 @@
 
     </div>
 
+    <div class="section level2">
+<h2 class="page-header" data-toc-text="1.1.9" id="firesense_elfs-119">fireSense_ELFs 1.1.9<a class="anchor" aria-label="anchor" href="#firesense_elfs-119"></a></h2>
+<ul><li>A named <code>spreadFitFilename</code> is downloaded from Google Drive with <code><a href="https://reproducible.predictiveecology.org/reference/preProcess.html" class="external-link">reproducible::preProcess()</a></code> instead of <code><a href="https://googledrive.tidyverse.org/reference/drive_download.html" class="external-link">googledrive::drive_download()</a></code>. The direct download wrote the file in place in <code>inputPath</code>, so a second job on the same ELF could find it missing or half-written; <code><a href="https://reproducible.predictiveecology.org/reference/preProcess.html" class="external-link">preProcess()</a></code> downloads into a temporary folder first. A local copy whose md5 differs from Drive’s is fetched again (<code>purge = 7</code>), and the <code><a href="https://reproducible.predictiveecology.org/reference/Cache.html" class="external-link">Cache()</a></code> wrapper, which only avoided repeat downloads, is gone. Needs <code>fireSenseUtils</code> &gt;= 0.2.3.9069, whose <code>latestSpreadFits()</code> does the same.</li>
+</ul></div>
     <div class="section level2">
 <h2 class="page-header" data-toc-text="1.1.8" id="firesense_elfs-118">fireSense_ELFs 1.1.8<a class="anchor" aria-label="anchor" href="#firesense_elfs-118"></a></h2>
 <ul><li>New parameter <code>heldOutFold</code> (<code>NA</code>, <code>1</code> or <code>2</code>; the same parameter as in <code>fireSense_spreadFit</code>). With <code>1</code> or <code>2</code>, <code>init</code> does not read the SpreadFit ledger (no <code>drive_ls</code>, <code>drive_download</code> or <code>latestSpreadFits</code>): <code>spreadFitPreRun</code> is NULL, and <code>studyAreaLarge</code> is not masked to the ELFs that have a fit. <code><a href="https://spades-core.predictiveecology.org/reference/paramCheckOtherMods.html" class="external-link">paramCheckOtherMods()</a></code> stops if <code>fireSense_spreadFit</code> has a different value; set all three modules with <code>.globals = list(heldOutFold = ...)</code>.</li>
