@@ -13,7 +13,7 @@ defineModule(sim, list(
            role = c("aut", "cre"))
   ),
   childModules = character(0),
-  version = list(fireSense_ELFs = "1.1.9"),
+  version = list(fireSense_ELFs = "1.1.10"),
   ## This module defines the study area every other fireSense module works in, so
   ## it has to be scheduled first. The object dependency graph only orders modules
   ## that actually exchange objects, so a module that needs the study area
@@ -43,7 +43,7 @@ defineModule(sim, list(
                   "PredictiveEcology/SpaDES.core@development (>= 3.2.1.9003)",
                   "PredictiveEcology/LandR@development (>= 1.2.0.9021)",
                   "deldir", "withr", "googledrive", "sf", "FOR-CAST/fireregimetools@main (>= 0.1.0.9008)",
-                  "PredictiveEcology/fireSenseUtils@development (>= 0.2.3.9043)",
+                  "PredictiveEcology/fireSenseUtils@development (>= 0.2.3.9069)",
                   "PredictiveEcology/SpaDES.project@development (>= 1.0.1.9205)"),
   parameters = bindrows(
     defineParameter("sppEquivCol", "character", "LandR", NA, NA,
@@ -270,12 +270,16 @@ Init <- function(sim) {
             " -- treating this as no pre-run SpreadFit results yet.")
     NULL
   } else {
-    digRemote <- remoteFile$drive_resource[[1]]$md5Checksum
-    gdMeta <- googledrive::drive_download(remoteFile,
-                                          path = file.path(inputPath(sim), remoteFile$name),
-                                          overwrite = TRUE) |>
-      reproducible::Cache(.cacheExtra = digRemote)
-    readRDS(gdMeta$local_path)
+    ## reproducible downloads into a temporary folder and then replaces the file, so a job reading the
+    ## same file (two jobs on one ELF share inputPath) never sees it half-written. CHECKSUMS.txt still
+    ## matches an outdated local copy, so `purge = 7` fetches it again when its md5 differs from Drive's.
+    localRDS <- file.path(inputPath(sim), remoteFile$name)
+    stale <- file.exists(localRDS) &&
+      !identical(unname(tools::md5sum(localRDS)), remoteFile$drive_resource[[1]]$md5Checksum)
+    gdMeta <- reproducible::preProcess(url = paste0("https://drive.google.com/file/d/", remoteFile$id),
+                                       targetFile = remoteFile$name, destinationPath = inputPath(sim),
+                                       fun = NA, purge = if (stale) 7 else FALSE)
+    readRDS(gdMeta$targetFilePath)
   }
   
   

@@ -1,6 +1,10 @@
+# fireSense_ELFs 1.1.10
+
+- reqdPkgs now lists `googledrive` and `sf`, which the module calls with `::` but did not list.
+
 # fireSense_ELFs 1.1.9
 
-- reqdPkgs now lists `googledrive` and `sf`, which the module calls with `::` but did not list. Version 1.1.9.
+- A named `spreadFitFilename` is downloaded from Google Drive with `reproducible::preProcess()` instead of `googledrive::drive_download()`. The direct download wrote the file in place in `inputPath`, so a second job on the same ELF could find it missing or half-written; `preProcess()` downloads into a temporary folder first. A local copy whose md5 differs from Drive's is fetched again (`purge = 7`), and the `Cache()` wrapper, which only avoided repeat downloads, is gone. Needs `fireSenseUtils` >= 0.2.3.9069, whose `latestSpreadFits()` does the same.
 
 # fireSense_ELFs 1.1.8
 
