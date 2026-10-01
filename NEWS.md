@@ -1,6 +1,6 @@
 # fireSense_ELFs (development version)
 
-- New outputs `fireSense_IgnitionFittedList` and `fireSense_EscapeFittedList`, which `fireSense_ignitionPredict` takes for a prediction over several ELFs: one fitted model per ELF the study area touches, named by `ELFind`, read from the ledger of `fireSense_ignitionFit` (new parameters `ignitionFitGoogleDriveFolder` and `ignitionFitFilename`, as for the SpreadFit ledger). With `studyAreaLarge`, an ELF without a fit stops `init` with a message naming it. A single ELF without a fit gets `NULL`, because the run is about to fit it. With `heldOutFold` the ledger is not read. Needs `fireSenseUtils` >= 0.2.3.9077.
+- New outputs `fireSense_IgnitionFittedList` and `fireSense_EscapeFittedList`, which `fireSense_ignitionPredict` takes for a prediction over several ELFs: one fitted model per ELF the study area touches, named by `ELFind`, read from the ledger of `fireSense_ignitionFit` (new parameters `ignitionFitGoogleDriveFolder` and `ignitionFitFilename`, as for the SpreadFit ledger). With `studyAreaLarge`, an ELF without a fit stops `init` with a message naming it. A single ELF without a fit gets `NULL`, because the run is about to fit it. With `heldOutFold` the ledger is not read. Needs `fireSenseUtils` >= 0.2.3.9078.
 
 # fireSense_ELFs 1.1.10
 
