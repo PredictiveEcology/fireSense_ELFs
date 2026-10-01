@@ -52,6 +52,10 @@
     </div>
 
     <div class="section level2">
+<h2 class="page-header" data-toc-text="development version" id="firesense_elfs-development-version">fireSense_ELFs (development version)<a class="anchor" aria-label="anchor" href="#firesense_elfs-development-version"></a></h2>
+<ul><li>New outputs <code>fireSense_IgnitionFittedList</code> and <code>fireSense_EscapeFittedList</code>, which <code>fireSense_ignitionPredict</code> takes for a prediction over several ELFs: one fitted model per ELF the study area touches, named by <code>ELFind</code>, read from the ledger of <code>fireSense_ignitionFit</code> (new parameters <code>ignitionFitGoogleDriveFolder</code> and <code>ignitionFitFilename</code>, as for the SpreadFit ledger). With <code>studyAreaLarge</code>, an ELF without a fit stops <code>init</code> with a message naming it. A single ELF without a fit gets <code>NULL</code>, because the run is about to fit it. With <code>heldOutFold</code> the ledger is not read. Needs <code>fireSenseUtils</code> &gt;= 0.2.3.9078.</li>
+</ul></div>
+    <div class="section level2">
 <h2 class="page-header" data-toc-text="1.1.10" id="firesense_elfs-1110">fireSense_ELFs 1.1.10<a class="anchor" aria-label="anchor" href="#firesense_elfs-1110"></a></h2>
 <ul><li>reqdPkgs now lists <code>googledrive</code> and <code>sf</code>, which the module calls with <code>::</code> but did not list.</li>
 </ul></div>
