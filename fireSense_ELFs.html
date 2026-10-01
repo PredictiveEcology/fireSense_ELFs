@@ -2972,8 +2972,8 @@ border-radius: 0px;
 
 
 <h1 class="title toc-ignore">fireSense_ELFs Manual</h1>
-<h3 class="subtitle">v.1.1.10</h3>
-<h4 class="date">Last updated: 2026-09-30</h4>
+<h3 class="subtitle">v.1.1.11</h3>
+<h4 class="date">Last updated: 2026-10-01</h4>
 
 </div>
 
@@ -3164,6 +3164,46 @@ NA
 </td>
 <td style="text-align:left;">
 Google Drive folder URL that holds <code>spreadFitFilename</code> and, with <code>.useCloud</code>, the shared ELF maps.
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+ignitionFitFilename
+</td>
+<td style="text-align:left;">
+character
+</td>
+<td style="text-align:left;">
+latest
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+Name of the file in <code>ignitionFitGoogleDriveFolder</code> that holds the ignition/escape fits of <code>fireSense_ignitionFit</code>. <code>&quot;latest&quot;</code> (the default) takes each ELF’s fit from the most recent file that has it (<code>fireSenseUtils::latestIgnitionFits()</code>).
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+ignitionFitGoogleDriveFolder
+</td>
+<td style="text-align:left;">
+character
+</td>
+<td style="text-align:left;">
+<a href="https://" class="uri">https://</a>….
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+Google Drive folder URL that holds <code>ignitionFitFilename</code>. <code>NULL</code> reads a named ledger file from <code>inputPath(sim)</code>, with no Google Drive access.
 </td>
 </tr>
 <tr>
@@ -3562,6 +3602,28 @@ data.frame
 </td>
 <td style="text-align:left;">
 This is a data.frame that has a geometry list column, so it can be converted to a sf or SpatVector (e.g., <code>terra::vect(sf::st_as_sf(sim$spreadFitPreRun))</code> , plus other mostly list columns: numIterations, objFunVal (not list), params, sppEquiv, nonForestedLCCGroups, missingLCCgroup, and polygonID. These are from previously fitted SpreadFit. If no pre-existing object exists from CacheGeo, this will be NULL
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+fireSense_IgnitionFittedList
+</td>
+<td style="text-align:left;">
+list
+</td>
+<td style="text-align:left;">
+One <code>fireSense_IgnitionFitted</code> per ELF the study area touches, named by <code>ELFind</code>, read from the ledger of <code>fireSense_ignitionFit</code>. With <code>studyAreaLarge</code> an ELF without a fit is an error. With one ELF, <code>NULL</code> when it has no fit yet (<code>fireSense_ignitionFit</code> is about to fit it), and always <code>NULL</code> when <code>heldOutFold</code> is not <code>NA</code>.
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+fireSense_EscapeFittedList
+</td>
+<td style="text-align:left;">
+list
+</td>
+<td style="text-align:left;">
+As <code>fireSense_IgnitionFittedList</code>, for <code>fireSense_EscapeFitted</code>.
 </td>
 </tr>
 </tbody>

@@ -1,7 +1,7 @@
 ---
 title: "fireSense_ELFs Manual"
-subtitle: "v.1.1.10"
-date: "Last updated: 2026-09-30"
+subtitle: "v.1.1.11"
+date: "Last updated: 2026-10-01"
 output:
   bookdown::html_document2:
     toc: true
@@ -140,6 +140,22 @@ Summary of user-visible parameters (Table \@ref(tab:moduleParams-fireSense-ELFs)
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> Google Drive folder URL that holds `spreadFitFilename` and, with `.useCloud`, the shared ELF maps. </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> ignitionFitFilename </td>
+   <td style="text-align:left;"> character </td>
+   <td style="text-align:left;"> latest </td>
+   <td style="text-align:left;"> NA </td>
+   <td style="text-align:left;"> NA </td>
+   <td style="text-align:left;"> Name of the file in `ignitionFitGoogleDriveFolder` that holds the ignition/escape fits of `fireSense_ignitionFit`. `"latest"` (the default) takes each ELF's fit from the most recent file that has it (`fireSenseUtils::latestIgnitionFits()`). </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> ignitionFitGoogleDriveFolder </td>
+   <td style="text-align:left;"> character </td>
+   <td style="text-align:left;"> https://.... </td>
+   <td style="text-align:left;"> NA </td>
+   <td style="text-align:left;"> NA </td>
+   <td style="text-align:left;"> Google Drive folder URL that holds `ignitionFitFilename`. `NULL` reads a named ledger file from `inputPath(sim)`, with no Google Drive access. </td>
   </tr>
   <tr>
    <td style="text-align:left;"> heldOutFold </td>
@@ -322,6 +338,16 @@ Description of the module outputs (Table \@ref(tab:moduleOutputs-fireSense-ELFs)
    <td style="text-align:left;"> spreadFitPreRun </td>
    <td style="text-align:left;"> data.frame </td>
    <td style="text-align:left;"> This is a data.frame that has a geometry list column, so it can be converted to a sf or SpatVector (e.g., `terra::vect(sf::st_as_sf(sim$spreadFitPreRun))` , plus other mostly list columns: numIterations, objFunVal (not list), params, sppEquiv, nonForestedLCCGroups, missingLCCgroup, and polygonID. These are from previously fitted SpreadFit. If no pre-existing object exists from CacheGeo, this will be NULL </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> fireSense_IgnitionFittedList </td>
+   <td style="text-align:left;"> list </td>
+   <td style="text-align:left;"> One `fireSense_IgnitionFitted` per ELF the study area touches, named by `ELFind`, read from the ledger of `fireSense_ignitionFit`. With `studyAreaLarge` an ELF without a fit is an error. With one ELF, `NULL` when it has no fit yet (`fireSense_ignitionFit` is about to fit it), and always `NULL` when `heldOutFold` is not `NA`. </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> fireSense_EscapeFittedList </td>
+   <td style="text-align:left;"> list </td>
+   <td style="text-align:left;"> As `fireSense_IgnitionFittedList`, for `fireSense_EscapeFitted`. </td>
   </tr>
 </tbody>
 </table>
