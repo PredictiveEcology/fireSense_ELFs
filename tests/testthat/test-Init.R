@@ -9,38 +9,6 @@
 ##   rasterToMatchLargeELF : cols 3-7  = 5 x 4 = 20 cells, 500 km2
 ##   rasterToMatchELF      : cols 4-6  = 3 x 4 = 12 cells, 300 km2
 
-toySppEquiv <- function() data.frame(LandR = c("Pice_gla", "Popu_tre"), FuelClass = c("class2", "class1"))
-
-## Mocks are set after simInit(): in the package rendition simInit() reloads the module's namespace.
-## ELFtemplateRaster() is fireSenseUtils'. Init is sourced into the simList and finds it on the
-## search path, so it is replaced there; the package rendition also imports it, so there too.
-mockInitWorld <- function(ELFs = toyELFs(), driveFiles = NULL, env = parent.frame()) {
-  local_mocked_bindings(ELFtemplateRaster = function(inputPath) toyGrid() + 1, .env = env)
-  local_mocked_bindings(ELFtemplateRaster = function(inputPath) toyGrid() + 1,
-                        .package = "fireSenseUtils", .env = env)
-  local_mocked_bindings(makeELFs = function(x, ...) ELFs, .package = "fireSenseUtils", .env = env)
-  local_mocked_bindings(
-    drive_ls = function(...) {
-      if (is.null(driveFiles)) data.frame(name = character(0)) else driveFiles
-    },
-    drive_download = function(file, path, ...) {
-      saveRDS(data.frame(polygonID = c("3.1.2", "5.1"), objFunVal = c(0.25, 0.5)), path)
-      list(local_path = path)
-    },
-    .package = "googledrive", .env = env)
-  local_mocked_bindings(speciesInStudyArea = function(...) list(sppEquiv = toySppEquiv()),
-                        .package = "LandR", .env = env)
-}
-
-runInit <- function(sim) {
-  grDevices::pdf(NULL)
-  on.exit(grDevices::dev.off(), add = TRUE)
-  ## Init caches the ELF maps whatever `.useCache` says, keyed on tags the toy maps do not have:
-  ## without this a test would get the maps of the test before it
-  reproducible::clearCache(SpaDES.core::cachePath(sim), ask = FALSE, verbose = -2)
-  SpaDES.core::spades(sim, debug = FALSE, events = list(fireSense_ELFs = "init"))
-}
-
 km2 <- function(v) sum(terra::expanse(v, unit = "km", transform = FALSE))
 
 test_that("init builds the single-ELF study areas and rasters with and without the buffer", {
@@ -95,8 +63,10 @@ test_that("every declared output except the fire-count ones is created", {
   out <- suppressMessages(runInit(sim))
   declared <- SpaDES.core::moduleOutputs("fireSense_ELFs", toyPaths()$modulePath)$objectName
   isNull <- vapply(declared, function(n) is.null(out[[n]]), logical(1))
-  ## NULL: the three fire-count outputs (fireYears is NULL) and spreadFitPreRun (no ledger yet)
-  expect_setequal(declared[isNull], c("ELFsExcluded", "ELFfireStatus", "ELFmerges", "spreadFitPreRun"))
+  ## NULL: the three fire-count outputs (fireYears is NULL), spreadFitPreRun and the ignition/escape
+  ## fit lists (no ledger yet)
+  expect_setequal(declared[isNull], c("ELFsExcluded", "ELFfireStatus", "ELFmerges", "spreadFitPreRun",
+                                      "fireSense_IgnitionFittedList", "fireSense_EscapeFittedList"))
 })
 
 test_that("a missing fitted-parameter file means nothing has been fitted yet, and says so", {
@@ -111,12 +81,31 @@ test_that("a missing fitted-parameter file means nothing has been fitted yet, an
 test_that("the fitted-parameter file is read from the folder when it is there", {
   sim <- toySimInit(objects = list(.ELFind = "3.1.2"), params = list(spreadFitFilename = "fireSenseParams.rds"))
   files <- data.frame(name = c("other.rds", "fireSenseParams.rds"))
+  files$id <- c("id_other", "id_params")
   files$drive_resource <- list(list(md5Checksum = "aaa"), list(md5Checksum = "bbb"))
-  mockInitWorld(driveFiles = files)
+  drive <- mockInitWorld(driveFiles = files)
+  unlink(file.path(toyPaths()$inputPath, "fireSenseParams.rds"))
   out <- suppressMessages(runInit(sim))
   expect_identical(out$spreadFitPreRun,
                    data.frame(polygonID = c("3.1.2", "5.1"), objFunVal = c(0.25, 0.5)))
   expect_true(file.exists(file.path(toyPaths()$inputPath, "fireSenseParams.rds")))
+  ## fetched with reproducible, into inputPath, by the file's Drive id
+  expect_length(drive$calls, 1L)
+  expect_identical(drive$calls[[1]]$targetFile, "fireSenseParams.rds")
+  expect_identical(normalizePath(drive$calls[[1]]$destinationPath), normalizePath(toyPaths()$inputPath))
+  expect_match(drive$calls[[1]]$url, "id_params", fixed = TRUE)
+  expect_false(isTRUE(drive$calls[[1]]$purge == 7))                # no local copy yet
+})
+
+test_that("a local copy that differs from Drive's md5 is fetched again", {
+  sim <- toySimInit(objects = list(.ELFind = "3.1.2"), params = list(spreadFitFilename = "fireSenseParams.rds"))
+  files <- data.frame(name = "fireSenseParams.rds", id = "id_params")
+  files$drive_resource <- list(list(md5Checksum = "bbb"))
+  drive <- mockInitWorld(driveFiles = files)
+  writeBin(as.raw(1:3), file.path(toyPaths()$inputPath, "fireSenseParams.rds"))
+  out <- suppressMessages(runInit(sim))
+  expect_identical(drive$calls[[1]]$purge, 7)
+  expect_identical(out$spreadFitPreRun$polygonID, c("3.1.2", "5.1"))
 })
 
 test_that("spreadFitFilename chooses which file in the folder is read", {
@@ -131,14 +120,16 @@ test_that("spreadFitFilename chooses which file in the folder is read", {
 
 test_that("by default (\"latest\") the fits come from the newest current-model file, not a named one", {
   sim <- toySimInit(objects = list(.ELFind = "3.1.2"))
-  files <- data.frame(name = c("fireSenseParams.rds", "fireSenseParams_1985-2024_linearFuel.rds"))
+  ## the current model's file name carries fireSenseUtils::spreadFitFileTag, which changes with the model
+  current <- fireSenseUtils::spreadFitFilenameFor(1985:2024)
+  files <- data.frame(name = c("fireSenseParams.rds", current))
   files$drive_resource <- list(list(md5Checksum = "bbb", modifiedTime = "2026-09-25T00:00:00Z"),
                                list(md5Checksum = "ccc", modifiedTime = "2026-09-20T00:00:00Z"))
   mockInitWorld(driveFiles = files)
-  unlink(file.path(toyPaths()$inputPath, c("fireSenseParams.rds", "fireSenseParams_1985-2024_linearFuel.rds")))
+  unlink(file.path(toyPaths()$inputPath, c("fireSenseParams.rds", current)))
   out <- suppressMessages(runInit(sim))
   expect_identical(out$spreadFitPreRun$polygonID, c("3.1.2", "5.1"))
-  expect_true(file.exists(file.path(toyPaths()$inputPath, "fireSenseParams_1985-2024_linearFuel.rds")))
+  expect_true(file.exists(file.path(toyPaths()$inputPath, current)))
   expect_false(file.exists(file.path(toyPaths()$inputPath, "fireSenseParams.rds")))
 })
 
@@ -170,48 +161,52 @@ test_that("init completes and schedules nothing further", {
   expect_identical(sum(ev$moduleName == "fireSense_ELFs"), 0L)
 })
 
-## The multi-ELF ignition/escape fit lists (sim$fireSense_IgnitionFittedList /
-## sim$fireSense_EscapeFittedList), read for `studyAreaLarge` the same way the SpreadFit ledger
-## is above, and masked out the same way when an ELF has no fit.
+## `heldOutFold` (the same parameter as fireSense_spreadFit's): a held-out fold is fitted without the
+## SpreadFit ledger, so `init` must not read it, and must proceed as for an ELF nothing has been fitted for.
 
-toyIgnitionLedger <- function(ids) {
-  df <- data.frame(polygonID = ids)
-  df$fireSense_IgnitionFitted <- I(lapply(ids, function(i) list(sentinel = paste0("ign-", i))))
-  df$fireSense_EscapeFitted   <- I(lapply(ids, function(i) list(sentinel = paste0("esc-", i))))
-  df
-}
-
-## Both ELFs have SpreadFit parameters (the canned drive_download of mockInitWorld() always
-## returns "3.1.2" and "5.1"); only "3.1.2" has an ignition/escape fit, so "5.1" is masked out.
-test_that("studyAreaLarge over 2 ELFs assembles per-ELF ignition/escape fit lists, masking an ELF without one", {
-  sal <- toyPoly(1, 4, 4, 9, 2020)   # covers ELF 3.1.2 (cols 4-6) and 5.1 (cols 7-9)
-  sim <- toySimInit(objects = list(studyAreaLarge = sal))
-  files <- data.frame(name = "fireSenseParams_1985-2024_linearFuel_esc50.rds")
-  files$drive_resource <- list(list(md5Checksum = "aaa", modifiedTime = "2026-09-25T00:00:00Z"))
-  mockInitWorld(driveFiles = files)
-  local_mocked_bindings(latestIgnitionFits = function(...) toyIgnitionLedger("3.1.2"),
-                        .package = "fireSenseUtils")
-
-  warns <- character()
-  out <- withCallingHandlers(
-    suppressMessages(runInit(sim)),
-    warning = function(w) { warns <<- c(warns, conditionMessage(w)); invokeRestart("muffleWarning") })
-
-  expect_true(any(grepl("Not all the ELFs have IgnitionFit parameters", warns, fixed = TRUE)))
-  expect_identical(names(out$fireSense_IgnitionFittedList), "3.1.2")
-  expect_identical(out$fireSense_IgnitionFittedList[["3.1.2"]], list(sentinel = "ign-3.1.2"))
-  expect_identical(names(out$fireSense_EscapeFittedList), "3.1.2")
-  expect_identical(out$fireSense_EscapeFittedList[["3.1.2"]], list(sentinel = "esc-3.1.2"))
-  expect_identical(as.character(out$ignitionFitPreRun$polygonID), "3.1.2")
-  ## the ELF without an ignition fit is out of the study area, same as one without a SpreadFit
-  expect_identical(unique(as.character(out$studyAreaLargeELF$ELFind)), "3.1.2")
+test_that("with heldOutFold 1 the ledger is not read, whichever spreadFitFilename, and nothing is fitted", {
+  for (filename in list("latest", "fireSenseParams.rds")) {
+    sim <- toySimInit(objects = list(.ELFind = "3.1.2"),
+                      params = list(heldOutFold = 1L, spreadFitFilename = filename))
+    mockInitWorld()
+    mockNoLedger()
+    out <- suppressMessages(runInit(sim))
+    expect_null(out$spreadFitPreRun)
+    expect_identical(dim(out$rasterToMatchELF)[1:2], c(4, 3))       # init still ran to the end
+  }
 })
 
-test_that("single-ELF runs leave the ignition fit lists and ignitionFitPreRun NULL", {
-  sim <- toySimInit(objects = list(.ELFind = "3.1.2"))
+test_that("with heldOutFold NA the ledger is read as before", {
+  sim <- toySimInit(objects = list(.ELFind = "3.1.2"), params = list(heldOutFold = NA))
   mockInitWorld()
-  out <- suppressMessages(runInit(sim))
-  expect_null(out$fireSense_IgnitionFittedList)
-  expect_null(out$fireSense_EscapeFittedList)
-  expect_null(out$ignitionFitPreRun)
+  called <- FALSE
+  local_mocked_bindings(latestSpreadFits = function(...) {
+    called <<- TRUE
+    NULL
+  }, .package = "fireSenseUtils")
+  suppressMessages(runInit(sim))
+  expect_true(called)
+})
+
+test_that("a heldOutFold that is not NA, 1 or 2 is an error", {
+  sim <- toySimInit(objects = list(.ELFind = "3.1.2"), params = list(heldOutFold = 3L))
+  mockInitWorld()
+  mockNoLedger()
+  expect_error(suppressMessages(runInit(sim)), "heldOutFold")
+})
+
+test_that("stops when fireSense_spreadFit has a different heldOutFold", {
+  sim <- toySimInit(objects = list(.ELFind = "3.1.2"), params = list(heldOutFold = NA))
+  sim@params$fireSense_spreadFit <- list(heldOutFold = 1L)
+  mockInitWorld()
+  mockNoLedger()
+  expect_error(suppressMessages(runInit(sim)), "multiple values for heldOutFold")
+})
+
+test_that("agrees when fireSense_spreadFit has the same heldOutFold", {
+  sim <- toySimInit(objects = list(.ELFind = "3.1.2"), params = list(heldOutFold = 2L))
+  sim@params$fireSense_spreadFit <- list(heldOutFold = 2L)
+  mockInitWorld()
+  mockNoLedger()
+  expect_no_error(suppressMessages(runInit(sim)))
 })

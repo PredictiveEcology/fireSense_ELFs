@@ -86,3 +86,17 @@ toyModObj <- function(sim, name, module = "fireSense_ELFs") {
   }
   stop("no `mod$", name, "` found in the simList")
 }
+
+## toyELFs() as makeELFs(singleSpatVector = TRUE) returns them: with `poly`, one polygon per ELF
+## (core and buffer) with its name in field `ID`
+toyELFsWithPoly <- function() {
+  ELFs <- toyELFs()
+  polys <- Map(function(r, nm) {
+    p <- terra::as.polygons(r > 0)
+    p <- p[p[[1]][, 1] == TRUE]
+    p$ID <- nm
+    p
+  }, ELFs$rasWhole, names(ELFs$rasWhole))
+  ELFs$poly <- Reduce(rbind, polys)
+  ELFs
+}

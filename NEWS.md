@@ -1,15 +1,24 @@
+# fireSense_ELFs (development version)
+
+- New outputs `fireSense_IgnitionFittedList` and `fireSense_EscapeFittedList`, which `fireSense_ignitionPredict` takes for a prediction over several ELFs: one fitted model per ELF the study area touches, named by `ELFind`, read from the ledger of `fireSense_ignitionFit` (new parameters `ignitionFitGoogleDriveFolder` and `ignitionFitFilename`, as for the SpreadFit ledger). With `studyAreaLarge`, an ELF without a fit stops `init` with a message naming it. A single ELF without a fit gets `NULL`, because the run is about to fit it. With `heldOutFold` the ledger is not read. Needs `fireSenseUtils` >= 0.2.3.9077.
+
+# fireSense_ELFs 1.1.10
+
+- reqdPkgs now lists `googledrive` and `sf`, which the module calls with `::` but did not list.
+
+# fireSense_ELFs 1.1.9
+
+- A named `spreadFitFilename` is downloaded from Google Drive with `reproducible::preProcess()` instead of `googledrive::drive_download()`. The direct download wrote the file in place in `inputPath`, so a second job on the same ELF could find it missing or half-written; `preProcess()` downloads into a temporary folder first. A local copy whose md5 differs from Drive's is fetched again (`purge = 7`), and the `Cache()` wrapper, which only avoided repeat downloads, is gone. Needs `fireSenseUtils` >= 0.2.3.9069, whose `latestSpreadFits()` does the same.
+
+# fireSense_ELFs 1.1.8
+
+- New parameter `heldOutFold` (`NA`, `1` or `2`; the same parameter as in `fireSense_spreadFit`). With `1` or `2`, `init` does not read the SpreadFit ledger (no `drive_ls`, `drive_download` or `latestSpreadFits`): `spreadFitPreRun` is NULL, and `studyAreaLarge` is not masked to the ELFs that have a fit. `paramCheckOtherMods()` stops if `fireSense_spreadFit` has a different value; set all three modules with `.globals = list(heldOutFold = ...)`.
+
 # fireSense_ELFs 1.1.7
 
-- New parameters `ignitionFitGoogleDriveFolder`/`ignitionFitFilename`, mirroring
-  `spreadFitGoogleDriveFolder`/`spreadFitFilename`. With `studyAreaLarge` (multi-ELF), `init` now
-  also reads the shared `fireSense_IgnitionFit` ledger (`fireSenseUtils::latestIgnitionFits()`) for
-  the ELFs in the study area, new output `ignitionFitPreRun`. ELFs without an ignition/escape fit
-  are masked out of `studyAreaLarge`/`rasterToMatchLargeELF` with a warning, the same as ELFs
-  without a SpreadFit. New outputs `fireSense_IgnitionFittedList`/`fireSense_EscapeFittedList`, one
-  fit per surviving ELF named by `ELFind`, matching what `fireSense_IgnitionPredict` already expects
-  (`ignitionFitsByELF()`). Single-ELF runs are unaffected: they are `NULL`, and `fireSense_IgnitionFit`
-  reads its own ledger row via its `studyArea`/`.ELFind` inputs instead.
-- `fireSenseUtils` floor raised to 0.2.3.9047 (`latestIgnitionFits()`).
+- Scheduled before `fireSense_burn` (renamed from `fireSense`) and the renamed `fireSense_ignitionFit`, `fireSense_spreadFit`,
+  `fireSense_ignitionPredict` and `fireSense_spreadPredict` (formerly `fireSense_IgnitionFit`, `fireSense_SpreadFit`,
+  `fireSense_IgnitionPredict`, `fireSense_SpreadPredict`); the module names in `loadOrder` were updated. Projects must use the new names. `fireSense_EscapeFit` and `fireSense_EscapePredict`, modules that no longer exist (fireSense_ignitionFit and fireSense_ignitionPredict handle escapes), were removed from `loadOrder`, and a test now checks that they are absent.
 
 # fireSense_ELFs 1.1.6
 

@@ -44,7 +44,7 @@ test_that("the module declares itself before the other fireSense modules", {
   dm <- Filter(function(e) grepl("^defineModule", paste(deparse(e), collapse = "")), as.list(md))
   lo <- eval(dm[[1]][[3]]$loadOrder)
   expect_type(lo, "list")
-  expect_true(all(c("fireSense_dataPrepFit", "fireSense_SpreadFit",
-                    "fireSense_SpreadPredict", "fireSense_dataPrepPredict") %in% lo$before))
+  expect_true(all(c("fireSense_burn", "fireSense_dataPrepFit", "fireSense_spreadFit",
+                    "fireSense_spreadPredict", "fireSense_dataPrepPredict") %in% lo$before))
   expect_null(lo$after)
 })

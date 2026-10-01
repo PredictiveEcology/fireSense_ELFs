@@ -13,7 +13,7 @@ defineModule(sim, list(
            role = c("aut", "cre"))
   ),
   childModules = character(0),
-  version = list(fireSense_ELFs = "1.1.7"),
+  version = list(fireSense_ELFs = "1.1.10"),
   ## This module defines the study area every other fireSense module works in, so
   ## it has to be scheduled first. The object dependency graph only orders modules
   ## that actually exchange objects, so a module that needs the study area
@@ -22,19 +22,17 @@ defineModule(sim, list(
   ## thing .assertOneStudyArea() now rejects. Naming a module that is not part of
   ## a given run is harmless: absent names are ignored (verified against
   ## SpaDES.core 3.2.1.9002), so this list can name the whole family.
-  loadOrder = list(before = c("fireSense",
+  loadOrder = list(before = c("fireSense_burn",
                               "fireSense_dataPrep",
                               "fireSense_dataPrepFit",
                               "fireSense_dataPrepPredict",
-                              "fireSense_EscapeFit",
-                              "fireSense_EscapePredict",
                               "fireSense_hindcast",
-                              "fireSense_IgnitionFit",
-                              "fireSense_IgnitionPredict",
+                              "fireSense_ignitionFit",
+                              "fireSense_ignitionPredict",
                               "fireSense_NWT",
                               "fireSense_NWT_DataPrep",
-                              "fireSense_SpreadFit",
-                              "fireSense_SpreadPredict",
+                              "fireSense_spreadFit",
+                              "fireSense_spreadPredict",
                               "fireSense_summary")),
   timeframe = as.POSIXlt(c(NA, NA)),
   timeunit = "year",
@@ -44,8 +42,8 @@ defineModule(sim, list(
                   "PredictiveEcology/reproducible@development (>= 3.2.1.9025)",
                   "PredictiveEcology/SpaDES.core@development (>= 3.2.1.9003)",
                   "PredictiveEcology/LandR@development (>= 1.2.0.9021)",
-                  "deldir", "withr", "FOR-CAST/fireregimetools@main (>= 0.1.0.9008)",
-                  "PredictiveEcology/fireSenseUtils@development (>= 0.2.3.9047)",
+                  "deldir", "withr", "googledrive", "sf", "FOR-CAST/fireregimetools@main (>= 0.1.0.9008)",
+                  "PredictiveEcology/fireSenseUtils@development (>= 0.2.3.9077)",
                   "PredictiveEcology/SpaDES.project@development (>= 1.0.1.9205)"),
   parameters = bindrows(
     defineParameter("sppEquivCol", "character", "LandR", NA, NA,
@@ -58,12 +56,19 @@ defineModule(sim, list(
                     "https://drive.google.com/drive/folders/1X9-mRjyLMNpgkP_cfqhbr_AQEPOsVCHf",
                     NA, NA, "Google Drive folder URL that holds `spreadFitFilename` and, with `.useCloud`, the shared ELF maps."),
     defineParameter("ignitionFitFilename", "character", "latest",
-                    NA, NA, paste("Name of the file in `ignitionFitGoogleDriveFolder` that holds previously fitted ignition/escape",
-                                  "parameters. `\"latest\"` (the default) takes each ELF's fit from the most recent",
+                    NA, NA, paste("Name of the file in `ignitionFitGoogleDriveFolder` that holds the ignition/escape fits of",
+                                  "`fireSense_ignitionFit`. `\"latest\"` (the default) takes each ELF's fit from the most recent",
                                   "file that has it (`fireSenseUtils::latestIgnitionFits()`).")),
     defineParameter("ignitionFitGoogleDriveFolder", "character",
                     "https://drive.google.com/drive/folders/1X9-mRjyLMNpgkP_cfqhbr_AQEPOsVCHf",
-                    NA, NA, "Google Drive folder URL that holds `ignitionFitFilename` (`fireSense_IgnitionFit`'s ledger)."),
+                    NA, NA, paste("Google Drive folder URL that holds `ignitionFitFilename`. `NULL` reads a named",
+                                  "ledger file from `inputPath(sim)`, with no Google Drive access.")),
+    defineParameter("heldOutFold", "integer", default = NA, NA, NA,
+                    paste("NA (default): unchanged. `1` or `2`: a cross-validation fold is being fitted (the same",
+                          "parameter as in `fireSense_spreadFit`), so the SpreadFit ledger is not relevant and is not",
+                          "read: `spreadFitPreRun` is NULL, no ELF counts as fitted, and `studyAreaLarge` is not masked to",
+                          "fitted ELFs. Set it for every fireSense module at once with `.globals = list(heldOutFold = 1L)`;",
+                          "`init` stops if `fireSense_spreadFit` has a different value. Any other value is an error.")),
     defineParameter("queue_path", "character", NULL,
                     NA, NA, "A character scalar indicating what the filename of the queue.rds file is from experimentTmux; ",
                     "if NULL, then this can't determine which ELFs are being run (no 'yellow' on the map)"),
@@ -149,21 +154,15 @@ defineModule(sim, list(
                   desc = paste("This is a data.frame that has a geometry list column, so it can be ",
                                "converted to a sf or SpatVector (e.g., `terra::vect(sf::st_as_sf(sim$spreadFitPreRun))` ",
                                " , plus other mostly list columns:",
-                               "numIterations, objFunVal (not list), params, sppEquiv, ",
+                               "numIterations, objFunVal (not list), params, sppEquiv, ", 
                                "nonForestedLCCGroups, missingLCCgroup, and polygonID. These are from ",
                                "previously fitted SpreadFit. If no pre-existing object exists from ",
                                "CacheGeo, this will be NULL")),
-    createsOutput("ignitionFitPreRun", "data.frame",
-                  desc = paste("Ledger rows (`fireSenseUtils::latestIgnitionFits()` / a named `ignitionFitFilename`)",
-                               "of previously fitted ignition/escape parameters that overlap the study area: a",
-                               "geometry list column, `polygonID`, and the `fireSense_IgnitionFitted`/",
-                               "`fireSense_EscapeFitted` list-columns. `NULL` if none exist yet.")),
     createsOutput("fireSense_IgnitionFittedList", "list",
-                  desc = paste("Only when `studyAreaLarge` is supplied: one `fireSense_IgnitionFitted` per ELF that",
-                               "has an ignition-fit ledger row, named by `ELFind`. ELFs in `studyAreaLarge` without",
-                               "one are masked out of `studyAreaLarge`/`rasterToMatchLargeELF`, with a warning, the",
-                               "same as ELFs without a SpreadFit. `NULL` for a single ELF (`fireSense_IgnitionFit`",
-                               "reads its own ledger row instead; see its `studyArea`/`.ELFind` inputs).")),
+                  desc = paste("One `fireSense_IgnitionFitted` per ELF the study area touches, named by `ELFind`, read from",
+                               "the ledger of `fireSense_ignitionFit`. With `studyAreaLarge` an ELF without a fit is an error.",
+                               "With one ELF, `NULL` when it has no fit yet (`fireSense_ignitionFit` is about to fit it),",
+                               "and always `NULL` when `heldOutFold` is not `NA`.")),
     createsOutput("fireSense_EscapeFittedList", "list",
                   desc = "As `fireSense_IgnitionFittedList`, for `fireSense_EscapeFitted`.")
   )
@@ -260,38 +259,48 @@ Init <- function(sim) {
     }
   }
 
-  # Check on what fireSense_SpreadFit has already been run
+  # Check on what fireSense_spreadFit has already been run.
+  # A held-out fold is fitted without the ledger: it is not read, and nothing counts as fitted.
+  heldOutFold <- SpaDES.core::paramCheckOtherMods(sim, "heldOutFold")
+  if (!isTRUE(is.na(heldOutFold)) && !(length(heldOutFold) == 1L && heldOutFold %in% 1:2))
+    stop("fireSense_ELFs: parameter 'heldOutFold' must be NA, 1L or 2L; got: ",
+         paste(format(heldOutFold), collapse = ", "))
+  heldOut <- !isTRUE(is.na(heldOutFold))
   prepInputsFSURL <- SpaDES.core::paramCheckOtherMods(sim, "spreadFitGoogleDriveFolder")
   fireSenseParamsRDS <- SpaDES.core::paramCheckOtherMods(sim, "spreadFitFilename")
   latest <- identical(fireSenseParamsRDS, "latest")
-  gdLs <- if (!latest) googledrive::drive_ls(prepInputsFSURL)
+  gdLs <- if (!latest && !heldOut) googledrive::drive_ls(prepInputsFSURL)
   remoteFile <- gdLs[gdLs$name %in% fireSenseParamsRDS,]
   ## A ledger that does not exist yet means "nothing has been fitted", which is the
   ## normal state at the start of a new experiment: the first completed fit creates
   ## the file. Without this, `remoteFile$drive_resource[[1]]` was a subscript error
   ## in every job, and in fireSenseUtils::runELFs() before the queue was even built,
   ## so pointing `spreadFitFilename` at a new file could not be done at all.
-  spreadFitPreRun <- if (latest) {
+  spreadFitPreRun <- if (heldOut) {
+    NULL
+  } else if (latest) {
     fireSenseUtils::latestSpreadFits(prepInputsFSURL, destinationPath = inputPath(sim))
   } else if (NROW(remoteFile) == 0L) {
     message("fireSense_ELFs: no '", fireSenseParamsRDS, "' in ", prepInputsFSURL,
             " -- treating this as no pre-run SpreadFit results yet.")
     NULL
   } else {
-    digRemote <- remoteFile$drive_resource[[1]]$md5Checksum
-    gdMeta <- googledrive::drive_download(remoteFile,
-                                          path = file.path(inputPath(sim), remoteFile$name),
-                                          overwrite = TRUE) |>
-      reproducible::Cache(.cacheExtra = digRemote)
-    readRDS(gdMeta$local_path)
+    ## reproducible downloads into a temporary folder and then replaces the file, so a job reading the
+    ## same file (two jobs on one ELF share inputPath) never sees it half-written. CHECKSUMS.txt still
+    ## matches an outdated local copy, so `purge = 7` fetches it again when its md5 differs from Drive's.
+    localRDS <- file.path(inputPath(sim), remoteFile$name)
+    stale <- file.exists(localRDS) &&
+      !identical(unname(tools::md5sum(localRDS)), remoteFile$drive_resource[[1]]$md5Checksum)
+    gdMeta <- reproducible::preProcess(url = paste0("https://drive.google.com/file/d/", remoteFile$id),
+                                       targetFile = remoteFile$name, destinationPath = inputPath(sim),
+                                       fun = NA, purge = if (stale) 7 else FALSE)
+    readRDS(gdMeta$targetFilePath)
   }
   
   
-  fireSense_IgnitionFittedList <- fireSense_EscapeFittedList <- ignitionFitPreRun <- NULL
-
   if (hasStudyAreaLarge) {
 
-    out <- ELFsInStudyArea(sim$studyAreaLarge, ELFsRaster = ELFs["rasWhole"],
+    out <- ELFsInStudyArea(sim$studyAreaLarge, ELFsRaster = ELFs["rasWhole"], 
                            ELFsPolygon = ELFs$poly, inputPath = inputPath(sim))
     ELFsNeeded <- unique(out$poly$ID)
     ## Both study areas were supplied and they disagree: stop rather than pick one
@@ -302,53 +311,17 @@ Init <- function(sim) {
     out$rast <- terra::sieve(out$rast, threshold = 100, directions = 8)
     rr <- terra::trim(out$rast)
     pp <- as.polygons(rr)
-
+    
     # Not all will have SpreadFit yet
     hasELFFittedData <- pp$ELFind %in% spreadFitPreRun$polygonID
-    if (any(!hasELFFittedData)) {
+    if (any(!hasELFFittedData) && !heldOut) {
       warning("Not all the ELFs have SpreadFit parameters; masking studyAreaLarge to ONLY the ELFs that have data")
       pp <- pp[pp$ELFind %in% spreadFitPreRun$polygonID,]
     }
-
-    # Check on what fireSense_IgnitionFit has already been run, for the ELFs still in `pp`
-    # (mirrors the fireSense_SpreadFit ledger read above). Single-ELF runs skip this: they
-    # get their fit from fireSense_IgnitionFit's own ledger read (its `studyArea`/`.ELFind`).
-    prepInputsIgnitionURL <- SpaDES.core::paramCheckOtherMods(sim, "ignitionFitGoogleDriveFolder")
-    ignitionFitFilenameParam <- SpaDES.core::paramCheckOtherMods(sim, "ignitionFitFilename")
-    latestIgnition <- identical(ignitionFitFilenameParam, "latest")
-    gdLsIgnition <- if (!latestIgnition) googledrive::drive_ls(prepInputsIgnitionURL)
-    remoteIgnitionFile <- gdLsIgnition[gdLsIgnition$name %in% ignitionFitFilenameParam, ]
-    ignitionFitPreRun <- if (latestIgnition) {
-      fireSenseUtils::latestIgnitionFits(prepInputsIgnitionURL, destinationPath = inputPath(sim))
-    } else if (NROW(remoteIgnitionFile) == 0L) {
-      message("fireSense_ELFs: no '", ignitionFitFilenameParam, "' in ", prepInputsIgnitionURL,
-              " -- treating this as no pre-run IgnitionFit results yet.")
-      NULL
-    } else {
-      digRemote <- remoteIgnitionFile$drive_resource[[1]]$md5Checksum
-      gdMeta <- googledrive::drive_download(remoteIgnitionFile,
-                                            path = file.path(inputPath(sim), remoteIgnitionFile$name),
-                                            overwrite = TRUE) |>
-        reproducible::Cache(.cacheExtra = digRemote)
-      readRDS(gdMeta$local_path)
-    }
-
-    # As with SpreadFit: not all the surviving ELFs will have an IgnitionFit yet
-    hasIgnitionFittedData <- pp$ELFind %in% ignitionFitPreRun$polygonID
-    if (any(!hasIgnitionFittedData)) {
-      warning("Not all the ELFs have IgnitionFit parameters; masking studyAreaLarge to ONLY the ELFs that have data")
-      pp <- pp[pp$ELFind %in% ignitionFitPreRun$polygonID, ]
-    }
-
-    # One fireSense_IgnitionFitted/fireSense_EscapeFitted per surviving ELF, named by ELFind
-    # (fireSense_IgnitionPredict's ignitionFitsByELF() reads these lists this way).
-    ELFindsHere <- as.character(pp$ELFind)
-    ledgerInd <- match(ELFindsHere, as.character(ignitionFitPreRun$polygonID))
-    fireSense_IgnitionFittedList <- stats::setNames(ignitionFitPreRun$fireSense_IgnitionFitted[ledgerInd], ELFindsHere)
-    fireSense_EscapeFittedList <- stats::setNames(ignitionFitPreRun$fireSense_EscapeFitted[ledgerInd], ELFindsHere)
-
+    
     pp <- terra::project(pp, sim$studyAreaLarge)
     pp <- terra::intersect(pp, sim$studyAreaLarge)
+    ELFpolys <- pp
     studyAreaLargeELF <- terra::project(pp, ELFs$rasWhole[[1]])
     rr <- rasterize(studyAreaLargeELF, ELFs$rasWhole[[1]], field = "ELFind")
     rasterToMatchLargeELF <- terra::trim(rr)
@@ -396,6 +369,21 @@ Init <- function(sim) {
               .cacheExtra = list(rtm = attr(rasterToMatchELF, "tags")))
     }
     studyAreaLarge <- studyAreaLargeELF
+    ELFpolys <- studyAreaLargeELF
+    ELFpolys$ELFind <- ELF
+  }
+
+  ## The fitted ignition and escape models of every ELF this run touches. A study area over several
+  ## ELFs is for prediction, so every ELF needs its fit; a single ELF may be about to be fitted.
+  fireSense_IgnitionFittedList <- fireSense_EscapeFittedList <- NULL
+  if (!heldOut) {
+    ignitionRows <- readIgnitionFitRows(ELFpolys,
+                                        folder = SpaDES.core::paramCheckOtherMods(sim, "ignitionFitGoogleDriveFolder"),
+                                        filename = SpaDES.core::paramCheckOtherMods(sim, "ignitionFitFilename"),
+                                        destinationPath = inputPath)
+    ignitionFits <- ignitionFitLists(ignitionRows, ELFpolys$ELFind, required = hasStudyAreaLarge)
+    fireSense_IgnitionFittedList <- ignitionFits$ignition
+    fireSense_EscapeFittedList <- ignitionFits$escape
   }
   
   ## The species table (no _Spp genus entries, only species with LANDIS traits, Engelmann
