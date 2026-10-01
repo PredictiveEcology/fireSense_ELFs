@@ -33,7 +33,8 @@ test_that("outputs are the expected names and classes", {
                 rasterToMatchLargeELF = "SpatRaster", sppEquiv = "data.table",
                 spreadFitPreRun = "data.frame", studyArea = "SpatVector",
                 studyAreaELF = "SpatVector", studyAreaLarge = "SpatVector",
-                studyAreaLargeELF = "SpatVector")
+                studyAreaLargeELF = "SpatVector",
+                fireSense_IgnitionFittedList = "list", fireSense_EscapeFittedList = "list")
   expect_identical(outputs[order(names(outputs))], expected[order(names(expected))])
 })
 
@@ -42,6 +43,7 @@ test_that("no parameter has been removed or retyped", {
   names(classes) <- unlist(md$parameters$paramName)
   expected <- c(sppEquivCol = "character", spreadFitFilename = "character",
                 spreadFitGoogleDriveFolder = "character", queue_path = "character",
+                ignitionFitFilename = "character", ignitionFitGoogleDriveFolder = "character",
                 fireYears = "integer", minNaturalIgnitions = "numeric", minFirePolygons = "numeric",
                 .plots = "character", .plotInitialTime = "numeric", .studyAreaName = "character",
                 .useCache = "logical", .useCloud = "logical|character", .useCacheArgs = "list")
@@ -57,6 +59,9 @@ test_that("parameter defaults are unchanged", {
   expect_identical(p$sppEquivCol, "LandR")
   expect_identical(p$spreadFitFilename, "latest")
   expect_identical(p$spreadFitGoogleDriveFolder,
+                   "https://drive.google.com/drive/folders/1X9-mRjyLMNpgkP_cfqhbr_AQEPOsVCHf")
+  expect_identical(p$ignitionFitFilename, "latest")
+  expect_identical(p$ignitionFitGoogleDriveFolder,
                    "https://drive.google.com/drive/folders/1X9-mRjyLMNpgkP_cfqhbr_AQEPOsVCHf")
   expect_null(p$queue_path)
   expect_null(p$fireYears)

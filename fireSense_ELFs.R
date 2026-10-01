@@ -43,7 +43,7 @@ defineModule(sim, list(
                   "PredictiveEcology/SpaDES.core@development (>= 3.2.1.9003)",
                   "PredictiveEcology/LandR@development (>= 1.2.0.9021)",
                   "deldir", "withr", "googledrive", "sf", "FOR-CAST/fireregimetools@main (>= 0.1.0.9008)",
-                  "PredictiveEcology/fireSenseUtils@development (>= 0.2.3.9069)",
+                  "PredictiveEcology/fireSenseUtils@development (>= 0.2.3.9078)",
                   "PredictiveEcology/SpaDES.project@development (>= 1.0.1.9205)"),
   parameters = bindrows(
     defineParameter("sppEquivCol", "character", "LandR", NA, NA,
@@ -55,6 +55,14 @@ defineModule(sim, list(
     defineParameter("spreadFitGoogleDriveFolder", "character",
                     "https://drive.google.com/drive/folders/1X9-mRjyLMNpgkP_cfqhbr_AQEPOsVCHf",
                     NA, NA, "Google Drive folder URL that holds `spreadFitFilename` and, with `.useCloud`, the shared ELF maps."),
+    defineParameter("ignitionFitFilename", "character", "latest",
+                    NA, NA, paste("Name of the file in `ignitionFitGoogleDriveFolder` that holds the ignition/escape fits of",
+                                  "`fireSense_ignitionFit`. `\"latest\"` (the default) takes each ELF's fit from the most recent",
+                                  "file that has it (`fireSenseUtils::latestIgnitionFits()`).")),
+    defineParameter("ignitionFitGoogleDriveFolder", "character",
+                    "https://drive.google.com/drive/folders/1X9-mRjyLMNpgkP_cfqhbr_AQEPOsVCHf",
+                    NA, NA, paste("Google Drive folder URL that holds `ignitionFitFilename`. `NULL` reads a named",
+                                  "ledger file from `inputPath(sim)`, with no Google Drive access.")),
     defineParameter("heldOutFold", "integer", default = NA, NA, NA,
                     paste("NA (default): unchanged. `1` or `2`: a cross-validation fold is being fitted (the same",
                           "parameter as in `fireSense_spreadFit`), so the SpreadFit ledger is not relevant and is not",
@@ -149,7 +157,14 @@ defineModule(sim, list(
                                "numIterations, objFunVal (not list), params, sppEquiv, ", 
                                "nonForestedLCCGroups, missingLCCgroup, and polygonID. These are from ",
                                "previously fitted SpreadFit. If no pre-existing object exists from ",
-                               "CacheGeo, this will be NULL"))
+                               "CacheGeo, this will be NULL")),
+    createsOutput("fireSense_IgnitionFittedList", "list",
+                  desc = paste("One `fireSense_IgnitionFitted` per ELF the study area touches, named by `ELFind`, read from",
+                               "the ledger of `fireSense_ignitionFit`. With `studyAreaLarge` an ELF without a fit is an error.",
+                               "With one ELF, `NULL` when it has no fit yet (`fireSense_ignitionFit` is about to fit it),",
+                               "and always `NULL` when `heldOutFold` is not `NA`.")),
+    createsOutput("fireSense_EscapeFittedList", "list",
+                  desc = "As `fireSense_IgnitionFittedList`, for `fireSense_EscapeFitted`.")
   )
 ))
 
@@ -306,6 +321,7 @@ Init <- function(sim) {
     
     pp <- terra::project(pp, sim$studyAreaLarge)
     pp <- terra::intersect(pp, sim$studyAreaLarge)
+    ELFpolys <- pp
     studyAreaLargeELF <- terra::project(pp, ELFs$rasWhole[[1]])
     rr <- rasterize(studyAreaLargeELF, ELFs$rasWhole[[1]], field = "ELFind")
     rasterToMatchLargeELF <- terra::trim(rr)
@@ -353,6 +369,21 @@ Init <- function(sim) {
               .cacheExtra = list(rtm = attr(rasterToMatchELF, "tags")))
     }
     studyAreaLarge <- studyAreaLargeELF
+    ELFpolys <- studyAreaLargeELF
+    ELFpolys$ELFind <- ELF
+  }
+
+  ## The fitted ignition and escape models of every ELF this run touches. A study area over several
+  ## ELFs is for prediction, so every ELF needs its fit; a single ELF may be about to be fitted.
+  fireSense_IgnitionFittedList <- fireSense_EscapeFittedList <- NULL
+  if (!heldOut) {
+    ignitionRows <- readIgnitionFitRows(ELFpolys,
+                                        folder = SpaDES.core::paramCheckOtherMods(sim, "ignitionFitGoogleDriveFolder"),
+                                        filename = SpaDES.core::paramCheckOtherMods(sim, "ignitionFitFilename"),
+                                        destinationPath = inputPath)
+    ignitionFits <- ignitionFitLists(ignitionRows, ELFpolys$ELFind, required = hasStudyAreaLarge)
+    fireSense_IgnitionFittedList <- ignitionFits$ignition
+    fireSense_EscapeFittedList <- ignitionFits$escape
   }
   
   ## The species table (no _Spp genus entries, only species with LANDIS traits, Engelmann

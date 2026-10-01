@@ -9,49 +9,6 @@
 ##   rasterToMatchLargeELF : cols 3-7  = 5 x 4 = 20 cells, 500 km2
 ##   rasterToMatchELF      : cols 4-6  = 3 x 4 = 12 cells, 300 km2
 
-toySppEquiv <- function() data.frame(LandR = c("Pice_gla", "Popu_tre"), FuelClass = c("class2", "class1"))
-
-## Mocks are set after simInit(): in the package rendition simInit() reloads the module's namespace.
-## ELFtemplateRaster() is fireSenseUtils'. Init is sourced into the simList and finds it on the
-## search path, so it is replaced there; the package rendition also imports it, so there too.
-mockInitWorld <- function(ELFs = toyELFs(), driveFiles = NULL, env = parent.frame()) {
-  local_mocked_bindings(ELFtemplateRaster = function(inputPath) toyGrid() + 1, .env = env)
-  local_mocked_bindings(ELFtemplateRaster = function(inputPath) toyGrid() + 1,
-                        .package = "fireSenseUtils", .env = env)
-  local_mocked_bindings(makeELFs = function(x, ...) ELFs, .package = "fireSenseUtils", .env = env)
-  local_mocked_bindings(
-    drive_ls = function(...) {
-      if (is.null(driveFiles)) data.frame(name = character(0)) else driveFiles
-    },
-    ## a direct download writes the file in place, where a job reading it meanwhile can see it half-written
-    drive_download = function(...) stop("googledrive::drive_download() must not be called"),
-    .package = "googledrive", .env = env)
-  ## the ledger is fetched with reproducible's downloader; the mock records its arguments in `driveCalls`
-  driveCalls <- new.env()
-  driveCalls$calls <- list()
-  local_mocked_bindings(
-    preProcess = function(targetFile = NULL, url = NULL, destinationPath = ".", purge = FALSE, ...) {
-      driveCalls$calls[[length(driveCalls$calls) + 1L]] <- list(
-        targetFile = targetFile, url = url, destinationPath = destinationPath, purge = purge)
-      path <- file.path(destinationPath, targetFile)
-      saveRDS(data.frame(polygonID = c("3.1.2", "5.1"), objFunVal = c(0.25, 0.5)), path)
-      list(targetFilePath = path)
-    },
-    .package = "reproducible", .env = env)
-  local_mocked_bindings(speciesInStudyArea = function(...) list(sppEquiv = toySppEquiv()),
-                        .package = "LandR", .env = env)
-  invisible(driveCalls)
-}
-
-runInit <- function(sim) {
-  grDevices::pdf(NULL)
-  on.exit(grDevices::dev.off(), add = TRUE)
-  ## Init caches the ELF maps whatever `.useCache` says, keyed on tags the toy maps do not have:
-  ## without this a test would get the maps of the test before it
-  reproducible::clearCache(SpaDES.core::cachePath(sim), ask = FALSE, verbose = -2)
-  SpaDES.core::spades(sim, debug = FALSE, events = list(fireSense_ELFs = "init"))
-}
-
 km2 <- function(v) sum(terra::expanse(v, unit = "km", transform = FALSE))
 
 test_that("init builds the single-ELF study areas and rasters with and without the buffer", {
@@ -106,8 +63,10 @@ test_that("every declared output except the fire-count ones is created", {
   out <- suppressMessages(runInit(sim))
   declared <- SpaDES.core::moduleOutputs("fireSense_ELFs", toyPaths()$modulePath)$objectName
   isNull <- vapply(declared, function(n) is.null(out[[n]]), logical(1))
-  ## NULL: the three fire-count outputs (fireYears is NULL) and spreadFitPreRun (no ledger yet)
-  expect_setequal(declared[isNull], c("ELFsExcluded", "ELFfireStatus", "ELFmerges", "spreadFitPreRun"))
+  ## NULL: the three fire-count outputs (fireYears is NULL), spreadFitPreRun and the ignition/escape
+  ## fit lists (no ledger yet)
+  expect_setequal(declared[isNull], c("ELFsExcluded", "ELFfireStatus", "ELFmerges", "spreadFitPreRun",
+                                      "fireSense_IgnitionFittedList", "fireSense_EscapeFittedList"))
 })
 
 test_that("a missing fitted-parameter file means nothing has been fitted yet, and says so", {
@@ -204,16 +163,6 @@ test_that("init completes and schedules nothing further", {
 
 ## `heldOutFold` (the same parameter as fireSense_spreadFit's): a held-out fold is fitted without the
 ## SpreadFit ledger, so `init` must not read it, and must proceed as for an ELF nothing has been fitted for.
-
-## Any read of the ledger is an error
-mockNoLedger <- function(env = parent.frame()) {
-  local_mocked_bindings(
-    drive_ls = function(...) stop("ledger read: drive_ls"),
-    drive_download = function(...) stop("ledger read: drive_download"),
-    .package = "googledrive", .env = env)
-  local_mocked_bindings(latestSpreadFits = function(...) stop("ledger read: latestSpreadFits"),
-                        .package = "fireSenseUtils", .env = env)
-}
 
 test_that("with heldOutFold 1 the ledger is not read, whichever spreadFitFilename, and nothing is fitted", {
   for (filename in list("latest", "fireSenseParams.rds")) {
