@@ -13,7 +13,7 @@ defineModule(sim, list(
            role = c("aut", "cre"))
   ),
   childModules = character(0),
-  version = list(fireSense_ELFs = "1.1.6"),
+  version = list(fireSense_ELFs = "1.1.7"),
   ## This module defines the study area every other fireSense module works in, so
   ## it has to be scheduled first. The object dependency graph only orders modules
   ## that actually exchange objects, so a module that needs the study area
@@ -45,7 +45,7 @@ defineModule(sim, list(
                   "PredictiveEcology/SpaDES.core@development (>= 3.2.1.9003)",
                   "PredictiveEcology/LandR@development (>= 1.2.0.9021)",
                   "deldir", "withr", "FOR-CAST/fireregimetools@main (>= 0.1.0.9008)",
-                  "PredictiveEcology/fireSenseUtils@development (>= 0.2.3.9043)",
+                  "PredictiveEcology/fireSenseUtils@development (>= 0.2.3.9047)",
                   "PredictiveEcology/SpaDES.project@development (>= 1.0.1.9205)"),
   parameters = bindrows(
     defineParameter("sppEquivCol", "character", "LandR", NA, NA,
@@ -57,6 +57,13 @@ defineModule(sim, list(
     defineParameter("spreadFitGoogleDriveFolder", "character",
                     "https://drive.google.com/drive/folders/1X9-mRjyLMNpgkP_cfqhbr_AQEPOsVCHf",
                     NA, NA, "Google Drive folder URL that holds `spreadFitFilename` and, with `.useCloud`, the shared ELF maps."),
+    defineParameter("ignitionFitFilename", "character", "latest",
+                    NA, NA, paste("Name of the file in `ignitionFitGoogleDriveFolder` that holds previously fitted ignition/escape",
+                                  "parameters. `\"latest\"` (the default) takes each ELF's fit from the most recent",
+                                  "file that has it (`fireSenseUtils::latestIgnitionFits()`).")),
+    defineParameter("ignitionFitGoogleDriveFolder", "character",
+                    "https://drive.google.com/drive/folders/1X9-mRjyLMNpgkP_cfqhbr_AQEPOsVCHf",
+                    NA, NA, "Google Drive folder URL that holds `ignitionFitFilename` (`fireSense_IgnitionFit`'s ledger)."),
     defineParameter("queue_path", "character", NULL,
                     NA, NA, "A character scalar indicating what the filename of the queue.rds file is from experimentTmux; ",
                     "if NULL, then this can't determine which ELFs are being run (no 'yellow' on the map)"),
@@ -142,10 +149,23 @@ defineModule(sim, list(
                   desc = paste("This is a data.frame that has a geometry list column, so it can be ",
                                "converted to a sf or SpatVector (e.g., `terra::vect(sf::st_as_sf(sim$spreadFitPreRun))` ",
                                " , plus other mostly list columns:",
-                               "numIterations, objFunVal (not list), params, sppEquiv, ", 
+                               "numIterations, objFunVal (not list), params, sppEquiv, ",
                                "nonForestedLCCGroups, missingLCCgroup, and polygonID. These are from ",
                                "previously fitted SpreadFit. If no pre-existing object exists from ",
-                               "CacheGeo, this will be NULL"))
+                               "CacheGeo, this will be NULL")),
+    createsOutput("ignitionFitPreRun", "data.frame",
+                  desc = paste("Ledger rows (`fireSenseUtils::latestIgnitionFits()` / a named `ignitionFitFilename`)",
+                               "of previously fitted ignition/escape parameters that overlap the study area: a",
+                               "geometry list column, `polygonID`, and the `fireSense_IgnitionFitted`/",
+                               "`fireSense_EscapeFitted` list-columns. `NULL` if none exist yet.")),
+    createsOutput("fireSense_IgnitionFittedList", "list",
+                  desc = paste("Only when `studyAreaLarge` is supplied: one `fireSense_IgnitionFitted` per ELF that",
+                               "has an ignition-fit ledger row, named by `ELFind`. ELFs in `studyAreaLarge` without",
+                               "one are masked out of `studyAreaLarge`/`rasterToMatchLargeELF`, with a warning, the",
+                               "same as ELFs without a SpreadFit. `NULL` for a single ELF (`fireSense_IgnitionFit`",
+                               "reads its own ledger row instead; see its `studyArea`/`.ELFind` inputs).")),
+    createsOutput("fireSense_EscapeFittedList", "list",
+                  desc = "As `fireSense_IgnitionFittedList`, for `fireSense_EscapeFitted`.")
   )
 ))
 
@@ -267,9 +287,11 @@ Init <- function(sim) {
   }
   
   
+  fireSense_IgnitionFittedList <- fireSense_EscapeFittedList <- ignitionFitPreRun <- NULL
+
   if (hasStudyAreaLarge) {
 
-    out <- ELFsInStudyArea(sim$studyAreaLarge, ELFsRaster = ELFs["rasWhole"], 
+    out <- ELFsInStudyArea(sim$studyAreaLarge, ELFsRaster = ELFs["rasWhole"],
                            ELFsPolygon = ELFs$poly, inputPath = inputPath(sim))
     ELFsNeeded <- unique(out$poly$ID)
     ## Both study areas were supplied and they disagree: stop rather than pick one
@@ -280,14 +302,51 @@ Init <- function(sim) {
     out$rast <- terra::sieve(out$rast, threshold = 100, directions = 8)
     rr <- terra::trim(out$rast)
     pp <- as.polygons(rr)
-    
+
     # Not all will have SpreadFit yet
     hasELFFittedData <- pp$ELFind %in% spreadFitPreRun$polygonID
     if (any(!hasELFFittedData)) {
       warning("Not all the ELFs have SpreadFit parameters; masking studyAreaLarge to ONLY the ELFs that have data")
       pp <- pp[pp$ELFind %in% spreadFitPreRun$polygonID,]
     }
-    
+
+    # Check on what fireSense_IgnitionFit has already been run, for the ELFs still in `pp`
+    # (mirrors the fireSense_SpreadFit ledger read above). Single-ELF runs skip this: they
+    # get their fit from fireSense_IgnitionFit's own ledger read (its `studyArea`/`.ELFind`).
+    prepInputsIgnitionURL <- SpaDES.core::paramCheckOtherMods(sim, "ignitionFitGoogleDriveFolder")
+    ignitionFitFilenameParam <- SpaDES.core::paramCheckOtherMods(sim, "ignitionFitFilename")
+    latestIgnition <- identical(ignitionFitFilenameParam, "latest")
+    gdLsIgnition <- if (!latestIgnition) googledrive::drive_ls(prepInputsIgnitionURL)
+    remoteIgnitionFile <- gdLsIgnition[gdLsIgnition$name %in% ignitionFitFilenameParam, ]
+    ignitionFitPreRun <- if (latestIgnition) {
+      fireSenseUtils::latestIgnitionFits(prepInputsIgnitionURL, destinationPath = inputPath(sim))
+    } else if (NROW(remoteIgnitionFile) == 0L) {
+      message("fireSense_ELFs: no '", ignitionFitFilenameParam, "' in ", prepInputsIgnitionURL,
+              " -- treating this as no pre-run IgnitionFit results yet.")
+      NULL
+    } else {
+      digRemote <- remoteIgnitionFile$drive_resource[[1]]$md5Checksum
+      gdMeta <- googledrive::drive_download(remoteIgnitionFile,
+                                            path = file.path(inputPath(sim), remoteIgnitionFile$name),
+                                            overwrite = TRUE) |>
+        reproducible::Cache(.cacheExtra = digRemote)
+      readRDS(gdMeta$local_path)
+    }
+
+    # As with SpreadFit: not all the surviving ELFs will have an IgnitionFit yet
+    hasIgnitionFittedData <- pp$ELFind %in% ignitionFitPreRun$polygonID
+    if (any(!hasIgnitionFittedData)) {
+      warning("Not all the ELFs have IgnitionFit parameters; masking studyAreaLarge to ONLY the ELFs that have data")
+      pp <- pp[pp$ELFind %in% ignitionFitPreRun$polygonID, ]
+    }
+
+    # One fireSense_IgnitionFitted/fireSense_EscapeFitted per surviving ELF, named by ELFind
+    # (fireSense_IgnitionPredict's ignitionFitsByELF() reads these lists this way).
+    ELFindsHere <- as.character(pp$ELFind)
+    ledgerInd <- match(ELFindsHere, as.character(ignitionFitPreRun$polygonID))
+    fireSense_IgnitionFittedList <- stats::setNames(ignitionFitPreRun$fireSense_IgnitionFitted[ledgerInd], ELFindsHere)
+    fireSense_EscapeFittedList <- stats::setNames(ignitionFitPreRun$fireSense_EscapeFitted[ledgerInd], ELFindsHere)
+
     pp <- terra::project(pp, sim$studyAreaLarge)
     pp <- terra::intersect(pp, sim$studyAreaLarge)
     studyAreaLargeELF <- terra::project(pp, ELFs$rasWhole[[1]])

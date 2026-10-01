@@ -1,3 +1,16 @@
+# fireSense_ELFs 1.1.7
+
+- New parameters `ignitionFitGoogleDriveFolder`/`ignitionFitFilename`, mirroring
+  `spreadFitGoogleDriveFolder`/`spreadFitFilename`. With `studyAreaLarge` (multi-ELF), `init` now
+  also reads the shared `fireSense_IgnitionFit` ledger (`fireSenseUtils::latestIgnitionFits()`) for
+  the ELFs in the study area, new output `ignitionFitPreRun`. ELFs without an ignition/escape fit
+  are masked out of `studyAreaLarge`/`rasterToMatchLargeELF` with a warning, the same as ELFs
+  without a SpreadFit. New outputs `fireSense_IgnitionFittedList`/`fireSense_EscapeFittedList`, one
+  fit per surviving ELF named by `ELFind`, matching what `fireSense_IgnitionPredict` already expects
+  (`ignitionFitsByELF()`). Single-ELF runs are unaffected: they are `NULL`, and `fireSense_IgnitionFit`
+  reads its own ledger row via its `studyArea`/`.ELFind` inputs instead.
+- `fireSenseUtils` floor raised to 0.2.3.9047 (`latestIgnitionFits()`).
+
 # fireSense_ELFs 1.1.6
 
 - `spreadFitFilename` now defaults to `"latest"`: each ELF's fit comes from the most recent

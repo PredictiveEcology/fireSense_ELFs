@@ -169,3 +169,49 @@ test_that("init completes and schedules nothing further", {
   ev <- SpaDES.core::events(out)
   expect_identical(sum(ev$moduleName == "fireSense_ELFs"), 0L)
 })
+
+## The multi-ELF ignition/escape fit lists (sim$fireSense_IgnitionFittedList /
+## sim$fireSense_EscapeFittedList), read for `studyAreaLarge` the same way the SpreadFit ledger
+## is above, and masked out the same way when an ELF has no fit.
+
+toyIgnitionLedger <- function(ids) {
+  df <- data.frame(polygonID = ids)
+  df$fireSense_IgnitionFitted <- I(lapply(ids, function(i) list(sentinel = paste0("ign-", i))))
+  df$fireSense_EscapeFitted   <- I(lapply(ids, function(i) list(sentinel = paste0("esc-", i))))
+  df
+}
+
+## Both ELFs have SpreadFit parameters (the canned drive_download of mockInitWorld() always
+## returns "3.1.2" and "5.1"); only "3.1.2" has an ignition/escape fit, so "5.1" is masked out.
+test_that("studyAreaLarge over 2 ELFs assembles per-ELF ignition/escape fit lists, masking an ELF without one", {
+  sal <- toyPoly(1, 4, 4, 9, 2020)   # covers ELF 3.1.2 (cols 4-6) and 5.1 (cols 7-9)
+  sim <- toySimInit(objects = list(studyAreaLarge = sal))
+  files <- data.frame(name = "fireSenseParams_1985-2024_linearFuel_esc50.rds")
+  files$drive_resource <- list(list(md5Checksum = "aaa", modifiedTime = "2026-09-25T00:00:00Z"))
+  mockInitWorld(driveFiles = files)
+  local_mocked_bindings(latestIgnitionFits = function(...) toyIgnitionLedger("3.1.2"),
+                        .package = "fireSenseUtils")
+
+  warns <- character()
+  out <- withCallingHandlers(
+    suppressMessages(runInit(sim)),
+    warning = function(w) { warns <<- c(warns, conditionMessage(w)); invokeRestart("muffleWarning") })
+
+  expect_true(any(grepl("Not all the ELFs have IgnitionFit parameters", warns, fixed = TRUE)))
+  expect_identical(names(out$fireSense_IgnitionFittedList), "3.1.2")
+  expect_identical(out$fireSense_IgnitionFittedList[["3.1.2"]], list(sentinel = "ign-3.1.2"))
+  expect_identical(names(out$fireSense_EscapeFittedList), "3.1.2")
+  expect_identical(out$fireSense_EscapeFittedList[["3.1.2"]], list(sentinel = "esc-3.1.2"))
+  expect_identical(as.character(out$ignitionFitPreRun$polygonID), "3.1.2")
+  ## the ELF without an ignition fit is out of the study area, same as one without a SpreadFit
+  expect_identical(unique(as.character(out$studyAreaLargeELF$ELFind)), "3.1.2")
+})
+
+test_that("single-ELF runs leave the ignition fit lists and ignitionFitPreRun NULL", {
+  sim <- toySimInit(objects = list(.ELFind = "3.1.2"))
+  mockInitWorld()
+  out <- suppressMessages(runInit(sim))
+  expect_null(out$fireSense_IgnitionFittedList)
+  expect_null(out$fireSense_EscapeFittedList)
+  expect_null(out$ignitionFitPreRun)
+})
