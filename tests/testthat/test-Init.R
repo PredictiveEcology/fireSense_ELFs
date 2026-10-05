@@ -9,7 +9,6 @@
 ##   rasterToMatchLargeELF : cols 3-7  = 5 x 4 = 20 cells, 500 km2
 ##   rasterToMatchELF      : cols 4-6  = 3 x 4 = 12 cells, 300 km2
 
-km2 <- function(v) sum(terra::expanse(v, unit = "km", transform = FALSE))
 
 test_that("init builds the single-ELF study areas and rasters with and without the buffer", {
   sim <- toySimInit(objects = list(.ELFind = "3.1.2"))

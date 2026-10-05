@@ -1,3 +1,7 @@
+# fireSense_ELFs (development version)
+
+- New parameter `borderBuffer` (metres, default 5000; `0` or `NA` disables). Cells within it of the Canada-United States land border (Natural Earth 10 m `admin_0_boundary_lines_land`, fetched with `prepInputs()`) are removed from `rasterToMatchLargeELF`, `rasterToMatchELF` and the study areas, for a single ELF and for `studyAreaLarge`. ClimateNA's DEM is invalid in the United States, so interpolated climate in Canadian cells up to ~2 km from the border is contaminated; the fire data are Canada-only. The coast is not removed.
+
 # fireSense_ELFs 1.1.11
 
 - New outputs `fireSense_IgnitionFittedList` and `fireSense_EscapeFittedList`, which `fireSense_ignitionPredict` takes for a prediction over several ELFs: one fitted model per ELF the study area touches, named by `ELFind`, read from the ledger of `fireSense_ignitionFit` (new parameters `ignitionFitGoogleDriveFolder` and `ignitionFitFilename`, as for the SpreadFit ledger). With `studyAreaLarge`, an ELF without a fit stops `init` with a message naming it. A single ELF without a fit gets `NULL`, because the run is about to fit it. With `heldOutFold` the ledger is not read. Needs `fireSenseUtils` >= 0.2.3.9078.
