@@ -7,8 +7,9 @@ toySppEquiv <- function() data.frame(LandR = c("Pice_gla", "Popu_tre"), FuelClas
 ## ELFtemplateRaster() is fireSenseUtils'. Init is sourced into the simList and finds it on the
 ## search path, so it is replaced there; the package rendition also imports it, so there too.
 ## `downloads = FALSE` leaves reproducible's downloader alone, for a test that reads a local ledger
-## file with CacheGeo(), which uses it too.
-mockInitWorld <- function(ELFs = toyELFs(), driveFiles = NULL, downloads = TRUE, env = parent.frame()) {
+## file with CacheGeo(), which uses it too. `border`: lines standing in for
+## the Natural Earth download of the Canada-US border (`NULL`: no border in the study area).
+mockInitWorld <- function(ELFs = toyELFs(), driveFiles = NULL, downloads = TRUE, border = NULL, env = parent.frame()) {
   local_mocked_bindings(ELFtemplateRaster = function(inputPath) toyGrid() + 1, .env = env)
   local_mocked_bindings(ELFtemplateRaster = function(inputPath) toyGrid() + 1,
                         .package = "fireSenseUtils", .env = env)
@@ -23,6 +24,16 @@ mockInitWorld <- function(ELFs = toyELFs(), driveFiles = NULL, downloads = TRUE,
   ## the ledger is fetched with reproducible's downloader; the mock records its arguments in `driveCalls`
   driveCalls <- new.env()
   driveCalls$calls <- list()
+  realPrepInputs <- reproducible::prepInputs
+  local_mocked_bindings(
+    prepInputs = function(url = NULL, ...) {
+      if (!isTRUE(grepl("naturalearth", url))) return(realPrepInputs(url = url, ...))
+      lines <- if (is.null(border)) toyBorder(-1e6) else border
+      lines$ADM0_A3_L <- "CAN"
+      lines$ADM0_A3_R <- if (is.null(border)) "MEX" else "USA"   # MEX: not a Canada-US segment
+      lines
+    },
+    .package = "reproducible", .env = env)
   if (downloads) local_mocked_bindings(
     preProcess = function(targetFile = NULL, url = NULL, destinationPath = ".", purge = FALSE, ...) {
       driveCalls$calls[[length(driveCalls$calls) + 1L]] <- list(

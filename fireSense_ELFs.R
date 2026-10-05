@@ -72,6 +72,13 @@ defineModule(sim, list(
     defineParameter("queue_path", "character", NULL,
                     NA, NA, "A character scalar indicating what the filename of the queue.rds file is from experimentTmux; ",
                     "if NULL, then this can't determine which ELFs are being run (no 'yellow' on the map)"),
+    defineParameter("borderBuffer", "numeric", 5000, 0, NA,
+                    paste("Metres. Cells within this distance of the Canada-United States land border (49th parallel,",
+                          "Great Lakes and St Lawrence, Alaska-Yukon/BC; not the coast) are removed from every ELF",
+                          "(`NA` in `rasterToMatchLargeELF`, `rasterToMatchELF`, and out of `studyAreaLarge`,",
+                          "`studyAreaLargeELF`, `studyAreaELF`). ClimateNA's DEM is invalid in the United States, which",
+                          "contaminates interpolated climate in Canadian cells ~2 km from the border; the fire data are",
+                          "Canada-only. The line is Natural Earth 10 m `admin_0_boundary_lines_land`. `0` or `NA` removes nothing.")),
     defineParameter("fireYears", "integer", NULL, NA, NA,
                     paste("Fire years over which each ELF's natural ignitions and fire polygons are counted.",
                           "An ELF with too few is merged with a neighbour that shares its base, or not fitted",
@@ -212,6 +219,13 @@ Init <- function(sim) {
   #   will be cleaned up at the end of the function
   rastTemplate <- ELFtemplateRaster(inputPath)
 
+  ## Cells near the Canada-US border are dropped from the per-ELF rasters and study areas below. The
+  ## ELF maps are 5 km cells, too coarse for a 5 km buffer, so the border is applied at the 240 m template.
+  borderZone <- if (isTRUE(Par$borderBuffer > 0)) # no download when switched off
+    bufferBorder(canadaUSBorder(inputPath), Par$borderBuffer, crs = terra::crs(rastTemplate))
+  borderCacheExtra <- list(borderBuffer = Par$borderBuffer, bufferBorder = bufferBorder,
+                           maskOutBorder = maskOutBorder, selectCanadaUSBorder = selectCanadaUSBorder)
+
   hasStudyAreaLarge <- !is.null(sim$studyAreaLarge)
   ELFs <- {
     fireSenseUtils::makeELFs(rastTemplate, desiredBuffer = 20000, destinationPath = inputPath, 
@@ -320,7 +334,7 @@ Init <- function(sim) {
     }
     
     pp <- terra::project(pp, sim$studyAreaLarge)
-    pp <- terra::intersect(pp, sim$studyAreaLarge)
+    pp <- terra::intersect(pp, sim$studyAreaLarge) |> maskOutBorder(borderZone)
     ELFpolys <- pp
     studyAreaLargeELF <- terra::project(pp, ELFs$rasWhole[[1]])
     rr <- rasterize(studyAreaLargeELF, ELFs$rasWhole[[1]], field = "ELFind")
@@ -341,12 +355,14 @@ Init <- function(sim) {
       {
         postProcess(rtml, projectTo = rastTemplate, method = "near",
                     writeTo = file.path(inputPath, paste0("rtml_", Par$.studyAreaName,".tif"))) |>
+          maskOutBorder(borderZone) |>
           terra::trim() } |>
         Cache(omitArgs = c("x"),
               .functionName = paste0("rasterToMatchLargeELF"),
-              .cacheExtra = list(ELFs = attr(ELFs, "tags"),
-                                 ELFind = ELF,
-                                 rastTemplate = attr(rastTemplate, "tags")))
+              .cacheExtra = c(list(ELFs = attr(ELFs, "tags"),
+                                   ELFind = ELF,
+                                   rastTemplate = attr(rastTemplate, "tags")),
+                              borderCacheExtra))
     }
     studyAreaLargeELF <- {
       {

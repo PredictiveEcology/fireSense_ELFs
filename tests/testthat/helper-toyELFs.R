@@ -100,3 +100,11 @@ toyELFsWithPoly <- function() {
   ELFs$poly <- Reduce(rbind, polys)
   ELFs
 }
+
+## A vertical border line across the toy grid (EPSG:3978), by default between columns 6 and 7
+toyBorder <- function(x = 30000) {
+  terra::vect(cbind(c(x, x), c(0, 20000)), type = "lines", crs = "EPSG:3978")
+}
+
+## Area of a polygon `SpatVector`, km2
+km2 <- function(v) sum(terra::expanse(v, unit = "km", transform = FALSE))
