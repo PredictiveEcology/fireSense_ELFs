@@ -17,7 +17,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">fireSense_ELFs</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">1.1.11</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">1.1.12</span>
       </span>
     </div>
 
@@ -52,7 +52,7 @@
     </div>
 
     <div class="section level2">
-<h2 class="page-header" data-toc-text="development version" id="firesense_elfs-development-version">fireSense_ELFs (development version)<a class="anchor" aria-label="anchor" href="#firesense_elfs-development-version"></a></h2>
+<h2 class="page-header" data-toc-text="1.1.12" id="firesense_elfs-1112">fireSense_ELFs 1.1.12<a class="anchor" aria-label="anchor" href="#firesense_elfs-1112"></a></h2>
 <ul><li>New parameter <code>borderBuffer</code> (metres, default 5000; <code>0</code> or <code>NA</code> disables). Cells within it of the Canada-United States land border (Natural Earth 10 m <code>admin_0_boundary_lines_land</code>, fetched with <code><a href="https://reproducible.predictiveecology.org/reference/prepInputs.html" class="external-link">prepInputs()</a></code>) are removed from <code>rasterToMatchLargeELF</code>, <code>rasterToMatchELF</code> and the study areas, for a single ELF and for <code>studyAreaLarge</code>. ClimateNA’s DEM is invalid in the United States, so interpolated climate in Canadian cells up to ~2 km from the border is contaminated; the fire data are Canada-only. The coast is not removed.</li>
 </ul></div>
     <div class="section level2">
