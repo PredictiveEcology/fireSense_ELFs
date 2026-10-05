@@ -221,7 +221,8 @@ Init <- function(sim) {
 
   ## Cells near the Canada-US border are dropped from the per-ELF rasters and study areas below. The
   ## ELF maps are 5 km cells, too coarse for a 5 km buffer, so the border is applied at the 240 m template.
-  borderZone <- bufferBorder(canadaUSBorder(inputPath), Par$borderBuffer, crs = terra::crs(rastTemplate))
+  borderZone <- if (isTRUE(Par$borderBuffer > 0)) # no download when switched off
+    bufferBorder(canadaUSBorder(inputPath), Par$borderBuffer, crs = terra::crs(rastTemplate))
   borderCacheExtra <- list(borderBuffer = Par$borderBuffer, bufferBorder = bufferBorder,
                            maskOutBorder = maskOutBorder, selectCanadaUSBorder = selectCanadaUSBorder)
 
