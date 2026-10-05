@@ -1,7 +1,7 @@
 ---
 title: "fireSense_ELFs Manual"
-subtitle: "v.1.1.11"
-date: "Last updated: 2026-10-01"
+subtitle: "v.1.1.12"
+date: "Last updated: 2026-10-05"
 output:
   bookdown::html_document2:
     toc: true
@@ -172,6 +172,14 @@ Summary of user-visible parameters (Table \@ref(tab:moduleParams-fireSense-ELFs)
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> A character scalar indicating what the filename of the queue.rds file is from experimentTmux; if NULL, then this can't determine which ELFs are being run (no 'yellow' on the map) </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> borderBuffer </td>
+   <td style="text-align:left;"> numeric </td>
+   <td style="text-align:left;"> 5000 </td>
+   <td style="text-align:left;"> 0 </td>
+   <td style="text-align:left;"> NA </td>
+   <td style="text-align:left;"> Metres. Cells within this distance of the Canada-United States land border (49th parallel, Great Lakes and St Lawrence, Alaska-Yukon/BC; not the coast) are removed from every ELF (`NA` in `rasterToMatchLargeELF`, `rasterToMatchELF`, and out of `studyAreaLarge`, `studyAreaLargeELF`, `studyAreaELF`). ClimateNA's DEM is invalid in the United States, which contaminates interpolated climate in Canadian cells ~2 km from the border; the fire data are Canada-only. The line is Natural Earth 10 m `admin_0_boundary_lines_land`. `0` or `NA` removes nothing. </td>
   </tr>
   <tr>
    <td style="text-align:left;"> fireYears </td>
