@@ -1,4 +1,4 @@
-# fireSense_ELFs (development version)
+# fireSense_ELFs 1.1.12
 
 - New parameter `borderBuffer` (metres, default 5000; `0` or `NA` disables). Cells within it of the Canada-United States land border (Natural Earth 10 m `admin_0_boundary_lines_land`, fetched with `prepInputs()`) are removed from `rasterToMatchLargeELF`, `rasterToMatchELF` and the study areas, for a single ELF and for `studyAreaLarge`. ClimateNA's DEM is invalid in the United States, so interpolated climate in Canadian cells up to ~2 km from the border is contaminated; the fire data are Canada-only. The coast is not removed.
 
