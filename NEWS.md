@@ -1,3 +1,89 @@
+# fireSense_ELFs 1.2.0
+
+This release changes how fireSense divides a study area into fire regions (ELFs). Regions with too few recorded fires to fit a model can now be merged with their best-matching neighbour, or left out, instead of producing an unreliable fit. Areas just across the Canada-United States border can be trimmed away, because the climate data used by fireSense is not valid there. The module also finds the most recent fitted models for each region on its own, and hands the other fireSense modules a separate fitted model for every region the study area touches.
+
+Downloads of fitted models are now safe when several runs share a machine, and the module uses the same species table as the LandR Biomass modules. Settings and outputs that nothing used were removed, the module has automated tests, and it refers to the other fireSense modules by their new lower-case names, which projects also need to use.
+
+# fireSense_ELFs 1.1.12
+
+- New parameter `borderBuffer` (metres, default 5000; `0` or `NA` disables). Cells within it of the Canada-United States land border (Natural Earth 10 m `admin_0_boundary_lines_land`, fetched with `prepInputs()`) are removed from `rasterToMatchLargeELF`, `rasterToMatchELF` and the study areas, for a single ELF and for `studyAreaLarge`. ClimateNA's DEM is invalid in the United States, so interpolated climate in Canadian cells up to ~2 km from the border is contaminated; the fire data are Canada-only. The coast is not removed.
+
+# fireSense_ELFs 1.1.11
+
+- New outputs `fireSense_IgnitionFittedList` and `fireSense_EscapeFittedList`, which `fireSense_ignitionPredict` takes for a prediction over several ELFs: one fitted model per ELF the study area touches, named by `ELFind`, read from the ledger of `fireSense_ignitionFit` (new parameters `ignitionFitGoogleDriveFolder` and `ignitionFitFilename`, as for the SpreadFit ledger). With `studyAreaLarge`, an ELF without a fit stops `init` with a message naming it. A single ELF without a fit gets `NULL`, because the run is about to fit it. With `heldOutFold` the ledger is not read. Needs `fireSenseUtils` >= 0.2.3.9078.
+
+# fireSense_ELFs 1.1.10
+
+- reqdPkgs now lists `googledrive` and `sf`, which the module calls with `::` but did not list.
+
+# fireSense_ELFs 1.1.9
+
+- A named `spreadFitFilename` is downloaded from Google Drive with `reproducible::preProcess()` instead of `googledrive::drive_download()`. The direct download wrote the file in place in `inputPath`, so a second job on the same ELF could find it missing or half-written; `preProcess()` downloads into a temporary folder first. A local copy whose md5 differs from Drive's is fetched again (`purge = 7`), and the `Cache()` wrapper, which only avoided repeat downloads, is gone. Needs `fireSenseUtils` >= 0.2.3.9069, whose `latestSpreadFits()` does the same.
+
+# fireSense_ELFs 1.1.8
+
+- New parameter `heldOutFold` (`NA`, `1` or `2`; the same parameter as in `fireSense_spreadFit`). With `1` or `2`, `init` does not read the SpreadFit ledger (no `drive_ls`, `drive_download` or `latestSpreadFits`): `spreadFitPreRun` is NULL, and `studyAreaLarge` is not masked to the ELFs that have a fit. `paramCheckOtherMods()` stops if `fireSense_spreadFit` has a different value; set all three modules with `.globals = list(heldOutFold = ...)`.
+
+# fireSense_ELFs 1.1.7
+
+- Scheduled before `fireSense_burn` (renamed from `fireSense`) and the renamed `fireSense_ignitionFit`, `fireSense_spreadFit`,
+  `fireSense_ignitionPredict` and `fireSense_spreadPredict` (formerly `fireSense_IgnitionFit`, `fireSense_SpreadFit`,
+  `fireSense_IgnitionPredict`, `fireSense_SpreadPredict`); the module names in `loadOrder` were updated. Projects must use the new names. `fireSense_EscapeFit` and `fireSense_EscapePredict`, modules that no longer exist (fireSense_ignitionFit and fireSense_ignitionPredict handle escapes), were removed from `loadOrder`, and a test now checks that they are absent.
+
+# fireSense_ELFs 1.1.6
+
+- `spreadFitFilename` now defaults to `"latest"`: each ELF's fit comes from the most recent
+  `fireSenseParams_*_linearFuel.rds` file in `spreadFitGoogleDriveFolder` that has it
+  (`fireSenseUtils::latestSpreadFits()`), so `spreadFitPreRun` lists every ELF fitted with the current
+  model. A named file is read as before.
+
+# fireSense_ELFs 1.1.5
+
+- **needs `fireregimetools >= 0.1.0.9008`.** `fewFireELFs()` reads NFDB and NBAC through
+  `load_nfdb_points()` and `load_nbac_polys()` with a study area. From 0.1.0.9007 these read only the
+  study area's extent instead of the whole national file (FOR-CAST/fireregimetools#2), and 0.1.0.9008
+  builds that extent from the study area's outline so records just inside a curved or reprojected edge
+  are kept. 0.1.0.9007 is also the version of a superseded fork, so 0.1.0.9008 is the first version
+  that is unambiguously the merged code.
+
+# fireSense_ELFs 1.1.4
+
+- `Init` takes its species table from `LandR::speciesInStudyArea()$sppEquiv` instead of building
+  one here. LandR applies the same rules this module did by hand -- no `_Spp` genus entries, only
+  species with `LANDIS_traits`, and the white x Engelmann spruce hybrid merged into Engelmann
+  spruce -- so the fireSense modules and the Biomass modules now read one table built in one
+  place, and its logic is tested in LandR rather than here. `sppEquivCol` is passed through, so
+  the table comes back keyed on the naming convention this run uses.
+- **needs `LandR >= 1.2.0.9021`.** `sppEquiv` was added to the return value at 1.2.0.9020, the
+  version LandR `development` already carried, so a floor of `>= 1.2.0.9020` would also be met by
+  an earlier 1.2.0.9020 whose `speciesInStudyArea()` returns no `sppEquiv` -- failing at run time
+  with an empty species table instead of at install time.
+- The no-tree-species announcement (1.1.2) is unchanged and still made here: LandR returns the
+  0-row table, this module says which ELF it belongs to.
+
+# fireSense_ELFs 1.1.3
+
+- ELFs with too few fires can now be fitted by merging them with a neighbour. With `fireYears` set, `init`
+  counts each ELF's natural-cause ignitions (NFDB points) and fire polygons (NBAC) over those years, reading
+  the fire records as fireSense_dataPrepFit does. An ELF below `minNaturalIgnitions` or `minFirePolygons`
+  (50 each) merges with the neighbouring ELF of the same base and depth that shares the longest border, and
+  the merged ELF is named by the shared base and the members' last parts (3.2.1 with 3.2.4 is `3.2.1_4`).
+  If the pair is still too thin, neither is fitted. The results are the outputs `ELFfireStatus`, `ELFmerges`
+  and `ELFsExcluded`, which `fireSenseUtils::runELFs()` leaves out of the queue. The merge happens before this
+  run's ELF is picked, and an `.ELFind` naming a merged member runs as its merged ELF. ELFs of ecozones 1
+  and 2 are out permanently: they are neither counted nor merged. `fireYears = NULL` (the default) keeps the
+  previous behaviour.
+- The national ELF map and the fire counts are cached with `useCache = TRUE`: they do not depend on the ELF,
+  and under `spades.useCache = "eventsOnly"` a plain `Cache()` there is skipped, so every job would rebuild
+  them.
+
+# fireSense_ELFs 1.1.2
+
+- an ELF with no tree species now says so, once: `Init`'s `sppEquiv` block emits a single
+  message naming the ELF and stating that the run proceeds with nonForest fuel classes only.
+  It used to be silent, and the run died several modules later in "No trait values were
+  found for .". The block still returns a valid 0-row `sppEquiv` in that case, not NULL.
+
 # fireSense_ELFs 1.1.1
 
 - the module now stops when it is given both a `studyAreaLarge` and a `.ELFind`

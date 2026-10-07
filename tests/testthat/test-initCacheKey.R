@@ -39,6 +39,9 @@ test_that("that digest is the table's, and changes when a FuelClass changes", {
   expect_identical(eval(extra), reproducible::.robustDigest(tbl))
 
   changed <- data.table::copy(tbl)
-  changed[LandR == "Pseu_men", FuelClass := "SomethingElse"]
+  ## `set()` rather than `:=`: testthat's environment is not data.table-aware
+  ## (cedta()), and `:=` errors there.
+  data.table::set(changed, i = which(changed$LandR == "Pseu_men"),
+                  j = "FuelClass", value = "SomethingElse")
   expect_false(identical(eval(extra), reproducible::.robustDigest(changed)))
 })

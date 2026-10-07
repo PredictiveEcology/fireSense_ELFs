@@ -1,20 +1,12 @@
 #' Refuse to run when `studyAreaLarge` and `.ELFind` describe different study areas
 #'
 #' @description
-#' This module can take its study area from either end. `.ELFind` names one
-#' ecologically like fire regime, which is what the fitting workflow wants;
+#' `.ELFind` names one ELF, which is what the fitting workflow wants;
 #' `studyAreaLarge` is a polygon whose intersecting ELFs are used, which is what
-#' the prediction workflow wants. Supplying both is ambiguous, and the module
-#' resolved it silently: `studyAreaLarge` won, `.ELFind` was never read on that
-#' path, yet `.studyAreaName` -- and therefore every input and output folder --
-#' was still named from `.ELFind`.
-#'
-#' On 2026-09-07/08 that produced five "different" ELF fits which were in fact
-#' the same study area under five names. Nothing in the logs said so; it was
-#' caught only because the five DEoptim objective values came out nearly
-#' identical when the areas differ four-fold in size. Failing loudly here costs
-#' one run; failing silently costs a week of compute and the trust in its
-#' output.
+#' the prediction workflow wants. Supplying both is ambiguous: `studyAreaLarge`
+#' decides the area while `.studyAreaName`, and so every input and output folder,
+#' is still named from `.ELFind`. Without this check, runs for different
+#' `.ELFind` values silently fit the same study area.
 #'
 #' @param elfInd character; `sim$.ELFind`.
 #' @param elfIndSupplied logical(1); was `.ELFind` supplied by the user, rather
