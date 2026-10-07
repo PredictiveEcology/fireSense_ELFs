@@ -17,7 +17,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">fireSense_ELFs</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">1.2.0</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">1.2.0.9000</span>
       </span>
     </div>
 
@@ -51,6 +51,9 @@
 
     </div>
 
+    <div class="section level2">
+<h2 class="page-header" data-toc-text="development version" id="firesense_elfs-development-version">fireSense_ELFs (development version)<a class="anchor" aria-label="anchor" href="#firesense_elfs-development-version"></a></h2>
+</div>
     <div class="section level2">
 <h2 class="page-header" data-toc-text="1.2.0" id="firesense_elfs-120">fireSense_ELFs 1.2.0<a class="anchor" aria-label="anchor" href="#firesense_elfs-120"></a></h2>
 <p>This release changes how fireSense divides a study area into fire regions (ELFs). Regions with too few recorded fires to fit a model can now be merged with their best-matching neighbour, or left out, instead of producing an unreliable fit. Areas just across the Canada-United States border can be trimmed away, because the climate data used by fireSense is not valid there. The module also finds the most recent fitted models for each region on its own, and hands the other fireSense modules a separate fitted model for every region the study area touches.</p>
