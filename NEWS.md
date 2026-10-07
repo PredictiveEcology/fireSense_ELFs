@@ -1,3 +1,9 @@
+# fireSense_ELFs 1.2.0
+
+This release changes how fireSense divides a study area into fire regions (ELFs). Regions with too few recorded fires to fit a model can now be merged with their best-matching neighbour, or left out, instead of producing an unreliable fit. Areas just across the Canada-United States border can be trimmed away, because the climate data used by fireSense is not valid there. The module also finds the most recent fitted models for each region on its own, and hands the other fireSense modules a separate fitted model for every region the study area touches.
+
+Downloads of fitted models are now safe when several runs share a machine, and the module uses the same species table as the LandR Biomass modules. Settings and outputs that nothing used were removed, the module has automated tests, and it refers to the other fireSense modules by their new lower-case names, which projects also need to use.
+
 # fireSense_ELFs 1.1.12
 
 - New parameter `borderBuffer` (metres, default 5000; `0` or `NA` disables). Cells within it of the Canada-United States land border (Natural Earth 10 m `admin_0_boundary_lines_land`, fetched with `prepInputs()`) are removed from `rasterToMatchLargeELF`, `rasterToMatchELF` and the study areas, for a single ELF and for `studyAreaLarge`. ClimateNA's DEM is invalid in the United States, so interpolated climate in Canadian cells up to ~2 km from the border is contaminated; the fire data are Canada-only. The coast is not removed.
