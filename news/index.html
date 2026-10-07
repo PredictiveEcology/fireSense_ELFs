@@ -17,7 +17,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">fireSense_ELFs</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">1.1.12</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">1.2.0</span>
       </span>
     </div>
 
@@ -51,6 +51,11 @@
 
     </div>
 
+    <div class="section level2">
+<h2 class="page-header" data-toc-text="1.2.0" id="firesense_elfs-120">fireSense_ELFs 1.2.0<a class="anchor" aria-label="anchor" href="#firesense_elfs-120"></a></h2>
+<p>This release changes how fireSense divides a study area into fire regions (ELFs). Regions with too few recorded fires to fit a model can now be merged with their best-matching neighbour, or left out, instead of producing an unreliable fit. Areas just across the Canada-United States border can be trimmed away, because the climate data used by fireSense is not valid there. The module also finds the most recent fitted models for each region on its own, and hands the other fireSense modules a separate fitted model for every region the study area touches.</p>
+<p>Downloads of fitted models are now safe when several runs share a machine, and the module uses the same species table as the LandR Biomass modules. Settings and outputs that nothing used were removed, the module has automated tests, and it refers to the other fireSense modules by their new lower-case names, which projects also need to use.</p>
+</div>
     <div class="section level2">
 <h2 class="page-header" data-toc-text="1.1.12" id="firesense_elfs-1112">fireSense_ELFs 1.1.12<a class="anchor" aria-label="anchor" href="#firesense_elfs-1112"></a></h2>
 <ul><li>New parameter <code>borderBuffer</code> (metres, default 5000; <code>0</code> or <code>NA</code> disables). Cells within it of the Canada-United States land border (Natural Earth 10 m <code>admin_0_boundary_lines_land</code>, fetched with <code><a href="https://reproducible.predictiveecology.org/reference/prepInputs.html" class="external-link">prepInputs()</a></code>) are removed from <code>rasterToMatchLargeELF</code>, <code>rasterToMatchELF</code> and the study areas, for a single ELF and for <code>studyAreaLarge</code>. ClimateNA’s DEM is invalid in the United States, so interpolated climate in Canadian cells up to ~2 km from the border is contaminated; the fire data are Canada-only. The coast is not removed.</li>

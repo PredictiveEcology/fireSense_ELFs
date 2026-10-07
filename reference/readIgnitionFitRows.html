@@ -22,7 +22,7 @@ ELF without a row, so a query over the whole area would hide the ELFs that do ha
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">fireSense_ELFs</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">1.1.12</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">1.2.0</span>
       </span>
     </div>
 
@@ -62,7 +62,7 @@ ELF without a row, so a query over the whole area would hide the ELFs that do ha
 so moving the ledger to another reproducible API changes this function only. With
 <code>ignitionFitFilename = "latest"</code> each ELF's row comes from the newest ledger file that has it
 (<code><a href="https://rdrr.io/pkg/fireSenseUtils/man/ignitionFitLedger.html" class="external-link">fireSenseUtils::latestIgnitionFits()</a></code>, which needs a Drive folder). A named file is read with
-<code><a href="https://reproducible.predictiveecology.org/reference/CacheGeo.html" class="external-link">CacheGeo()</a></code>, one query per ELF polygon: <code><a href="https://reproducible.predictiveecology.org/reference/CacheGeo.html" class="external-link">CacheGeo()</a></code> returns nothing for an area that overlaps an
+<code><a href="https://reproducible.predictiveecology.org/reference/CacheGeoLedger.html" class="external-link">CacheGeo()</a></code>, one query per ELF polygon: <code><a href="https://reproducible.predictiveecology.org/reference/CacheGeoLedger.html" class="external-link">CacheGeo()</a></code> returns nothing for an area that overlaps an
 ELF without a row, so a query over the whole area would hide the ELFs that do have one.</p>
     </div>
 
