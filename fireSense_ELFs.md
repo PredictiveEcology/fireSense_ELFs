@@ -1,7 +1,7 @@
 ---
 title: "fireSense_ELFs Manual"
 subtitle: "v.1.2.0.9000"
-date: "Last updated: 2026-10-07"
+date: "Last updated: 2026-10-09"
 output:
   bookdown::html_document2:
     toc: true
@@ -184,7 +184,7 @@ Summary of user-visible parameters (Table \@ref(tab:moduleParams-fireSense-ELFs)
   <tr>
    <td style="text-align:left;"> fireYears </td>
    <td style="text-align:left;"> integer </td>
-   <td style="text-align:left;"> `fireSenseUtils::defaultFireYears()` </td>
+   <td style="text-align:left;"> 1985, 19.... </td>
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> Fire years over which each ELF's natural ignitions and fire polygons are counted. An ELF with too few is merged with a neighbour that shares its base, or not fitted (see `fireSenseUtils::ELFmergePlan()`). The default is `fireSenseUtils::defaultFireYears()`, the default of `fireSense_dataPrepFit`'s `fireYears`, so the ELFs are merged over the years the fit uses; `init` warns if another module in the simList has different `fireYears`. `NULL`: no counting and no merging. </td>

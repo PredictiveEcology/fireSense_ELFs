@@ -2973,7 +2973,7 @@ border-radius: 0px;
 
 <h1 class="title toc-ignore">fireSense_ELFs Manual</h1>
 <h3 class="subtitle">v.1.2.0.9000</h3>
-<h4 class="date">Last updated: 2026-10-07</h4>
+<h4 class="date">Last updated: 2026-10-09</h4>
 
 </div>
 
@@ -3001,7 +3001,7 @@ It is scheduled before the other fireSense modules.</p>
 <li><code>.ELFind</code> (e.g. <code>&quot;4.3&quot;</code>): that single ELF. <code>*LargeELF</code> objects include its 20 km buffer; <code>*ELF</code> objects do not. This is what fitting uses.</li>
 <li><code>studyAreaLarge</code>: the ELFs the polygon overlaps that already have fitted SpreadFit parameters. This is what prediction uses.</li>
 </ul>
-<p>If <code>fireYears</code> is set, ELFs with too few natural ignitions (<code>minNaturalIgnitions</code>) or fire polygons (<code>minFirePolygons</code>) over those years are merged with a neighbour that shares their base, or listed in <code>ELFsExcluded</code> (<code>fireSenseUtils::ELFmergePlan()</code>).</p>
+<p>By default (<code>fireYears</code> is <code>fireSenseUtils::defaultFireYears()</code>, the fit’s years; <code>NULL</code> turns this off), ELFs with too few natural ignitions (<code>minNaturalIgnitions</code>) or fire polygons (<code>minFirePolygons</code>) over those years are merged with a neighbour that shares their base, or listed in <code>ELFsExcluded</code> (<code>fireSenseUtils::ELFmergePlan()</code>).</p>
 <p>The module also reads the previously fitted SpreadFit parameters (<code>spreadFitFilename</code> in <code>spreadFitGoogleDriveFolder</code>) into <code>spreadFitPreRun</code>; a missing file means nothing has been fitted yet.
 It needs Google Drive access to that folder.</p>
 </div>
@@ -3273,6 +3273,7 @@ fireYears
 integer
 </td>
 <td style="text-align:left;">
+1985, 19….
 </td>
 <td style="text-align:left;">
 NA
@@ -3281,7 +3282,7 @@ NA
 NA
 </td>
 <td style="text-align:left;">
-Fire years over which each ELF’s natural ignitions and fire polygons are counted. An ELF with too few is merged with a neighbour that shares its base, or not fitted (see <code>fireSenseUtils::ELFmergePlan()</code>). <code>NULL</code>: no counting and no merging.
+Fire years over which each ELF’s natural ignitions and fire polygons are counted. An ELF with too few is merged with a neighbour that shares its base, or not fitted (see <code>fireSenseUtils::ELFmergePlan()</code>). The default is <code>fireSenseUtils::defaultFireYears()</code>, the default of <code>fireSense_dataPrepFit</code>’s <code>fireYears</code>, so the ELFs are merged over the years the fit uses; <code>init</code> warns if another module in the simList has different <code>fireYears</code>. <code>NULL</code>: no counting and no merging.
 </td>
 </tr>
 <tr>
