@@ -65,10 +65,12 @@ toyPaths <- function() {
 }
 
 ## simInit() only: runs .inputObjects and nothing else. No caching, no Google Drive, no plots.
+## `fireYears = NULL` keeps init from counting fires, which needs the national fire records; a
+## test of the default (`params = list(fireYears = NULL)`) or of merging sets it back.
 toySimInit <- function(objects = list(), params = list()) {
   withr::local_options(list(spades.moduleCodeChecks = FALSE, spades.useRequire = FALSE,
                             reproducible.verbose = -2, reproducible.useCloud = FALSE))
-  p <- utils::modifyList(list(.useCache = FALSE, .useCloud = FALSE, .plots = NA), params)
+  p <- utils::modifyList(list(.useCache = FALSE, .useCloud = FALSE, .plots = NA, fireYears = NULL), params)
   suppressMessages(SpaDES.core::simInit(
     times = list(start = 1, end = 1), modules = "fireSense_ELFs", objects = objects,
     params = list(fireSense_ELFs = p), paths = toyPaths()
@@ -108,3 +110,26 @@ toyBorder <- function(x = 30000) {
 
 ## Area of a polygon `SpatVector`, km2
 km2 <- function(v) sum(terra::expanse(v, unit = "km", transform = FALSE))
+
+## Toy fire records for the ELFs of toyELFs(), used where init counts fires
+toyFirePoints <- function() {
+  rbind(
+    toyPoints(2, 2, 2001L, "L"),
+    toyPoints(3, 2, 2001L, "H"),          # human-caused
+    toyPoints(1, 5, 2001L, "N"),
+    toyPoints(2, 5, 2002L, "L"),
+    toyPoints(3, 5, 2003L, "L"),
+    toyPoints(4, 5, 1999L, "L"),          # outside fireYears
+    toyPoints(2, 8, 2002L, "L"),
+    toyPoints(2, 11, 2002L, "L")          # in arctic ELF 1.1
+  )
+}
+
+toyFirePolys <- function() {
+  half <- toyPoly(1, 1, 8, 8, 2002L)
+  half <- terra::crop(half, terra::ext(terra::xmin(half), terra::xmin(half) + 2500,
+                                       terra::ymin(half), terra::ymax(half))) # 2.5 x 5 km = 1250 ha
+  rbind(toyPoly(1, 1, 1, 2, 2001L),      # 2 cells = 5000 ha, in 3.1.1
+        toyPoly(3, 4, 5, 5, 2002L),      # 2 cells = 5000 ha, in 3.1.2 (col 5 is in no buffer)
+        half)
+}

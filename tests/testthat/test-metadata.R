@@ -55,7 +55,7 @@ test_that("no parameter has been removed or retyped", {
 })
 
 test_that("parameter defaults are unchanged", {
-  p <- SpaDES.core::params(toySimInit(params = list(.useCache = NULL, .useCloud = NULL, .plots = NULL)))$fireSense_ELFs
+  p <- SpaDES.core::params(toySimInit(params = list(.useCache = NULL, .useCloud = NULL, .plots = NULL, fireYears = NULL)))$fireSense_ELFs
   expect_identical(p$sppEquivCol, "LandR")
   expect_identical(p$spreadFitFilename, "latest")
   expect_identical(p$spreadFitGoogleDriveFolder,
@@ -64,7 +64,7 @@ test_that("parameter defaults are unchanged", {
   expect_identical(p$ignitionFitGoogleDriveFolder,
                    "https://drive.google.com/drive/folders/1X9-mRjyLMNpgkP_cfqhbr_AQEPOsVCHf")
   expect_null(p$queue_path)
-  expect_null(p$fireYears)
+  expect_identical(p$fireYears, fireSenseUtils::defaultFireYears())
   expect_identical(p$minNaturalIgnitions, 50)
   expect_identical(p$minFirePolygons, 50)
   expect_identical(p$.plots, "screen")

@@ -46,7 +46,7 @@ The study area is chosen in one of two ways. Supplying both is an error unless t
 - `.ELFind` (e.g. `"4.3"`): that single ELF. `*LargeELF` objects include its 20 km buffer; `*ELF` objects do not. This is what fitting uses.
 - `studyAreaLarge`: the ELFs the polygon overlaps that already have fitted SpreadFit parameters. This is what prediction uses.
 
-If `fireYears` is set, ELFs with too few natural ignitions (`minNaturalIgnitions`) or fire polygons (`minFirePolygons`) over those years are merged with a neighbour that shares their base, or listed in `ELFsExcluded` (`fireSenseUtils::ELFmergePlan()`).
+By default (`fireYears` is `fireSenseUtils::defaultFireYears()`, the fit's years; `NULL` turns this off), ELFs with too few natural ignitions (`minNaturalIgnitions`) or fire polygons (`minFirePolygons`) over those years are merged with a neighbour that shares their base, or listed in `ELFsExcluded` (`fireSenseUtils::ELFmergePlan()`).
 
 The module also reads the previously fitted SpreadFit parameters (`spreadFitFilename` in `spreadFitGoogleDriveFolder`) into `spreadFitPreRun`; a missing file means nothing has been fitted yet.
 It needs Google Drive access to that folder.
@@ -184,10 +184,10 @@ Summary of user-visible parameters (Table \@ref(tab:moduleParams-fireSense-ELFs)
   <tr>
    <td style="text-align:left;"> fireYears </td>
    <td style="text-align:left;"> integer </td>
-   <td style="text-align:left;">  </td>
+   <td style="text-align:left;"> `fireSenseUtils::defaultFireYears()` </td>
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> NA </td>
-   <td style="text-align:left;"> Fire years over which each ELF's natural ignitions and fire polygons are counted. An ELF with too few is merged with a neighbour that shares its base, or not fitted (see `fireSenseUtils::ELFmergePlan()`). `NULL`: no counting and no merging. </td>
+   <td style="text-align:left;"> Fire years over which each ELF's natural ignitions and fire polygons are counted. An ELF with too few is merged with a neighbour that shares its base, or not fitted (see `fireSenseUtils::ELFmergePlan()`). The default is `fireSenseUtils::defaultFireYears()`, the default of `fireSense_dataPrepFit`'s `fireYears`, so the ELFs are merged over the years the fit uses; `init` warns if another module in the simList has different `fireYears`. `NULL`: no counting and no merging. </td>
   </tr>
   <tr>
    <td style="text-align:left;"> minNaturalIgnitions </td>

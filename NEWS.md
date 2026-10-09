@@ -1,5 +1,7 @@
 # fireSense_ELFs (development version)
 
+* `fireYears` now defaults to `fireSenseUtils::defaultFireYears()`, the same years `fireSense_dataPrepFit` fits to, instead of `NULL`. ELFs with too few fires are therefore merged with a neighbour (or left out) by default, which changes which ELFs exist in a run whose script did not set `fireYears`. `fireYears = NULL` still turns merging off. `init` warns if another module has different `fireYears`. Needs fireSenseUtils with `defaultFireYears()`.
+
 # fireSense_ELFs 1.2.0
 
 This release changes how fireSense divides a study area into fire regions (ELFs). Regions with too few recorded fires to fit a model can now be merged with their best-matching neighbour, or left out, instead of producing an unreliable fit. Areas just across the Canada-United States border can be trimmed away, because the climate data used by fireSense is not valid there. The module also finds the most recent fitted models for each region on its own, and hands the other fireSense modules a separate fitted model for every region the study area touches.

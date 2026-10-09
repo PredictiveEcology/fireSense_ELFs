@@ -15,28 +15,6 @@
 ## So 3.1.1 merges with 3.1.2, its only neighbour with the same base "3.1" (1 + 3 = 4 >= 3
 ## ignitions, 1 + 1 = 2 >= 1 polygons), and 5.1 has no neighbour sharing base "5": skipped.
 
-toyFirePoints <- function() {
-  rbind(
-    toyPoints(2, 2, 2001L, "L"),
-    toyPoints(3, 2, 2001L, "H"),          # human-caused
-    toyPoints(1, 5, 2001L, "N"),
-    toyPoints(2, 5, 2002L, "L"),
-    toyPoints(3, 5, 2003L, "L"),
-    toyPoints(4, 5, 1999L, "L"),          # outside fireYears
-    toyPoints(2, 8, 2002L, "L"),
-    toyPoints(2, 11, 2002L, "L")          # in arctic ELF 1.1
-  )
-}
-
-toyFirePolys <- function() {
-  half <- toyPoly(1, 1, 8, 8, 2002L)
-  half <- terra::crop(half, terra::ext(terra::xmin(half), terra::xmin(half) + 2500,
-                                       terra::ymin(half), terra::ymax(half))) # 2.5 x 5 km = 1250 ha
-  rbind(toyPoly(1, 1, 1, 2, 2001L),      # 2 cells = 5000 ha, in 3.1.1
-        toyPoly(3, 4, 5, 5, 2002L),      # 2 cells = 5000 ha, in 3.1.2 (col 5 is in no buffer)
-        half)
-}
-
 runFewFire <- function(..., loaderArgs = NULL) {
   local_mocked_bindings(
     load_nfdb_points = function(nfdb_shp, study_area, fire_years = NULL, min_size_ha = 1) {
