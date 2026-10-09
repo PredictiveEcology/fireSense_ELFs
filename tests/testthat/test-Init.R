@@ -50,7 +50,7 @@ test_that("init puts the species table and the ELF maps in the simList", {
   expect_identical(names(out$ELFs), c("rasWhole", "rasCentered"))
   expect_identical(names(out$ELFs$rasWhole), c("3.1.1", "3.1.2", "5.1", "1.1"))
   expect_true(all(vapply(out$ELFs$rasWhole, terra::inMemory, logical(1))))
-  ## fireYears is NULL by default: nothing is counted or merged
+  ## fireYears is NULL here (toySimInit's default): nothing is counted or merged
   expect_null(out$ELFsExcluded)
   expect_null(out$ELFfireStatus)
   expect_null(out$ELFmerges)
@@ -62,7 +62,7 @@ test_that("every declared output except the fire-count ones is created", {
   out <- suppressMessages(runInit(sim))
   declared <- SpaDES.core::moduleOutputs("fireSense_ELFs", toyPaths()$modulePath)$objectName
   isNull <- vapply(declared, function(n) is.null(out[[n]]), logical(1))
-  ## NULL: the three fire-count outputs (fireYears is NULL), spreadFitPreRun and the ignition/escape
+  ## NULL: the three fire-count outputs (toySimInit sets fireYears = NULL), spreadFitPreRun and the ignition/escape
   ## fit lists (no ledger yet)
   expect_setequal(declared[isNull], c("ELFsExcluded", "ELFfireStatus", "ELFmerges", "spreadFitPreRun",
                                       "fireSense_IgnitionFittedList", "fireSense_EscapeFittedList"))
@@ -208,4 +208,33 @@ test_that("agrees when fireSense_spreadFit has the same heldOutFold", {
   mockInitWorld()
   mockNoLedger()
   expect_no_error(suppressMessages(runInit(sim)))
+})
+
+test_that("by default init counts fires over the fit's years and merges the thin ELFs", {
+  ## no fireYears set: the module's default, which fireSense_dataPrepFit shares
+  sim <- toySimInit(objects = list(.ELFind = "3.1.2"),
+                    params = list(fireYears = NULL, minNaturalIgnitions = 3, minFirePolygons = 1))
+  expect_identical(SpaDES.core::params(sim)$fireSense_ELFs$fireYears, fireSenseUtils::defaultFireYears())
+  mockInitWorld()
+  seen <- new.env()
+  ## the fire-record archives are not downloaded; any other preProcess() call is mockInitWorld()'s
+  mockedPreProcess <- reproducible::preProcess
+  local_mocked_bindings(
+    preProcess = function(url = NULL, ...) {
+      if (isTRUE(grepl("nfdb|nbac", url, ignore.case = TRUE)))
+        return(list(targetFilePath = file.path(tempdir(), paste0(basename(url), ".shp"))))
+      mockedPreProcess(url = url, ...)
+    },
+    .package = "reproducible")
+  local_mocked_bindings(
+    load_nfdb_points = function(nfdb_shp, study_area, fire_years = NULL, min_size_ha = 1) {
+      seen$years <- fire_years
+      toyFirePoints()
+    },
+    load_nbac_polys = function(nbac_shp, study_area, fire_years = NULL, min_size_ha = 1) toyFirePolys(),
+    .package = "fireregimetools")
+  out <- suppressMessages(runInit(sim))
+  expect_identical(as.integer(seen$years), fireSenseUtils::defaultFireYears())
+  expect_false(is.null(out$ELFmerges))
+  expect_identical(out$ELFsExcluded, "5.1")
 })

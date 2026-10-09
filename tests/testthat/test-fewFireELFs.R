@@ -64,10 +64,20 @@ test_that("fireYears and the thresholds are parameters, and the results are outp
   params <- metadataCalls("defineParameter")
   params <- stats::setNames(params, vapply(params, function(cl) as.character(cl[[2]]), ""))
   expect_true(all(c("fireYears", "minNaturalIgnitions", "minFirePolygons") %in% names(params)))
-  expect_null(eval(params$fireYears[[4]]))
+  expect_identical(eval(params$fireYears[[4]]), fireSenseUtils::defaultFireYears())
   expect_identical(eval(params$minNaturalIgnitions[[4]]), 50)
   expect_identical(eval(params$minFirePolygons[[4]]), 50)
   ## runELFs() reads sim$ELFsExcluded by this name
   outputs <- vapply(metadataCalls("createsOutput"), function(cl) as.character(cl[[2]]), "")
   expect_true(all(c("ELFsExcluded", "ELFfireStatus", "ELFmerges") %in% outputs))
+})
+
+test_that("init flags other modules' different fireYears with a warning, only when counting", {
+  gated <- Filter(function(x) is.call(x) && identical(x[[1]], as.name("if")) &&
+                    identical(x[[2]], quote(!is.null(Par$fireYears))), allCalls(initBody()))
+  expect_length(gated, 1L)
+  checks <- Filter(function(x) identical(x[[1]], quote(SpaDES.core::paramCheckOtherMods)) &&
+                     identical(x[[3]], "fireYears"), allCalls(gated[[1]]))
+  expect_length(checks, 1L)
+  expect_identical(checks[[1]]$ifSetButDifferent, "warning")
 })

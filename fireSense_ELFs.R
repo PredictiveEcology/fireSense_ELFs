@@ -43,7 +43,7 @@ defineModule(sim, list(
                   "PredictiveEcology/SpaDES.core@development (>= 3.2.1.9003)",
                   "PredictiveEcology/LandR@development (>= 1.2.0.9021)",
                   "deldir", "withr", "googledrive", "sf", "FOR-CAST/fireregimetools@main (>= 0.1.0.9008)",
-                  "PredictiveEcology/fireSenseUtils@development (>= 0.2.3.9078)",
+                  "PredictiveEcology/fireSenseUtils@development (>= 0.2.3.9090)",
                   "PredictiveEcology/SpaDES.project@development (>= 1.0.1.9205)"),
   parameters = bindrows(
     defineParameter("sppEquivCol", "character", "LandR", NA, NA,
@@ -79,10 +79,13 @@ defineModule(sim, list(
                           "`studyAreaLargeELF`, `studyAreaELF`). ClimateNA's DEM is invalid in the United States, which",
                           "contaminates interpolated climate in Canadian cells ~2 km from the border; the fire data are",
                           "Canada-only. The line is Natural Earth 10 m `admin_0_boundary_lines_land`. `0` or `NA` removes nothing.")),
-    defineParameter("fireYears", "integer", NULL, NA, NA,
+    defineParameter("fireYears", "integer", fireSenseUtils::defaultFireYears(), NA, NA,
                     paste("Fire years over which each ELF's natural ignitions and fire polygons are counted.",
                           "An ELF with too few is merged with a neighbour that shares its base, or not fitted",
-                          "(see `fireSenseUtils::ELFmergePlan()`). `NULL`: no counting and no merging.")),
+                          "(see `fireSenseUtils::ELFmergePlan()`). The default is",
+                          "`fireSenseUtils::defaultFireYears()`, the default of `fireSense_dataPrepFit`'s `fireYears`,",
+                          "so the ELFs are merged over the years the fit uses; `init` warns if another module in",
+                          "the simList has different `fireYears`. `NULL`: no counting and no merging.")),
     defineParameter("minNaturalIgnitions", "numeric", 50, 0, NA,
                     "An ELF with fewer natural-cause ignitions than this over `fireYears` has too few fires."),
     defineParameter("minFirePolygons", "numeric", 50, 0, NA,
@@ -247,6 +250,7 @@ Init <- function(sim) {
   ## release, so they key the result; their local paths differ per job and do not.
   ELFsExcluded <- ELFfireStatus <- ELFmerges <- NULL
   if (!is.null(Par$fireYears)) {
+    SpaDES.core::paramCheckOtherMods(sim, "fireYears", ifSetButDifferent = "warning")
     nfdbShp <- fireRecordShapefile(fireSenseUtils::nfdbPointUrl(), destinationPath = inputPath)
     nbacShp <- fireRecordShapefile(fireSenseUtils::latestNBACUrl(), destinationPath = inputPath)
     fewFire <- fewFireELFs(ELFs, fireYears = Par$fireYears,
