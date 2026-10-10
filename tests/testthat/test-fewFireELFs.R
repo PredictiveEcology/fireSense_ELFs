@@ -68,7 +68,7 @@ test_that("fireYears and the thresholds are parameters, and the results are outp
   expect_identical(eval(params$minNaturalIgnitions[[4]]), 50)
   expect_identical(eval(params$minFirePolygons[[4]]), 50)
   expect_identical(eval(params$escapeSizeHa[[4]]), 50)
-  expect_identical(eval(params$minEscapes[[4]]), 20)
+  expect_identical(eval(params$minEscapes[[4]]), 5)
   ## runELFs() reads sim$ELFsExcluded by this name
   outputs <- vapply(metadataCalls("createsOutput"), function(cl) as.character(cl[[2]]), "")
   expect_true(all(c("ELFsExcluded", "ELFfireStatus", "ELFmerges") %in% outputs))

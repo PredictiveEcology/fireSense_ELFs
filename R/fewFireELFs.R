@@ -37,7 +37,7 @@ fireRecordShapefile <- function(url, destinationPath, ...) {
 #'   `plan` (`fireSenseUtils::ELFmergePlan()`) and `excluded` (names of ELFs not fitted).
 fewFireELFs <- function(ELFs, fireYears, pixelAreaHa, nfdbShp, nbacShp,
                         minNaturalIgnitions = 50, minFirePolygons = 50,
-                        escapeSizeHa = 50, minEscapes = 20) {
+                        escapeSizeHa = 50, minEscapes = 5) {
   ## ecozones 1 and 2 are out permanently: not counted, not merged (fireSenseUtils::ELFsArctic())
   ids <- setdiff(names(ELFs$rasWhole), fireSenseUtils::ELFsArctic(names(ELFs$rasWhole)))
   rasWhole <- terra::rast(unname(ELFs$rasWhole[ids]))

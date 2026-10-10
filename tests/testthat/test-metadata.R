@@ -69,7 +69,7 @@ test_that("parameter defaults are unchanged", {
   expect_identical(p$minNaturalIgnitions, 50)
   expect_identical(p$minFirePolygons, 50)
   expect_identical(p$escapeSizeHa, 50)
-  expect_identical(p$minEscapes, 20)
+  expect_identical(p$minEscapes, 5)
   expect_identical(p$.plots, "screen")
   expect_identical(as.numeric(p$.plotInitialTime), 1) # start(sim)
   expect_identical(p$.studyAreaName, NA)

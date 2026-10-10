@@ -114,13 +114,13 @@ test_that("escapeSizeHa decides which ignitions escape", {
   expect_identical(sum(big$status$escapes), 0L)
 })
 
-test_that("the defaults are 50 ignitions, 50 polygons, 20 escapes of 50 ha", {
-  out <- suppressMessages(runFewFire(minEscapes = 20))
+test_that("the defaults are 50 ignitions, 50 polygons, 5 escapes of 50 ha", {
+  out <- suppressMessages(runFewFire(minEscapes = 5))
   ## nothing in the toy records reaches 50, so every counted ELF is thin and none can be merged
   expect_identical(sort(out$excluded), c("3.1.1", "3.1.2", "5.1"))
   expect_identical(formals(fewFireELFs)$minNaturalIgnitions, 50)
   expect_identical(formals(fewFireELFs)$minFirePolygons, 50)
-  expect_identical(formals(fewFireELFs)$minEscapes, 20)
+  expect_identical(formals(fewFireELFs)$minEscapes, 5)
   expect_identical(formals(fewFireELFs)$escapeSizeHa, 50)
 })
 
