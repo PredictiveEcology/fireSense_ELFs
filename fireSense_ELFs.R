@@ -97,6 +97,15 @@ defineModule(sim, list(
     defineParameter("minEscapes", "numeric", 5, 0, NA,
                     paste("An ELF with fewer escaped natural fires than this over `fireYears` has too few fires.",
                           "5 is the minimum the escape fit's 5-fold cross-validation needs.")),
+    defineParameter("minRegionAreaKm2", "numeric", 35000, 0, NA,
+                    paste("After the fire-count merging, an ELF whose core is smaller than this (km2) is merged with a",
+                          "similar neighbour that shares its base (`fireSenseUtils::ELFsizePlan()`), choosing the merge",
+                          "that leaves the fewest small ELFs without a partner. Land cover is SCANFI v2 2020. `NULL` or",
+                          "`NA` turns the rule off; so does `fireYears = NULL`.")),
+    defineParameter("maxLandCoverDist", "numeric", 0.35, 0, 1,
+                    "Size rule: largest Bray-Curtis distance between the land-cover shares of two ELFs that may merge."),
+    defineParameter("maxBurnRatio", "numeric", 6, 1, NA,
+                    "Size rule: largest ratio (larger over smaller) of the burn rates (%/yr over `fireYears`) of two ELFs that may merge."),
     defineParameter(".plots", "character", "screen", NA, NA,
                     "Passed to `types` in `Plots()`. If any, `init` plots the map of all ELFs and this run's study areas."),
     defineParameter(".plotInitialTime", "numeric", start(sim), NA, NA,
@@ -165,7 +174,8 @@ defineModule(sim, list(
                   desc = paste("Natural ignitions, escaped natural ignitions, fire polygons and zero/few/ok status of every ELF over `fireYears`",
                                "(fireSenseUtils::ELFfitStatus()). NULL when `fireYears` is NULL.")),
     createsOutput("ELFmerges", "data.table",
-                  desc = paste("The merges and skips decided for ELFs with too few fires (fireSenseUtils::ELFmergePlan()).",
+                  desc = paste("The merges and skips decided for ELFs with too few fires (fireSenseUtils::ELFmergePlan()),",
+                               "and the merges of ELFs smaller than `minRegionAreaKm2` (fireSenseUtils::ELFsizePlan()).",
                                "NULL when `fireYears` is NULL.")),
     createsOutput("spreadFitPreRun", "data.frame",
                   desc = paste("This is a data.frame that has a geometry list column, so it can be ",
@@ -261,15 +271,23 @@ Init <- function(sim) {
     SpaDES.core::paramCheckOtherMods(sim, "escapeSizeHa", ifSetButDifferent = "warning")
     nfdbShp <- fireRecordShapefile(fireSenseUtils::nfdbPointUrl(), destinationPath = inputPath)
     nbacShp <- fireRecordShapefile(fireSenseUtils::latestNBACUrl(), destinationPath = inputPath)
+    landCoverFile <- if (!is.null(Par$minRegionAreaKm2) && !is.na(Par$minRegionAreaKm2))
+      sizeRuleLandCover(inputPath)
     fewFire <- fewFireELFs(ELFs, fireYears = Par$fireYears,
                            pixelAreaHa = prod(terra::res(rastTemplate)) / 1e4,
                            nfdbShp = nfdbShp, nbacShp = nbacShp,
                            minNaturalIgnitions = Par$minNaturalIgnitions,
                            minFirePolygons = Par$minFirePolygons,
-                           escapeSizeHa = Par$escapeSizeHa, minEscapes = Par$minEscapes) |>
-      Cache(useCache = TRUE, omitArgs = c("nfdbShp", "nbacShp"),
+                           escapeSizeHa = Par$escapeSizeHa, minEscapes = Par$minEscapes,
+                           landCoverFile = landCoverFile, minRegionAreaKm2 = Par$minRegionAreaKm2,
+                           maxLandCoverDist = Par$maxLandCoverDist, maxBurnRatio = Par$maxBurnRatio) |>
+      Cache(useCache = TRUE, omitArgs = c("nfdbShp", "nbacShp", "landCoverFile"),
             .functionName = "fewFireELFs",
-            .cacheExtra = list(basename(nfdbShp), basename(nbacShp), fewFireELFs,
+            .cacheExtra = list(basename(nfdbShp), basename(nbacShp),
+                               if (!is.null(landCoverFile)) basename(landCoverFile), fewFireELFs,
+                               combinePlans, fireSenseUtils::ELFregionStats, fireSenseUtils::ELFsizePlan,
+                               fireSenseUtils:::.sizeCandidates, fireSenseUtils:::.sizeMerge,
+                               fireSenseUtils:::.landCoverDist, fireSenseUtils:::.burnRatio,
                                fireSenseUtils::ELFfireCounts, fireSenseUtils::ELFfitStatus,
                                fireSenseUtils::ELFneighbours, fireSenseUtils::ELFmergePlan,
                                fireSenseUtils::mergeELFs, fireSenseUtils::escapedFires))

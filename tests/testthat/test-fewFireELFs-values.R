@@ -136,3 +136,52 @@ test_that("the fire records are asked for over the whole map, every size, the ye
   expect_equal(unname(as.vector(terra::ext(seen$points$study_area))), c(0, 60000, 0, 20000))
   expect_equal(unname(as.vector(terra::ext(seen$polys$study_area))), c(0, 60000, 0, 20000))
 })
+
+## The size rule (fireSenseUtils::ELFsizePlan()) runs after the fire-count plan, on the regions that remain.
+## The toy cores are 300 km2 each, so a huge minimum makes them all small. Land cover is one class everywhere.
+toyLandCoverFile <- function(code = 210) {
+  f <- tempfile(fileext = ".tif")
+  terra::writeRaster(terra::setValues(toyGrid(), code), f)
+  f
+}
+## thresholds that leave 3.1.1 and 3.1.2 as they are in the fire-count plan (5.1 has no polygon: zero, skipped)
+sizeArgs <- list(minNaturalIgnitions = 1, minFirePolygons = 0, minEscapes = 0, maxBurnRatio = Inf)
+
+test_that("small regions are merged with a similar neighbour after the fire-count plan", {
+  out <- suppressMessages(do.call(runFewFire, c(sizeArgs, list(landCoverFile = toyLandCoverFile(),
+                                                             minRegionAreaKm2 = 1e6))))
+  expect_identical(out$plan$action, c("skip", "merge"))
+  merge <- out$plan[out$plan$action == "merge", ]
+  expect_identical(merge$ELF, "3.1.1_2")
+  expect_identical(merge$members[[1]], c("3.1.1", "3.1.2"))
+  expect_match(merge$reason, "^smaller than 1000000 km2; merged with 3\\.1\\.[12] \\(land cover distance 0\\.00")
+  expect_identical(merge$naturalIgnitions, 4L)           # counts of the original members, from the status
+  expect_identical(out$excluded, "5.1")                  # the skipped ELF is not a partner and not merged
+  expect_setequal(names(out$ELFs$rasWhole), c("5.1", "1.1", "3.1.1_2"))
+})
+
+test_that("the size rule is off without a land-cover map or when minRegionAreaKm2 is NA", {
+  none <- suppressMessages(do.call(runFewFire, c(sizeArgs, list(minRegionAreaKm2 = 1e6))))
+  expect_identical(none$plan$action, "skip")
+  off <- suppressMessages(do.call(runFewFire, c(sizeArgs, list(landCoverFile = toyLandCoverFile(),
+                                                             minRegionAreaKm2 = NA))))
+  expect_identical(off$plan$action, "skip")
+  expect_identical(formals(fewFireELFs)$minRegionAreaKm2, 35000)
+  expect_identical(formals(fewFireELFs)$maxLandCoverDist, 0.35)
+  expect_identical(formals(fewFireELFs)$maxBurnRatio, 6)
+})
+
+test_that("a size merge replaces the fire-count merge it contains, and a skipped ELF stays skipped", {
+  fire <- data.table::data.table(
+    action = c("merge", "skip"), ELF = c("3.1.1_2", NA), members = list(c("3.1.1", "3.1.2"), "5.1"),
+    naturalIgnitions = c(4L, 1L), escapes = c(4L, 1L), firePolygons = c(2L, 0L), reason = c("few", "few"))
+  status <- data.table::data.table(ELF = c("3.1.1", "3.1.2", "3.1.3", "5.1"), naturalIgnitions = c(1L, 3L, 7L, 1L),
+                                   escapes = c(1L, 3L, 7L, 1L), firePolygons = c(1L, 1L, 2L, 0L))
+  size <- data.table::data.table(action = "merge", ELF = "3.1.1_2_3", members = list(c("3.1.1", "3.1.2", "3.1.3")),
+                                 reason = "smaller than 35000 km2; merged with 3.1.3", areaKm2 = 1)
+  plan <- combinePlans(fire, size, status)
+  expect_identical(plan$action, c("skip", "merge"))
+  expect_identical(plan$ELF, c(NA, "3.1.1_2_3"))
+  expect_identical(plan$naturalIgnitions, c(1L, 11L))
+  expect_identical(combinePlans(fire, size[0, ], status), fire)
+})

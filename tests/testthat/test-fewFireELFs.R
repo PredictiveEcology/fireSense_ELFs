@@ -57,7 +57,7 @@ test_that("the fire counts and the ELF map are cached even when only events are 
   expect_true(isTRUE(fewFire[[1]]$useCache))
   expect_true(isTRUE(maps[[1]]$useCache))
   ## the shapefiles' local paths differ per job; their names key the result
-  expect_setequal(eval(fewFire[[1]]$omitArgs), c("nfdbShp", "nbacShp"))
+  expect_setequal(eval(fewFire[[1]]$omitArgs), c("nfdbShp", "nbacShp", "landCoverFile"))
 })
 
 test_that("fireYears and the thresholds are parameters, and the results are outputs", {
