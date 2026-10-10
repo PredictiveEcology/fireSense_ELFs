@@ -213,7 +213,8 @@ test_that("agrees when fireSense_spreadFit has the same heldOutFold", {
 test_that("by default init counts fires over the fit's years and merges the thin ELFs", {
   ## no fireYears set: the module's default, which fireSense_dataPrepFit shares
   sim <- toySimInit(objects = list(.ELFind = "3.1.2"),
-                    params = list(fireYears = NULL, minNaturalIgnitions = 3, minFirePolygons = 1))
+                    params = list(fireYears = NULL, minNaturalIgnitions = 3, minFirePolygons = 1,
+                                  minEscapes = 1))
   expect_identical(SpaDES.core::params(sim)$fireSense_ELFs$fireYears, fireSenseUtils::defaultFireYears())
   mockInitWorld()
   seen <- new.env()

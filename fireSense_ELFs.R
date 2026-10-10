@@ -90,6 +90,12 @@ defineModule(sim, list(
                     "An ELF with fewer natural-cause ignitions than this over `fireYears` has too few fires."),
     defineParameter("minFirePolygons", "numeric", 50, 0, NA,
                     "An ELF with fewer fire polygons than this over `fireYears` has too few fires."),
+    defineParameter("escapeSizeHa", "numeric", 50, 0, NA,
+                    paste("Size (ha) a fire must reach to count as escaped, as in `fireSense_dataPrepFit`'s `escapeSizeHa`.",
+                          "The escape and spread fits use only escaped fires; `init` warns if another module in the",
+                          "simList has a different `escapeSizeHa`.")),
+    defineParameter("minEscapes", "numeric", 20, 0, NA,
+                    "An ELF with fewer escaped natural fires than this over `fireYears` has too few fires."),
     defineParameter(".plots", "character", "screen", NA, NA,
                     "Passed to `types` in `Plots()`. If any, `init` plots the map of all ELFs and this run's study areas."),
     defineParameter(".plotInitialTime", "numeric", start(sim), NA, NA,
@@ -155,7 +161,7 @@ defineModule(sim, list(
                   desc = paste("ELFs with too few fires over `fireYears` that could not be merged; fireSenseUtils::runELFs()",
                                "leaves them out of the queue. NULL when `fireYears` is NULL.")),
     createsOutput("ELFfireStatus", "data.table",
-                  desc = paste("Natural ignitions, fire polygons and zero/few/ok status of every ELF over `fireYears`",
+                  desc = paste("Natural ignitions, escaped natural ignitions, fire polygons and zero/few/ok status of every ELF over `fireYears`",
                                "(fireSenseUtils::ELFfitStatus()). NULL when `fireYears` is NULL.")),
     createsOutput("ELFmerges", "data.table",
                   desc = paste("The merges and skips decided for ELFs with too few fires (fireSenseUtils::ELFmergePlan()).",
@@ -251,19 +257,21 @@ Init <- function(sim) {
   ELFsExcluded <- ELFfireStatus <- ELFmerges <- NULL
   if (!is.null(Par$fireYears)) {
     SpaDES.core::paramCheckOtherMods(sim, "fireYears", ifSetButDifferent = "warning")
+    SpaDES.core::paramCheckOtherMods(sim, "escapeSizeHa", ifSetButDifferent = "warning")
     nfdbShp <- fireRecordShapefile(fireSenseUtils::nfdbPointUrl(), destinationPath = inputPath)
     nbacShp <- fireRecordShapefile(fireSenseUtils::latestNBACUrl(), destinationPath = inputPath)
     fewFire <- fewFireELFs(ELFs, fireYears = Par$fireYears,
                            pixelAreaHa = prod(terra::res(rastTemplate)) / 1e4,
                            nfdbShp = nfdbShp, nbacShp = nbacShp,
                            minNaturalIgnitions = Par$minNaturalIgnitions,
-                           minFirePolygons = Par$minFirePolygons) |>
+                           minFirePolygons = Par$minFirePolygons,
+                           escapeSizeHa = Par$escapeSizeHa, minEscapes = Par$minEscapes) |>
       Cache(useCache = TRUE, omitArgs = c("nfdbShp", "nbacShp"),
             .functionName = "fewFireELFs",
             .cacheExtra = list(basename(nfdbShp), basename(nbacShp), fewFireELFs,
                                fireSenseUtils::ELFfireCounts, fireSenseUtils::ELFfitStatus,
                                fireSenseUtils::ELFneighbours, fireSenseUtils::ELFmergePlan,
-                               fireSenseUtils::mergeELFs))
+                               fireSenseUtils::mergeELFs, fireSenseUtils::escapedFires))
     ELFs <- fewFire$ELFs
     ELFsExcluded <- fewFire$excluded
     ELFfireStatus <- fewFire$status

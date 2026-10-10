@@ -2,12 +2,14 @@
 ## national shapefiles, so they are replaced by toy fire records; everything else is the real
 ## code (the module's function and fireSenseUtils' counting, status, plan and merge).
 ##
-## Fire records, 2001-2003, thresholds minNaturalIgnitions = 3 and minFirePolygons = 1:
+## Fire records, 2001-2003, thresholds minNaturalIgnitions = 3 and minFirePolygons = 1 (minEscapes 0
+## unless a test sets it):
 ##
-##   ELF     natural ignitions counted                 polygons counted     status
-##   3.1.1   1  (col 2, 2001)                          1 (cols 1-2, 2001)   few (1 < 3)
-##   3.1.2   3  (col 5: 2001, 2002, 2003)              1 (col 5, 2002)      ok
-##   5.1     1  (col 8, 2002)                          0                    zero (no polygon)
+##   ELF     natural ignitions counted      escapes   polygons counted     status
+##   3.1.1   1  (col 2, 2001)               1         1 (cols 1-2, 2001)   few (1 < 3)
+##   3.1.2   3  (col 5: 2001, 2002, 2003)   2         1 (col 5, 2002)      ok (the 2003 fire is 100 ha,
+##                                                                          below the 2500 ha pixel)
+##   5.1     1  (col 8, 2002)               1         0                    zero (no polygon)
 ##   1.1     not counted: ecozone 1
 ##
 ## Not counted: a human-caused point (col 2), a point from 1999 (col 5), a point in 1.1 (col 11),
@@ -15,7 +17,7 @@
 ## So 3.1.1 merges with 3.1.2, its only neighbour with the same base "3.1" (1 + 3 = 4 >= 3
 ## ignitions, 1 + 1 = 2 >= 1 polygons), and 5.1 has no neighbour sharing base "5": skipped.
 
-runFewFire <- function(..., loaderArgs = NULL) {
+runFewFire <- function(..., minEscapes = 0, loaderArgs = NULL) {
   local_mocked_bindings(
     load_nfdb_points = function(nfdb_shp, study_area, fire_years = NULL, min_size_ha = 1) {
       if (!is.null(loaderArgs)) loaderArgs$points <- list(nfdb_shp = nfdb_shp, study_area = study_area,
@@ -30,7 +32,7 @@ runFewFire <- function(..., loaderArgs = NULL) {
     .package = "fireregimetools"
   )
   fewFireELFs(toyELFs(), fireYears = 2001:2003, pixelAreaHa = 2500,
-              nfdbShp = "points.shp", nbacShp = "polys.shp", ...)
+              nfdbShp = "points.shp", nbacShp = "polys.shp", minEscapes = minEscapes, ...)
 }
 
 test_that("fire counts and status are those of the toy fire records", {
@@ -39,6 +41,7 @@ test_that("fire counts and status are those of the toy fire records", {
   st <- st[order(st$ELF), ]
   expect_identical(st$ELF, c("3.1.1", "3.1.2", "5.1"))        # 1.1 is arctic: not counted
   expect_identical(st$naturalIgnitions, c(1L, 3L, 1L))
+  expect_identical(st$escapes, c(1L, 2L, 1L))
   expect_identical(st$firePolygons, c(1L, 1L, 0L))
   expect_identical(st$status, c("few", "ok", "zero"))
 })
@@ -91,12 +94,34 @@ test_that("the thresholds given are the ones used, for the status and for the pl
   expect_identical(lax$plan$action, "skip")
 })
 
-test_that("the defaults are 50 ignitions and 50 polygons", {
-  out <- suppressMessages(runFewFire())
+test_that("an ELF with enough ignitions and polygons but too few escapes is few, and merged to reach them", {
+  ## 3.1.2 has 3 ignitions (enough) but 2 escapes
+  out <- suppressMessages(runFewFire(minNaturalIgnitions = 3, minFirePolygons = 1, minEscapes = 3))
+  st <- as.data.frame(out$status)
+  expect_identical(st$status[order(st$ELF)], c("few", "few", "zero"))
+  expect_identical(out$plan$action, c("merge", "skip"))
+  expect_identical(out$plan$escapes, c(3L, 1L))
+  ## 3.1.1 + 3.1.2 = 3 escapes is still short of 4: neither is fitted
+  out <- suppressMessages(runFewFire(minNaturalIgnitions = 3, minFirePolygons = 1, minEscapes = 4))
+  expect_identical(out$plan$action, c("skip", "skip"))
+  expect_setequal(out$excluded, c("3.1.1", "3.1.2", "5.1"))
+})
+
+test_that("escapeSizeHa decides which ignitions escape", {
+  ## the toy points are 5000 ha (one is 100 ha); none reaches 6000 ha
+  big <- suppressMessages(runFewFire(minNaturalIgnitions = 3, minFirePolygons = 1,
+                                     escapeSizeHa = 6000))
+  expect_identical(sum(big$status$escapes), 0L)
+})
+
+test_that("the defaults are 50 ignitions, 50 polygons, 20 escapes of 50 ha", {
+  out <- suppressMessages(runFewFire(minEscapes = 20))
   ## nothing in the toy records reaches 50, so every counted ELF is thin and none can be merged
   expect_identical(sort(out$excluded), c("3.1.1", "3.1.2", "5.1"))
   expect_identical(formals(fewFireELFs)$minNaturalIgnitions, 50)
   expect_identical(formals(fewFireELFs)$minFirePolygons, 50)
+  expect_identical(formals(fewFireELFs)$minEscapes, 20)
+  expect_identical(formals(fewFireELFs)$escapeSizeHa, 50)
 })
 
 test_that("the fire records are asked for over the whole map, every size, the years given", {

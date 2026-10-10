@@ -45,6 +45,7 @@ test_that("no parameter has been removed or retyped", {
                 spreadFitGoogleDriveFolder = "character", queue_path = "character",
                 ignitionFitFilename = "character", ignitionFitGoogleDriveFolder = "character",
                 fireYears = "integer", minNaturalIgnitions = "numeric", minFirePolygons = "numeric",
+                escapeSizeHa = "numeric", minEscapes = "numeric",
                 .plots = "character", .plotInitialTime = "numeric", .studyAreaName = "character",
                 .useCache = "logical", .useCloud = "logical|character", .useCacheArgs = "list")
   ## `%in%`, not identical: work in progress adds parameters, and an addition breaks no caller
@@ -67,6 +68,8 @@ test_that("parameter defaults are unchanged", {
   expect_identical(p$fireYears, fireSenseUtils::defaultFireYears())
   expect_identical(p$minNaturalIgnitions, 50)
   expect_identical(p$minFirePolygons, 50)
+  expect_identical(p$escapeSizeHa, 50)
+  expect_identical(p$minEscapes, 20)
   expect_identical(p$.plots, "screen")
   expect_identical(as.numeric(p$.plotInitialTime), 1) # start(sim)
   expect_identical(p$.studyAreaName, NA)

@@ -30,11 +30,14 @@ fireRecordShapefile <- function(url, destinationPath, ...) {
 #' @param nbacShp Path to the NBAC fire polygons shapefile.
 #' @param minNaturalIgnitions Fewer natural-cause ignitions than this is too few.
 #' @param minFirePolygons Fewer fire polygons than this is too few.
+#' @param escapeSizeHa Size (ha) a fire must reach to count as escaped.
+#' @param minEscapes Fewer escaped natural fires than this is too few.
 #'
 #' @return List: `ELFs` (the merged maps), `status` (`fireSenseUtils::ELFfitStatus()`),
 #'   `plan` (`fireSenseUtils::ELFmergePlan()`) and `excluded` (names of ELFs not fitted).
 fewFireELFs <- function(ELFs, fireYears, pixelAreaHa, nfdbShp, nbacShp,
-                        minNaturalIgnitions = 50, minFirePolygons = 50) {
+                        minNaturalIgnitions = 50, minFirePolygons = 50,
+                        escapeSizeHa = 50, minEscapes = 20) {
   ## ecozones 1 and 2 are out permanently: not counted, not merged (fireSenseUtils::ELFsArctic())
   ids <- setdiff(names(ELFs$rasWhole), fireSenseUtils::ELFsArctic(names(ELFs$rasWhole)))
   rasWhole <- terra::rast(unname(ELFs$rasWhole[ids]))
@@ -45,12 +48,13 @@ fewFireELFs <- function(ELFs, fireYears, pixelAreaHa, nfdbShp, nbacShp,
                                               fire_years = fireYears, min_size_ha = 0)
   polys <- fireregimetools::load_nbac_polys(nbacShp, study_area = studyArea,
                                             fire_years = fireYears, min_size_ha = 0)
-  counts <- fireSenseUtils::ELFfireCounts(rasWhole, points, polys, fireYears, pixelAreaHa)
+  counts <- fireSenseUtils::ELFfireCounts(rasWhole, points, polys, fireYears, pixelAreaHa,
+                                          escapeSizeHa = escapeSizeHa)
   status <- fireSenseUtils::ELFfitStatus(counts, minNaturalIgnitions = minNaturalIgnitions,
-                                         minFirePolygons = minFirePolygons)
+                                         minFirePolygons = minFirePolygons, minEscapes = minEscapes)
   plan <- fireSenseUtils::ELFmergePlan(status, fireSenseUtils::ELFneighbours(rasWhole),
                                        minNaturalIgnitions = minNaturalIgnitions,
-                                       minFirePolygons = minFirePolygons)
+                                       minFirePolygons = minFirePolygons, minEscapes = minEscapes)
   for (i in seq_len(nrow(plan))) {
     message("fireSense_ELFs: ", plan$action[i], " ", paste(plan$members[[i]], collapse = " + "),
             if (plan$action[i] == "merge") paste0(" -> ", plan$ELF[i]), " (", plan$reason[i], ")")
