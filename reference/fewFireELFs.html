@@ -68,7 +68,13 @@ are neither counted nor merged.</p>
 <span>  <span class="va">nfdbShp</span>,</span>
 <span>  <span class="va">nbacShp</span>,</span>
 <span>  minNaturalIgnitions <span class="op">=</span> <span class="fl">50</span>,</span>
-<span>  minFirePolygons <span class="op">=</span> <span class="fl">50</span></span>
+<span>  minFirePolygons <span class="op">=</span> <span class="fl">50</span>,</span>
+<span>  escapeSizeHa <span class="op">=</span> <span class="fl">50</span>,</span>
+<span>  minEscapes <span class="op">=</span> <span class="fl">5</span>,</span>
+<span>  landCoverFile <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  minRegionAreaKm2 <span class="op">=</span> <span class="fl">35000</span>,</span>
+<span>  maxLandCoverDist <span class="op">=</span> <span class="fl">0.35</span>,</span>
+<span>  maxBurnRatio <span class="op">=</span> <span class="fl">6</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -102,6 +108,29 @@ are neither counted nor merged.</p>
 
 <dt id="arg-minfirepolygons">minFirePolygons<a class="anchor" aria-label="anchor" href="#arg-minfirepolygons"></a></dt>
 <dd><p>Fewer fire polygons than this is too few.</p></dd>
+
+
+<dt id="arg-escapesizeha">escapeSizeHa<a class="anchor" aria-label="anchor" href="#arg-escapesizeha"></a></dt>
+<dd><p>Size (ha) a fire must reach to count as escaped.</p></dd>
+
+
+<dt id="arg-minescapes">minEscapes<a class="anchor" aria-label="anchor" href="#arg-minescapes"></a></dt>
+<dd><p>Fewer escaped natural fires than this is too few.</p></dd>
+
+
+<dt id="arg-landcoverfile">landCoverFile<a class="anchor" aria-label="anchor" href="#arg-landcoverfile"></a></dt>
+<dd><p>Path to a land-cover map in class codes (SCANFI's), or <code>NULL</code>. With
+<code>minRegionAreaKm2</code> it switches on the size rule.</p></dd>
+
+
+<dt id="arg-minregionareakm-">minRegionAreaKm2<a class="anchor" aria-label="anchor" href="#arg-minregionareakm-"></a></dt>
+<dd><p>After the fire-count plan, regions with a core smaller than this (km2) are merged
+with a similar neighbour (<code><a href="https://rdrr.io/pkg/fireSenseUtils/man/ELFsizePlan.html" class="external-link">fireSenseUtils::ELFsizePlan()</a></code>). <code>NULL</code> or <code>NA</code> turns the rule off.</p></dd>
+
+
+<dt id="arg-maxlandcoverdist-maxburnratio">maxLandCoverDist, maxBurnRatio<a class="anchor" aria-label="anchor" href="#arg-maxlandcoverdist-maxburnratio"></a></dt>
+<dd><p>How similar a neighbour must be for the size rule: largest land-cover
+(Bray-Curtis) distance and largest burn-rate ratio.</p></dd>
 
 </dl></div>
     <div id="value">

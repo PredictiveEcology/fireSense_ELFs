@@ -11,6 +11,7 @@
 <url><loc>/reference/Init.html</loc></url>
 <url><loc>/reference/bufferBorder.html</loc></url>
 <url><loc>/reference/canadaUSBorder.html</loc></url>
+<url><loc>/reference/combinePlans.html</loc></url>
 <url><loc>/reference/doEvent.fireSense_ELFs.html</loc></url>
 <url><loc>/reference/dot-assertOneStudyArea.html</loc></url>
 <url><loc>/reference/dot-inputObjects.html</loc></url>
@@ -22,5 +23,6 @@
 <url><loc>/reference/plotAllELFsFn.html</loc></url>
 <url><loc>/reference/readIgnitionFitRows.html</loc></url>
 <url><loc>/reference/selectCanadaUSBorder.html</loc></url>
+<url><loc>/reference/sizeRuleLandCover.html</loc></url>
 </urlset>
 
