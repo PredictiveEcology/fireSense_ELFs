@@ -35,9 +35,10 @@ toyELFs <- function() {
 ## Centre of the cell at (row, col) of the toy grid
 toyXY <- function(row, col) terra::xyFromCell(toyGrid(), terra::cellFromRowCol(toyGrid(), row, col))
 
-toyPoints <- function(row, col, YEAR, CAUSE) {
+## SIZE_HA 5000 is above the 2500 ha toy pixel and the 50 ha escape size, so a point escapes by default.
+toyPoints <- function(row, col, YEAR, CAUSE, SIZE_HA = 5000) {
   terra::vect(toyXY(row, col), type = "points", crs = "EPSG:3978",
-              atts = data.frame(YEAR = YEAR, CAUSE = CAUSE))
+              atts = data.frame(YEAR = YEAR, CAUSE = CAUSE, SIZE_HA = SIZE_HA))
 }
 
 ## A rectangle covering whole cells: rows r1..r2, cols c1..c2
@@ -118,7 +119,7 @@ toyFirePoints <- function() {
     toyPoints(3, 2, 2001L, "H"),          # human-caused
     toyPoints(1, 5, 2001L, "N"),
     toyPoints(2, 5, 2002L, "L"),
-    toyPoints(3, 5, 2003L, "L"),
+    toyPoints(3, 5, 2003L, "L", SIZE_HA = 100),   # counted, but too small to escape
     toyPoints(4, 5, 1999L, "L"),          # outside fireYears
     toyPoints(2, 8, 2002L, "L"),
     toyPoints(2, 11, 2002L, "L")          # in arctic ELF 1.1

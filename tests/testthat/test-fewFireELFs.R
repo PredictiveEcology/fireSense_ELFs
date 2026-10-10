@@ -57,16 +57,18 @@ test_that("the fire counts and the ELF map are cached even when only events are 
   expect_true(isTRUE(fewFire[[1]]$useCache))
   expect_true(isTRUE(maps[[1]]$useCache))
   ## the shapefiles' local paths differ per job; their names key the result
-  expect_setequal(eval(fewFire[[1]]$omitArgs), c("nfdbShp", "nbacShp"))
+  expect_setequal(eval(fewFire[[1]]$omitArgs), c("nfdbShp", "nbacShp", "landCoverFile"))
 })
 
 test_that("fireYears and the thresholds are parameters, and the results are outputs", {
   params <- metadataCalls("defineParameter")
   params <- stats::setNames(params, vapply(params, function(cl) as.character(cl[[2]]), ""))
-  expect_true(all(c("fireYears", "minNaturalIgnitions", "minFirePolygons") %in% names(params)))
+  expect_true(all(c("fireYears", "minNaturalIgnitions", "minFirePolygons", "escapeSizeHa", "minEscapes") %in% names(params)))
   expect_identical(eval(params$fireYears[[4]]), fireSenseUtils::defaultFireYears())
   expect_identical(eval(params$minNaturalIgnitions[[4]]), 50)
   expect_identical(eval(params$minFirePolygons[[4]]), 50)
+  expect_identical(eval(params$escapeSizeHa[[4]]), 50)
+  expect_identical(eval(params$minEscapes[[4]]), 5)
   ## runELFs() reads sim$ELFsExcluded by this name
   outputs <- vapply(metadataCalls("createsOutput"), function(cl) as.character(cl[[2]]), "")
   expect_true(all(c("ELFsExcluded", "ELFfireStatus", "ELFmerges") %in% outputs))
@@ -78,6 +80,11 @@ test_that("init flags other modules' different fireYears with a warning, only wh
   expect_length(gated, 1L)
   checks <- Filter(function(x) identical(x[[1]], quote(SpaDES.core::paramCheckOtherMods)) &&
                      identical(x[[3]], "fireYears"), allCalls(gated[[1]]))
+  expect_length(checks, 1L)
+  expect_identical(checks[[1]]$ifSetButDifferent, "warning")
+  ## escapeSizeHa is checked the same way against fireSense_dataPrepFit's
+  checks <- Filter(function(x) identical(x[[1]], quote(SpaDES.core::paramCheckOtherMods)) &&
+                     identical(x[[3]], "escapeSizeHa"), allCalls(gated[[1]]))
   expect_length(checks, 1L)
   expect_identical(checks[[1]]$ifSetButDifferent, "warning")
 })
