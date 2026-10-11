@@ -269,28 +269,32 @@ Init <- function(sim) {
   if (!is.null(Par$fireYears)) {
     SpaDES.core::paramCheckOtherMods(sim, "fireYears", ifSetButDifferent = "warning")
     SpaDES.core::paramCheckOtherMods(sim, "escapeSizeHa", ifSetButDifferent = "warning")
-    nfdbShp <- fireRecordShapefile(fireSenseUtils::nfdbPointUrl(), destinationPath = inputPath)
-    nbacShp <- fireRecordShapefile(fireSenseUtils::latestNBACUrl(), destinationPath = inputPath)
+    nfdbUrl <- fireSenseUtils::nfdbPointUrl()
+    nbacUrl <- fireSenseUtils::latestNBACUrl()
     landCoverFile <- if (!is.null(Par$minRegionAreaKm2) && !is.na(Par$minRegionAreaKm2))
-      sizeRuleLandCover(inputPath)
-    fewFire <- fewFireELFs(ELFs, fireYears = Par$fireYears,
-                           pixelAreaHa = prod(terra::res(rastTemplate)) / 1e4,
-                           nfdbShp = nfdbShp, nbacShp = nbacShp,
-                           minNaturalIgnitions = Par$minNaturalIgnitions,
-                           minFirePolygons = Par$minFirePolygons,
-                           escapeSizeHa = Par$escapeSizeHa, minEscapes = Par$minEscapes,
-                           landCoverFile = landCoverFile, minRegionAreaKm2 = Par$minRegionAreaKm2,
-                           maxLandCoverDist = Par$maxLandCoverDist, maxBurnRatio = Par$maxBurnRatio) |>
-      Cache(useCache = TRUE, omitArgs = c("nfdbShp", "nbacShp", "landCoverFile"),
+      fireSenseUtils::sizeRuleLandCover(inputPath)
+    fewFire <- fireSenseUtils::fewFireELFs(
+      ELFs, fireYears = Par$fireYears, pixelAreaHa = prod(terra::res(rastTemplate)) / 1e4,
+      destinationPath = inputPath, nfdbUrl = nfdbUrl, nbacUrl = nbacUrl,
+      minNaturalIgnitions = Par$minNaturalIgnitions, minFirePolygons = Par$minFirePolygons,
+      escapeSizeHa = Par$escapeSizeHa, minEscapes = Par$minEscapes,
+      landCoverFile = landCoverFile, minRegionAreaKm2 = Par$minRegionAreaKm2,
+      maxLandCoverDist = Par$maxLandCoverDist, maxBurnRatio = Par$maxBurnRatio) |>
+      Cache(useCache = TRUE, omitArgs = c("destinationPath", "landCoverFile"),
             .functionName = "fewFireELFs",
-            .cacheExtra = list(basename(nfdbShp), basename(nbacShp),
-                               if (!is.null(landCoverFile)) basename(landCoverFile), fewFireELFs,
-                               combinePlans, fireSenseUtils::ELFregionStats, fireSenseUtils::ELFsizePlan,
-                               fireSenseUtils:::.sizeCandidates, fireSenseUtils:::.sizeMerge,
-                               fireSenseUtils:::.landCoverDist, fireSenseUtils:::.burnRatio,
-                               fireSenseUtils::ELFfireCounts, fireSenseUtils::ELFfitStatus,
-                               fireSenseUtils::ELFneighbours, fireSenseUtils::ELFmergePlan,
-                               fireSenseUtils::mergeELFs, fireSenseUtils::escapedFires))
+            .cacheExtra = list(basename(fireSenseUtils::fireRecordShapefile(nfdbUrl, inputPath)),
+                               basename(fireSenseUtils::fireRecordShapefile(nbacUrl, inputPath)),
+                               if (!is.null(landCoverFile)) basename(landCoverFile),
+                               fireSenseUtils::fewFireELFs, fireSenseUtils::combinePlans,
+                               fireSenseUtils::ELFfireOverlay, fireSenseUtils::ELFregionStats,
+                               fireSenseUtils::ELFsizePlan, fireSenseUtils:::.sizeCandidates,
+                               fireSenseUtils:::.sizeMerge, fireSenseUtils:::.landCoverDist,
+                               fireSenseUtils:::.burnRatio, fireSenseUtils:::.loadFireRecords,
+                               fireSenseUtils:::.nbacOverlay, fireSenseUtils::ELFfireCounts,
+                               fireSenseUtils::ELFfitStatus, fireSenseUtils::ELFneighbours,
+                               fireSenseUtils::ELFmergePlan, fireSenseUtils::mergeELFs,
+                               fireSenseUtils::escapedFires))
+    ELFsBeforeMerges <- ELFs
     ELFs <- fewFire$ELFs
     ELFsExcluded <- fewFire$excluded
     ELFfireStatus <- fewFire$status
@@ -482,6 +486,12 @@ Init <- function(sim) {
           filename = paste0("ELF_polygons.png"), useCache = TRUE
     )
     
+    ## the ELFs after the merges, those without enough fires shaded; the file type is .plots' to decide
+    if (!is.null(ELFmerges))
+      Plots(fn = fireSenseUtils::plotELFs, ELFs = ELFsBeforeMerges, plan = ELFmerges, buffers = FALSE,
+            path = inputPath, deviceArgs = list(width = 11, height = 8, units = "in", res = 300),
+            filename = "ELFs_postMerge", useCache = TRUE)
+
     Plots(as.list(sim[grep("studyArea|rasterToMatchELF", names(sim), value = TRUE)]),
           title = paste0("StudyArea ", sim$.ELFind),
           fn = SpaDES.project::plotSAs,

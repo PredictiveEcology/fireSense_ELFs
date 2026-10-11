@@ -56,8 +56,8 @@ test_that("the fire counts and the ELF map are cached even when only events are 
   expect_length(maps, 1L)
   expect_true(isTRUE(fewFire[[1]]$useCache))
   expect_true(isTRUE(maps[[1]]$useCache))
-  ## the shapefiles' local paths differ per job; their names key the result
-  expect_setequal(eval(fewFire[[1]]$omitArgs), c("nfdbShp", "nbacShp", "landCoverFile"))
+  ## the local paths differ per job; the shapefiles' names (the release) key the result
+  expect_setequal(eval(fewFire[[1]]$omitArgs), c("destinationPath", "landCoverFile"))
 })
 
 test_that("fireYears and the thresholds are parameters, and the results are outputs", {
@@ -87,4 +87,13 @@ test_that("init flags other modules' different fireYears with a warning, only wh
                      identical(x[[3]], "escapeSizeHa"), allCalls(gated[[1]]))
   expect_length(checks, 1L)
   expect_identical(checks[[1]]$ifSetButDifferent, "warning")
+})
+
+test_that("init draws the ELFs after the merges through Plots(), whose .plots decides the file type", {
+  calls <- Filter(function(x) identical(x[[1]], quote(Plots)) &&
+                    identical(x$fn, quote(fireSenseUtils::plotELFs)), allCalls(initBody()))
+  expect_length(calls, 1L)
+  expect_identical(calls[[1]]$plan, quote(ELFmerges))
+  expect_identical(calls[[1]]$filename, "ELFs_postMerge")        # no extension: not a file type of ours
+  expect_true(is.null(calls[[1]]$types))
 })

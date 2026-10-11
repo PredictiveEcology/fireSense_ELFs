@@ -227,6 +227,14 @@ test_that("by default init counts fires over the fit's years and merges the thin
       mockedPreProcess(url = url, ...)
     },
     .package = "reproducible")
+  ## the fire records are loaded by prepInputs() with a loader call on the shapefile
+  mockedPrepInputs <- reproducible::prepInputs
+  local_mocked_bindings(
+    prepInputs = function(url = NULL, targetFile = NULL, fun = NULL, ...) {
+      if (isTRUE(grepl("nfdb|nbac", url, ignore.case = TRUE))) return(eval(fun, list(targetFile = targetFile)))
+      mockedPrepInputs(url = url, targetFile = targetFile, fun = fun, ...)
+    },
+    .package = "reproducible")
   local_mocked_bindings(
     load_nfdb_points = function(nfdb_shp, study_area, fire_years = NULL, min_size_ha = 1) {
       seen$years <- fire_years
