@@ -2972,8 +2972,8 @@ border-radius: 0px;
 
 
 <h1 class="title toc-ignore">fireSense_ELFs Manual</h1>
-<h3 class="subtitle">v.1.2.0.9000</h3>
-<h4 class="date">Last updated: 2026-10-09</h4>
+<h3 class="subtitle">v.1.2.0.9001</h3>
+<h4 class="date">Last updated: 2026-10-10</h4>
 
 </div>
 
@@ -3001,7 +3001,7 @@ It is scheduled before the other fireSense modules.</p>
 <li><code>.ELFind</code> (e.g. <code>&quot;4.3&quot;</code>): that single ELF. <code>*LargeELF</code> objects include its 20 km buffer; <code>*ELF</code> objects do not. This is what fitting uses.</li>
 <li><code>studyAreaLarge</code>: the ELFs the polygon overlaps that already have fitted SpreadFit parameters. This is what prediction uses.</li>
 </ul>
-<p>By default (<code>fireYears</code> is <code>fireSenseUtils::defaultFireYears()</code>, the fit’s years; <code>NULL</code> turns this off), ELFs with too few natural ignitions (<code>minNaturalIgnitions</code>) or fire polygons (<code>minFirePolygons</code>) over those years are merged with a neighbour that shares their base, or listed in <code>ELFsExcluded</code> (<code>fireSenseUtils::ELFmergePlan()</code>).</p>
+<p>By default (<code>fireYears</code> is <code>fireSenseUtils::defaultFireYears()</code>, the fit’s years; <code>NULL</code> turns this off), ELFs with too few natural ignitions (<code>minNaturalIgnitions</code>) fire polygons (<code>minFirePolygons</code>) or escaped natural fires (<code>minEscapes</code>; a fire escapes at <code>escapeSizeHa</code>) over those years are merged with a neighbour that shares their base, or listed in <code>ELFsExcluded</code> (<code>fireSenseUtils::ELFmergePlan()</code>). Afterwards an ELF whose core is smaller than <code>minRegionAreaKm2</code> is merged with a similar neighbour of the same base (land-cover distance at most <code>maxLandCoverDist</code>, burn-rate ratio at most <code>maxBurnRatio</code>), taking the merge that leaves the fewest small ELFs without a partner (<code>fireSenseUtils::ELFsizePlan()</code>); <code>minRegionAreaKm2 = NA</code> turns this off.</p>
 <p>The module also reads the previously fitted SpreadFit parameters (<code>spreadFitFilename</code> in <code>spreadFitGoogleDriveFolder</code>) into <code>spreadFitPreRun</code>; a missing file means nothing has been fitted yet.
 It needs Google Drive access to that folder.</p>
 </div>
@@ -3327,6 +3327,106 @@ An ELF with fewer fire polygons than this over <code>fireYears</code> has too fe
 </tr>
 <tr>
 <td style="text-align:left;">
+escapeSizeHa
+</td>
+<td style="text-align:left;">
+numeric
+</td>
+<td style="text-align:left;">
+50
+</td>
+<td style="text-align:left;">
+0
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+Size (ha) a fire must reach to count as escaped, as in <code>fireSense_dataPrepFit</code>’s <code>escapeSizeHa</code>. The escape and spread fits use only escaped fires; <code>init</code> warns if another module in the simList has a different <code>escapeSizeHa</code>.
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+minEscapes
+</td>
+<td style="text-align:left;">
+numeric
+</td>
+<td style="text-align:left;">
+5
+</td>
+<td style="text-align:left;">
+0
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+An ELF with fewer escaped natural fires than this over <code>fireYears</code> has too few fires. 5 is the minimum the escape fit’s 5-fold cross-validation needs.
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+minRegionAreaKm2
+</td>
+<td style="text-align:left;">
+numeric
+</td>
+<td style="text-align:left;">
+35000
+</td>
+<td style="text-align:left;">
+0
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+After the fire-count merging, an ELF whose core is smaller than this (km2) is merged with a similar neighbour that shares its base (<code>fireSenseUtils::ELFsizePlan()</code>), choosing the merge that leaves the fewest small ELFs without a partner. Land cover is SCANFI v2 2020. <code>NULL</code> or <code>NA</code> turns the rule off; so does <code>fireYears = NULL</code>.
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+maxLandCoverDist
+</td>
+<td style="text-align:left;">
+numeric
+</td>
+<td style="text-align:left;">
+0.35
+</td>
+<td style="text-align:left;">
+0
+</td>
+<td style="text-align:left;">
+1
+</td>
+<td style="text-align:left;">
+Size rule: largest Bray-Curtis distance between the land-cover shares of two ELFs that may merge.
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+maxBurnRatio
+</td>
+<td style="text-align:left;">
+numeric
+</td>
+<td style="text-align:left;">
+6
+</td>
+<td style="text-align:left;">
+1
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+Size rule: largest ratio (larger over smaller) of the burn rates (%/yr over <code>fireYears</code>) of two ELFs that may merge.
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
 .plots
 </td>
 <td style="text-align:left;">
@@ -3600,7 +3700,7 @@ ELFfireStatus
 data.table
 </td>
 <td style="text-align:left;">
-Natural ignitions, fire polygons and zero/few/ok status of every ELF over <code>fireYears</code> (fireSenseUtils::ELFfitStatus()). NULL when <code>fireYears</code> is NULL.
+Natural ignitions, escaped natural ignitions, fire polygons and zero/few/ok status of every ELF over <code>fireYears</code> (fireSenseUtils::ELFfitStatus()). NULL when <code>fireYears</code> is NULL.
 </td>
 </tr>
 <tr>
@@ -3611,7 +3711,7 @@ ELFmerges
 data.table
 </td>
 <td style="text-align:left;">
-The merges and skips decided for ELFs with too few fires (fireSenseUtils::ELFmergePlan()). NULL when <code>fireYears</code> is NULL.
+The merges and skips decided for ELFs with too few fires (fireSenseUtils::ELFmergePlan()), and the merges of ELFs smaller than <code>minRegionAreaKm2</code> (fireSenseUtils::ELFsizePlan()). NULL when <code>fireYears</code> is NULL.
 </td>
 </tr>
 <tr>
