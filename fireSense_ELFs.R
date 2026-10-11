@@ -488,7 +488,7 @@ Init <- function(sim) {
     
     ## the ELFs after the merges, those without enough fires shaded; the file type is .plots' to decide
     if (!is.null(ELFmerges))
-      Plots(fn = fireSenseUtils::plotELFs, ELFs = ELFsBeforeMerges, plan = ELFmerges,
+      Plots(fn = fireSenseUtils::plotELFs, ELFs = ELFsBeforeMerges, plan = ELFmerges, buffers = FALSE,
             path = inputPath, deviceArgs = list(width = 11, height = 8, units = "in", res = 300),
             filename = "ELFs_postMerge", useCache = TRUE)
 
