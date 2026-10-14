@@ -501,8 +501,8 @@ plotAllELFsFn <- function(centred, crsToUse, alreadyRun, runningELFs) {
 
 #' Default `.ELFind`
 #'
-#' Sets `sim$.ELFind` to `"4.3"` if not supplied, and records in
-#' `mod$ELFindSupplied` whether it was.
+#' Sets `sim$.ELFind` to `"4.3"` if not supplied (with a message, unless a
+#' `studyAreaLarge` is supplied), and records in `mod$ELFindSupplied` whether it was.
 #'
 #' @param sim A `simList`.
 #'
@@ -513,7 +513,13 @@ plotAllELFsFn <- function(centred, crsToUse, alreadyRun, runningELFs) {
   ## former can conflict with a `studyAreaLarge`. See .assertOneStudyArea().
   mod$ELFindSupplied <- suppliedElsewhere(".ELFind", sim)
   if (!mod$ELFindSupplied) {
-    sim$.ELFind <- "4.3"
+    defaultELF <- "4.3"
+    sim$.ELFind <- defaultELF
+    if (!suppliedElsewhere("studyAreaLarge", sim)) {
+      message("fireSense_ELFs: neither `.ELFind` nor `studyAreaLarge` was supplied, so the study area is ELF ",
+              defaultELF, " (the module's default). To use another ELF, set `.ELFind` in setupProject() ",
+              "(e.g. `.ELFind = \"12.3\"`) or supply your own `studyAreaLarge`.")
+    }
   }
   
   sim

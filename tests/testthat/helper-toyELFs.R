@@ -18,11 +18,12 @@ toyPaths <- function() {
 ## simInit() only: runs .inputObjects and nothing else. No caching, no Google Drive, no plots.
 ## `fireYears = NULL` keeps init from counting fires, which needs the national fire records; a
 ## test of the default (`params = list(fireYears = NULL)`) or of merging sets it back.
-toySimInit <- function(objects = list(), params = list()) {
+toySimInit <- function(objects = list(), params = list(), quiet = TRUE) {
   withr::local_options(list(spades.moduleCodeChecks = FALSE, spades.useRequire = FALSE,
                             reproducible.verbose = -2, reproducible.useCloud = FALSE))
   p <- utils::modifyList(list(.useCache = FALSE, .useCloud = FALSE, .plots = NA, fireYears = NULL), params)
-  suppressMessages(SpaDES.core::simInit(
+  quietly <- if (quiet) suppressMessages else identity
+  quietly(SpaDES.core::simInit(
     times = list(start = 1, end = 1), modules = "fireSense_ELFs", objects = objects,
     params = list(fireSense_ELFs = p), paths = toyPaths()
   ))
