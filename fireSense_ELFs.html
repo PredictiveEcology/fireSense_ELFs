@@ -2973,7 +2973,7 @@ border-radius: 0px;
 
 <h1 class="title toc-ignore">fireSense_ELFs Manual</h1>
 <h3 class="subtitle">v.1.2.0.9001</h3>
-<h4 class="date">Last updated: 2026-10-11</h4>
+<h4 class="date">Last updated: 2026-10-14</h4>
 
 </div>
 
@@ -3487,13 +3487,33 @@ Human-readable name for the study area; used in the filename of the single-ELF r
 </tr>
 <tr>
 <td style="text-align:left;">
+ELFversion
+</td>
+<td style="text-align:left;">
+character
+</td>
+<td style="text-align:left;">
+2026-10-11
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+The only thing that decides whether the national ELF list is rebuilt. The list is built once, kept in the cache and, with <code>.useCloud</code>, shared through Google Drive. Change this by hand to rebuild it. Changing other parameters (<code>fireYears</code>, <code>minNaturalIgnitions</code>, …) or the code does NOT rebuild it unless this changes.
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
 .useCache
 </td>
 <td style="text-align:left;">
 logical
 </td>
 <td style="text-align:left;">
-init
+FALSE
 </td>
 <td style="text-align:left;">
 NA
@@ -3502,7 +3522,7 @@ NA
 NA
 </td>
 <td style="text-align:left;">
-Events to cache. The default caches <code>init</code>; see <code>.useCloud</code>.
+Events to cache. The default caches no event: the national ELF list has its own cache, keyed on <code>ELFversion</code> alone, which an event cache (keyed on parameters and module version) would undo.
 </td>
 </tr>
 <tr>
@@ -3522,7 +3542,7 @@ NA
 NA
 </td>
 <td style="text-align:left;">
-Share the ELF maps built in the <code>init</code> event through Google Drive, in the fireSense folder named by <code>spreadFitGoogleDriveFolder</code> (the same folder that holds the fitted-parameter file). <code>TRUE</code>: download the maps if someone has already built them with the same inputs, otherwise build and upload them. <code>&quot;pull&quot;</code>: download only, never upload (for read-only access). <code>FALSE</code>: build locally without Google Drive. Needs Google Drive access to that folder.
+Share the national ELF list (see <code>ELFversion</code>) through Google Drive, in the fireSense folder named by <code>spreadFitGoogleDriveFolder</code> (the same folder that holds the fitted-parameter file). <code>TRUE</code>: download the list if someone has already built it for this <code>ELFversion</code>, otherwise build and upload it. <code>&quot;pull&quot;</code>: download only, never upload (for read-only access). <code>FALSE</code>: build locally without Google Drive. Needs Google Drive access to that folder.
 </td>
 </tr>
 <tr>
@@ -3533,7 +3553,6 @@ Share the ELF maps built in the <code>init</code> event through Google Drive, in
 list
 </td>
 <td style="text-align:left;">
-list(use….
 </td>
 <td style="text-align:left;">
 NA
@@ -3542,7 +3561,7 @@ NA
 NA
 </td>
 <td style="text-align:left;">
-Extra <code>Cache()</code> arguments for each event. By default the <code>init</code> event uses <code>.useCloud</code> and caches to <code>spreadFitGoogleDriveFolder</code>; see <code>.useCloud</code>. Its key also includes a digest of <code>LandR::sppEquivalencies_CA</code>, which <code>init</code> reads, so a change to that table rebuilds the ELF maps instead of reusing old ones.
+Extra <code>Cache()</code> arguments for each event, by event name. None by default; see <code>.useCache</code>.
 </td>
 </tr>
 </tbody>
