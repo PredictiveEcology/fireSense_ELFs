@@ -112,31 +112,24 @@ defineModule(sim, list(
                     "`NA` turns off screen plots in `Plots()`. No plot event is scheduled."),
     defineParameter(".studyAreaName", "character", NA, NA, NA,
                     "Human-readable name for the study area; used in the filename of the single-ELF raster."),
-    defineParameter(".useCache", "logical", "init", NA, NA,
-                    "Events to cache. The default caches `init`; see `.useCloud`."),
+    defineParameter("ELFversion", "character", "2026-10-11", NA, NA,
+                    paste("The only thing that decides whether the national ELF list is rebuilt. The list is built once,",
+                          "kept in the cache and, with `.useCloud`, shared through Google Drive. Change this by hand to",
+                          "rebuild it. Changing other parameters (`fireYears`, `minNaturalIgnitions`, ...) or the code",
+                          "does NOT rebuild it unless this changes.")),
+    defineParameter(".useCache", "logical", FALSE, NA, NA,
+                    paste("Events to cache. The default caches no event: the national ELF list has its own",
+                          "cache, keyed on `ELFversion` alone, which an event cache (keyed on parameters and",
+                          "module version) would undo.")),
     defineParameter(".useCloud", c("logical", "character"), TRUE, NA, NA,
-                    paste("Share the ELF maps built in the `init` event through Google Drive, in the",
+                    paste("Share the national ELF list (see `ELFversion`) through Google Drive, in the",
                           "fireSense folder named by `spreadFitGoogleDriveFolder` (the same folder that",
-                          "holds the fitted-parameter file). `TRUE`: download the maps if someone has",
-                          "already built them with the same inputs, otherwise build and upload them.",
+                          "holds the fitted-parameter file). `TRUE`: download the list if someone has",
+                          "already built it for this `ELFversion`, otherwise build and upload it.",
                           "`\"pull\"`: download only, never upload (for read-only access). `FALSE`: build",
                           "locally without Google Drive. Needs Google Drive access to that folder.")),
-    defineParameter(".useCacheArgs", "list",
-                    list(init = list(
-                      useCloud      = quote(P(sim)[[".useCloud"]]),
-                      ## The same call init() uses to find the fitted-parameter file, so the
-                      ## shared maps always go to that folder
-                      cloudFolderID = quote(SpaDES.core::paramCheckOtherMods(sim, "spreadFitGoogleDriveFolder")),
-                      ## init reads this table inside the function, so its contents are not
-                      ## otherwise part of the key: a LandR change to it (e.g. a FuelClass)
-                      ## would keep returning the cached, stale sppEquiv, locally and from the cloud
-                      .cacheExtra   = quote(reproducible::.robustDigest(LandR::sppEquivalencies_CA))
-                    )),
-                    NA, NA,
-                    paste("Extra `Cache()` arguments for each event. By default the `init` event",
-                          "uses `.useCloud` and caches to `spreadFitGoogleDriveFolder`; see `.useCloud`.",
-                          "Its key also includes a digest of `LandR::sppEquivalencies_CA`, which `init`",
-                          "reads, so a change to that table rebuilds the ELF maps instead of reusing old ones."))
+    defineParameter(".useCacheArgs", "list", list(), NA, NA,
+                    "Extra `Cache()` arguments for each event, by event name. None by default; see `.useCache`.")
   ),
   inputObjects = bindrows(
     expectsInput(".ELFind", "character", "Name of the ELF to use as the study area, e.g. \"4.3\" (the default)."),
@@ -226,17 +219,10 @@ doEvent.fireSense_ELFs = function(sim, eventTime, eventType) {
 #'
 #' @return The `simList`, invisibly, with every declared output assigned.
 Init <- function(sim) {
-  # The generation of the ELFs has a tiny bit of randomness; we don't actually
-  #   want this; they should be identical
-  withr::local_seed(123)
-  
-  
   inputPath <- inputPath(sim)
   ELF <- as.character(sim$.ELFind)
 
-  # This template is not specific to any one ELF; it is the same for all; so the 
-  #   sequence below allows the Cache to find it once, because it is in memory; it
-  #   will be cleaned up at the end of the function
+  ## The template is the same for all ELFs, and each run needs it for its own rasters below.
   rastTemplate <- ELFtemplateRaster(inputPath)
 
   ## Cells near the Canada-US border are dropped from the per-ELF rasters and study areas below. The
@@ -247,58 +233,25 @@ Init <- function(sim) {
                            maskOutBorder = maskOutBorder, selectCanadaUSBorder = selectCanadaUSBorder)
 
   hasStudyAreaLarge <- !is.null(sim$studyAreaLarge)
-  ELFs <- {
-    fireSenseUtils::makeELFs(rastTemplate, desiredBuffer = 20000, destinationPath = inputPath, 
-                             singleSpatVector = hasStudyAreaLarge) |>
-      ## the map does not depend on the ELF: cache it even when only events are cached (see below)
-      Cache(omitArgs = "nationalForestPolygon", useCache = TRUE,
-            .cacheExtra = list(rt = attr(rastTemplate, "tags"),
-                               makeELFs = fireSenseUtils::makeELFs,
-                               bufferOutFn = fireSenseUtils:::bufferOut,
-                               splitPoly = fireSenseUtils:::split_poly,
-                               merge = fireSenseUtils:::mergeAndSplitRas))
-  }
-  
-  ## ELFs with too few fires over `fireYears` are merged with a neighbour that shares their base, or
-  ## not fitted (fireSenseUtils::ELFmergePlan()). This must come before this run's ELF is picked out
-  ## of the map, since a merged ELF has its own layers. The counts do not depend on which ELF this run
-  ## is for, so their Cache has useCache = TRUE: under spades.useCache = "eventsOnly" a plain Cache()
-  ## is skipped and every job would recount the national fire records. The shapefiles' names carry the
-  ## release, so they key the result; their local paths differ per job and do not.
-  ELFsExcluded <- ELFfireStatus <- ELFmerges <- NULL
   if (!is.null(Par$fireYears)) {
     SpaDES.core::paramCheckOtherMods(sim, "fireYears", ifSetButDifferent = "warning")
     SpaDES.core::paramCheckOtherMods(sim, "escapeSizeHa", ifSetButDifferent = "warning")
-    nfdbUrl <- fireSenseUtils::nfdbPointUrl()
-    nbacUrl <- fireSenseUtils::latestNBACUrl()
-    landCoverFile <- if (!is.null(Par$minRegionAreaKm2) && !is.na(Par$minRegionAreaKm2))
-      fireSenseUtils::sizeRuleLandCover(inputPath)
-    fewFire <- fireSenseUtils::fewFireELFs(
-      ELFs, fireYears = Par$fireYears, pixelAreaHa = prod(terra::res(rastTemplate)) / 1e4,
-      destinationPath = inputPath, nfdbUrl = nfdbUrl, nbacUrl = nbacUrl,
-      minNaturalIgnitions = Par$minNaturalIgnitions, minFirePolygons = Par$minFirePolygons,
-      escapeSizeHa = Par$escapeSizeHa, minEscapes = Par$minEscapes,
-      landCoverFile = landCoverFile, minRegionAreaKm2 = Par$minRegionAreaKm2,
-      maxLandCoverDist = Par$maxLandCoverDist, maxBurnRatio = Par$maxBurnRatio) |>
-      Cache(useCache = TRUE, omitArgs = c("destinationPath", "landCoverFile"),
-            .functionName = "fewFireELFs",
-            .cacheExtra = list(basename(fireSenseUtils::fireRecordShapefile(nfdbUrl, inputPath)),
-                               basename(fireSenseUtils::fireRecordShapefile(nbacUrl, inputPath)),
-                               if (!is.null(landCoverFile)) basename(landCoverFile),
-                               fireSenseUtils::fewFireELFs, fireSenseUtils::combinePlans,
-                               fireSenseUtils::ELFfireOverlay, fireSenseUtils::ELFregionStats,
-                               fireSenseUtils::ELFsizePlan, fireSenseUtils:::.sizeCandidates,
-                               fireSenseUtils:::.sizeMerge, fireSenseUtils:::.landCoverDist,
-                               fireSenseUtils:::.burnRatio, fireSenseUtils:::.loadFireRecords,
-                               fireSenseUtils:::.nbacOverlay, fireSenseUtils::ELFfireCounts,
-                               fireSenseUtils::ELFfitStatus, fireSenseUtils::ELFneighbours,
-                               fireSenseUtils::ELFmergePlan, fireSenseUtils::mergeELFs,
-                               fireSenseUtils::escapedFires))
-    ELFsBeforeMerges <- ELFs
-    ELFs <- fewFire$ELFs
-    ELFsExcluded <- fewFire$excluded
-    ELFfireStatus <- fewFire$status
-    ELFmerges <- fewFire$plan
+  }
+  ## The national ELF list is built once and shared through the cloud cache. Its key is `ELFversion`
+  ## alone: no argument, no code and no other parameter is part of it. Change `ELFversion` to rebuild.
+  built <- buildELFs(inputPath, fireYears = Par$fireYears, minNaturalIgnitions = Par$minNaturalIgnitions,
+                     minFirePolygons = Par$minFirePolygons, escapeSizeHa = Par$escapeSizeHa,
+                     minEscapes = Par$minEscapes, minRegionAreaKm2 = Par$minRegionAreaKm2,
+                     maxLandCoverDist = Par$maxLandCoverDist, maxBurnRatio = Par$maxBurnRatio) |>
+    Cache(omitArgs = c("FUN", names(formals(buildELFs))), .cacheExtra = list(ELFversion = Par$ELFversion),
+          .functionName = "ELFs", useCache = TRUE, useCloud = Par$.useCloud,
+          cloudFolderID = SpaDES.core::paramCheckOtherMods(sim, "spreadFitGoogleDriveFolder"))
+  ELFs <- built$ELFs
+  ELFsBeforeMerges <- built$ELFsBeforeMerges
+  ELFsExcluded <- built$excluded
+  ELFfireStatus <- built$status
+  ELFmerges <- built$plan
+  if (!is.null(ELFmerges)) {
     ## A job is queued under a merged ELF's name, but the default `.ELFind` (e.g. from global.R) may
     ## name one of its members
     runAs <- fireSenseUtils::ELFrunName(ELF, ELFmerges)
@@ -440,7 +393,11 @@ Init <- function(sim) {
   ## The species table (no _Spp genus entries, only species with LANDIS traits, Engelmann
   ## spruce merged into Pice_eng) comes from LandR, so every module uses the same one.
   species <- LandR::speciesInStudyArea(studyAreaELF, sppEquivCol = P(sim)$sppEquivCol, dPath = inputPath) |>
-    reproducible::Cache(omitArgs = "studyArea", .cacheExtra = list(sa = attr(studyAreaELF, "tags")))
+    reproducible::Cache(omitArgs = "studyArea",
+                        ## read inside the function, so its contents are not otherwise part of the key: a LandR
+                        ## change to it (e.g. a FuelClass) would keep returning the cached, stale sppEquiv
+                        .cacheExtra = list(sa = attr(studyAreaELF, "tags"),
+                                           sppEquivalencies = reproducible::.robustDigest(LandR::sppEquivalencies_CA)))
   sppEquiv <- species$sppEquiv
 
   ## A few ELFs (3.2.1, 3.2.4, 3.2.5, 3.3.2) genuinely have no tree species; the fit then uses
@@ -483,30 +440,23 @@ Init <- function(sim) {
     Plots(fn = plotAllELFsFn, centred = ELFs$rasCentered,
           crsToUse = terra::crs(ELFs$rasWhole[[11]]), alreadyRun = spreadFitPreRun, runningELFs = runningELFs,
           path = inputPath, deviceArgs = list(width = 11, height = 8, units = "in", res = 300),
-          filename = paste0("ELF_polygons.png"), useCache = TRUE
+          filename = paste0("ELF_polygons.png")
     )
     
     ## the ELFs after the merges, those without enough fires shaded; the file type is .plots' to decide
     if (!is.null(ELFmerges))
       Plots(fn = fireSenseUtils::plotELFs, ELFs = ELFsBeforeMerges, plan = ELFmerges, buffers = FALSE,
             path = inputPath, deviceArgs = list(width = 11, height = 8, units = "in", res = 300),
-            filename = "ELFs_postMerge", useCache = TRUE)
+            filename = "ELFs_postMerge")
 
     Plots(as.list(sim[grep("studyArea|rasterToMatchELF", names(sim), value = TRUE)]),
           title = paste0("StudyArea ", sim$.ELFind),
           fn = SpaDES.project::plotSAs,
           filename = paste0("studyAreas", sim$.ELFind),
           path = inputPath,
-          ggsaveArgs = list(width = 11, height = 8, units = "in"),
-          useCache = TRUE)
+          ggsaveArgs = list(width = 11, height = 8, units = "in"))
     
   }
-  
-  # bring to memory as it is relatively small; better for caching
-  for (j in seq_along(ELFs[1:2]))
-    for (i in seq_along(ELFs[[j]])) 
-      ELFs[[j]][[i]] <- toMemory(ELFs[[j]][[i]])
-  sim$ELFs <- ELFs
   
   return(invisible(sim))
 }

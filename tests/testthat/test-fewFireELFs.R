@@ -2,39 +2,9 @@
 ## decisions themselves are tested in fireSenseUtils). init needs a full simList, the national ELF map
 ## and the national fire records, so these check the parsed module file.
 
-exprs <- parse(testthat::test_path("..", "..", "fireSense_ELFs.R"), keep.source = FALSE)
-
-initBody <- function() {
-  def <- Filter(function(x) is.call(x) && identical(x[[1]], as.name("<-")) &&
-                  identical(x[[2]], as.name("Init")), exprs)
-  stopifnot(length(def) == 1L)
-  body(eval(def[[1]][[3]]))
-}
-
-## every call to `fun` in the module file; the metadata cannot be evaluated whole here, since a
-## parameter default refers to `sim`
-metadataCalls <- function(fun) {
-  found <- list()
-  walk <- function(x) {
-    if (is.call(x)) {
-      if (identical(x[[1]], as.name(fun))) found[[length(found) + 1L]] <<- x
-      for (i in seq_along(x)[-1L]) if (is.call(x[[i]])) walk(x[[i]])
-    }
-  }
-  for (e in exprs) walk(e)
-  found
-}
-
-allCalls <- function(expr) {
-  if (!is.call(expr)) return(list())
-  args <- as.list(expr)[-1]
-  args <- args[!vapply(args, function(a) missing(a), logical(1))]
-  c(list(expr), unlist(lapply(args, allCalls), recursive = FALSE))
-}
-
 test_that("init merges thin ELFs before it picks this run's ELF out of the map", {
   code <- deparse(initBody(), width.cutoff = 500L)
-  gate <- grep("fewFireELFs(", code, fixed = TRUE)[1]
+  gate <- grep("buildELFs(", code, fixed = TRUE)[1]
   pick <- grep("ELFs$rasWhole[[ELF]]", code, fixed = TRUE)[1]
   expect_false(is.na(gate))
   expect_false(is.na(pick))
@@ -43,21 +13,21 @@ test_that("init merges thin ELFs before it picks this run's ELF out of the map",
   expect_true(any(grepl("ELFrunName(ELF", code, fixed = TRUE)))
 })
 
-test_that("the fire counts and the ELF map are cached even when only events are cached", {
+test_that("the national ELF list is one Cache call, keyed on ELFversion alone", {
   caches <- Filter(function(x) identical(x[[1]], as.name("Cache")), allCalls(initBody()))
-  first <- function(cl, fun) {
-    a <- as.list(cl)[-1][[1]]
-    is.call(a) && (identical(a[[1]], as.name(fun)) ||
-                     (is.call(a[[1]]) && identical(a[[1]][[3]], as.name(fun))))
-  }
-  fewFire <- Filter(function(cl) first(cl, "fewFireELFs"), caches)
-  maps <- Filter(function(cl) first(cl, "makeELFs"), caches)
-  expect_length(fewFire, 1L)
-  expect_length(maps, 1L)
-  expect_true(isTRUE(fewFire[[1]]$useCache))
-  expect_true(isTRUE(maps[[1]]$useCache))
-  ## the local paths differ per job; the shapefiles' names (the release) key the result
-  expect_setequal(eval(fewFire[[1]]$omitArgs), c("destinationPath", "landCoverFile"))
+  built <- Filter(function(cl) identical(as.list(cl)[-1][[1]][[1]], as.name("buildELFs")), caches)
+  expect_length(built, 1L)
+  cl <- built[[1]]
+  ## cached even when only events are cached
+  expect_true(isTRUE(cl$useCache))
+  expect_identical(cl$.cacheExtra, quote(list(ELFversion = Par$ELFversion)))
+  ## no argument and not the function body is in the key: only the version is
+  expect_identical(cl$omitArgs, quote(c("FUN", names(formals(buildELFs)))))
+  ## the pieces buildELFs() replaces are no longer cached separately
+  expect_false(any(vapply(caches, function(x) {
+    a <- as.list(x)[-1][[1]]
+    is.call(a) && any(vapply(allCalls(a), function(y) any(grepl("makeELFs|fewFireELFs", format(y[[1]]))), logical(1)))
+  }, logical(1))))
 })
 
 test_that("fireYears and the thresholds are parameters, and the results are outputs", {

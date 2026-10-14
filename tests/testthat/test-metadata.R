@@ -48,7 +48,7 @@ test_that("no parameter has been removed or retyped", {
                 escapeSizeHa = "numeric", minEscapes = "numeric",
                 minRegionAreaKm2 = "numeric", maxLandCoverDist = "numeric", maxBurnRatio = "numeric",
                 .plots = "character", .plotInitialTime = "numeric", .studyAreaName = "character",
-                .useCache = "logical", .useCloud = "logical|character", .useCacheArgs = "list")
+                ELFversion = "character", .useCache = "logical", .useCloud = "logical|character", .useCacheArgs = "list")
   ## `%in%`, not identical: work in progress adds parameters, and an addition breaks no caller
   expect_true(all(names(expected) %in% names(classes)))
   expect_identical(classes[names(expected)], expected)
@@ -57,7 +57,7 @@ test_that("no parameter has been removed or retyped", {
 })
 
 test_that("parameter defaults are unchanged", {
-  p <- SpaDES.core::params(toySimInit(params = list(.useCache = NULL, .useCloud = NULL, .plots = NULL, fireYears = NULL)))$fireSense_ELFs
+  p <- SpaDES.core::params(toySimInit(params = list(ELFversion = NULL, .useCache = NULL, .useCloud = NULL, .plots = NULL, fireYears = NULL)))$fireSense_ELFs
   expect_identical(p$sppEquivCol, "LandR")
   expect_identical(p$spreadFitFilename, "latest")
   expect_identical(p$spreadFitGoogleDriveFolder,
@@ -77,10 +77,11 @@ test_that("parameter defaults are unchanged", {
   expect_identical(p$.plots, "screen")
   expect_identical(as.numeric(p$.plotInitialTime), 1) # start(sim)
   expect_identical(p$.studyAreaName, NA)
-  expect_identical(p$.useCache, "init")
+  expect_identical(p$ELFversion, "2026-10-11")
+  ## no event is cached: the national ELF list has its own cache, keyed on ELFversion alone
+  expect_false(p$.useCache)
   expect_identical(p$.useCloud, TRUE)
-  expect_identical(names(p$.useCacheArgs), "init")
-  expect_identical(names(p$.useCacheArgs$init), c("useCloud", "cloudFolderID", ".cacheExtra"))
+  expect_identical(p$.useCacheArgs, list())
 })
 
 test_that("every parameter, input and output has a description", {
