@@ -1,5 +1,7 @@
 # fireSense_ELFs (development version)
 
+- Fixed: `init` is declared in the new `.neverCache` parameter, so it is never cached, even when `.useCache` (the module's or `.globals`) lists it. It reads the spread-fit and ignition-fit ledgers on Google Drive, which are not part of the event's cache key, so a cached `init` replayed an older ledger. The national ELF list keeps its own cache. Needs SpaDES.core >= 3.2.1.9037.
+
 - `fireSenseUtils` floor raised to 0.2.3.9091, the first version with `ELFsizePlan()` and `escapedFires()` that the `minRegionAreaKm2` and `minEscapes` parameters need.
 * The national ELF list is now built once and rebuilt only when the new parameter `ELFversion` changes (change it by hand). Its cache key is that version alone, so no other parameter (`fireYears`, `minNaturalIgnitions`, ...) and no code change rebuilds it, and with `.useCloud` it is shared through the `spreadFitGoogleDriveFolder` Drive folder. One function, `buildELFs()`, now makes the template, maps, merges and brings every raster into memory, in place of the separately cached `makeELFs()` and `fewFireELFs()` calls. `.useCache` now defaults to `FALSE` and `.useCacheArgs` to `list()`: an event cache keyed on parameters and module version would have been a second layer that misses. Figures are redrawn, not cached. The `sppEquivalencies_CA` digest moved to the cache of the species table, the only place it was needed.
 
