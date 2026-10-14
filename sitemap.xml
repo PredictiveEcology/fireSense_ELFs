@@ -10,9 +10,11 @@
 <url><loc>/news/index.html</loc></url>
 <url><loc>/reference/Init.html</loc></url>
 <url><loc>/reference/bufferBorder.html</loc></url>
+<url><loc>/reference/buildELFs.html</loc></url>
 <url><loc>/reference/canadaUSBorder.html</loc></url>
 <url><loc>/reference/doEvent.fireSense_ELFs.html</loc></url>
 <url><loc>/reference/dot-assertOneStudyArea.html</loc></url>
+<url><loc>/reference/dot-elfsToMemory.html</loc></url>
 <url><loc>/reference/dot-inputObjects.html</loc></url>
 <url><loc>/reference/ignitionFitLists.html</loc></url>
 <url><loc>/reference/index.html</loc></url>
