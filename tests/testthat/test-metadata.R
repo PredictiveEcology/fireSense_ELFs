@@ -60,11 +60,9 @@ test_that("parameter defaults are unchanged", {
   p <- SpaDES.core::params(toySimInit(params = list(ELFversion = NULL, .useCache = NULL, .useCloud = NULL, .plots = NULL, fireYears = NULL)))$fireSense_ELFs
   expect_identical(p$sppEquivCol, "LandR")
   expect_identical(p$spreadFitFilename, "latest")
-  expect_identical(p$spreadFitGoogleDriveFolder,
-                   "https://drive.google.com/drive/folders/1X9-mRjyLMNpgkP_cfqhbr_AQEPOsVCHf")
+  expect_identical(p$spreadFitGoogleDriveFolder, fireSenseUtils::spreadFitLedgerFolder())
   expect_identical(p$ignitionFitFilename, "latest")
-  expect_identical(p$ignitionFitGoogleDriveFolder,
-                   "https://drive.google.com/drive/folders/1X9-mRjyLMNpgkP_cfqhbr_AQEPOsVCHf")
+  expect_identical(p$ignitionFitGoogleDriveFolder, fireSenseUtils::ignitionFitLedgerFolder())
   expect_null(p$queue_path)
   expect_identical(p$fireYears, fireSenseUtils::defaultFireYears())
   expect_identical(p$minNaturalIgnitions, 50)
@@ -77,7 +75,7 @@ test_that("parameter defaults are unchanged", {
   expect_identical(p$.plots, "screen")
   expect_identical(as.numeric(p$.plotInitialTime), 1) # start(sim)
   expect_identical(p$.studyAreaName, NA)
-  expect_identical(p$ELFversion, "2026-10-11")
+  expect_identical(p$ELFversion, "2026-10-14")
   ## no event is cached: the national ELF list has its own cache, keyed on ELFversion alone
   expect_false(p$.useCache)
   expect_identical(p$.useCloud, TRUE)
