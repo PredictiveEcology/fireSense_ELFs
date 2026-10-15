@@ -29,3 +29,17 @@ test_that("simInit schedules init and nothing else for this module", {
   expect_identical(ev$eventType, "init")
   expect_identical(as.numeric(ev$eventTime), 1)
 })
+
+test_that("the fallback ELF is announced once, with how to choose another", {
+  msgs <- testthat::capture_messages(toySimInit(quiet = FALSE))
+  hit <- grep("4\\.3", msgs, value = TRUE)
+  expect_length(hit, 1L)
+  expect_match(hit, "\\.ELFind")
+  expect_match(hit, "studyAreaLarge")
+})
+
+test_that("no fallback message when .ELFind or studyAreaLarge is supplied", {
+  expect_no_match(testthat::capture_messages(toySimInit(objects = list(.ELFind = "12.3"), quiet = FALSE)), "4\\.3")
+  sal <- terra::as.polygons(terra::ext(toyGrid()), crs = "EPSG:3978")
+  expect_no_match(testthat::capture_messages(toySimInit(objects = list(studyAreaLarge = sal), quiet = FALSE)), "4\\.3")
+})
