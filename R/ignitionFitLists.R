@@ -11,17 +11,18 @@
 #' @param folder The Google Drive folder (url or id) of the ledger; `NULL` keeps a named ledger
 #'   local, in `destinationPath`.
 #' @param filename `"latest"`, or the name of the ledger file.
+#' @param fitFileSuffix With `"latest"`, only ledger files with this suffix are read; see `fireSenseUtils::ignitionFitFilenameFor()`.
 #' @param destinationPath Local folder for the ledger file.
 #' @return A `data.frame` with a `polygonID` column and the list-columns
 #'   `fireSenseUtils::ignitionFitAdditionalColNamesTxt`, or `NULL` if there is none.
-readIgnitionFitRows <- function(ELFpolys, folder, filename, destinationPath) {
+readIgnitionFitRows <- function(ELFpolys, folder, filename, destinationPath, fitFileSuffix = "") {
   ELFinds <- as.character(ELFpolys$ELFind)
   if (identical(filename, "latest")) {
     if (is.null(folder))
       stop("fireSense_ELFs: ignitionFitFilename = \"latest\" needs ignitionFitGoogleDriveFolder; ",
            "name the ledger file to read a local one")
     return(fireSenseUtils::latestIgnitionFits(folder, destinationPath = destinationPath,
-                                              polygonIDs = ELFinds))
+                                              polygonIDs = ELFinds, suffix = fitFileSuffix))
   }
   rows <- lapply(seq_along(ELFinds), function(i) {
     r <- CacheGeo(cloudFolderID = folder, targetFile = filename, destinationPath = destinationPath,

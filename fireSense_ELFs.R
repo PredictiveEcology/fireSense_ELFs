@@ -43,11 +43,17 @@ defineModule(sim, list(
                   "PredictiveEcology/SpaDES.core@development (>= 3.2.1.9003)",
                   "PredictiveEcology/LandR@development (>= 1.2.0.9021)",
                   "deldir", "withr", "googledrive", "sf", "FOR-CAST/fireregimetools@main (>= 0.1.0.9008)",
-                  "PredictiveEcology/fireSenseUtils@development (>= 0.2.3.9097)",
+                  "PredictiveEcology/fireSenseUtils@development (>= 0.2.3.9104)",
                   "PredictiveEcology/SpaDES.project@development (>= 1.0.1.9205)"),
   parameters = bindrows(
     defineParameter("sppEquivCol", "character", "LandR", NA, NA,
                     "The column in `sim$speciesEquivalency` data.table to use as a naming convention."),
+    defineParameter("fitFileSuffix", "character", "", NA, NA,
+                    paste("Text put after the model tag in the ledger file names, e.g. `\"_boundfix_rep81\"`, so a test run",
+                          "writes and reads (`\"latest\"`) only its own files, never the production ones. `\"\"` (the",
+                          "default) is the production ledger. The same parameter of `fireSense_spreadFit`, `fireSense_ignitionFit` and `fireSense_dataPrepFit`;",
+                          "set it for all with `.globals = list(fitFileSuffix = ...)`; modules that disagree stop",
+                          "(`SpaDES.core::paramCheckOtherMods()`). Ignored when a file name is given.")),
     defineParameter("spreadFitFilename", "character", "latest",
                     NA, NA, paste("Name of the file in `spreadFitGoogleDriveFolder` that holds previously fitted SpreadFit",
                                   "parameters. `\"latest\"` (the default) takes each ELF's fit from the most recent",
@@ -270,6 +276,7 @@ Init <- function(sim) {
     stop("fireSense_ELFs: parameter 'heldOutFold' must be NA, 1L or 2L; got: ",
          paste(format(heldOutFold), collapse = ", "))
   heldOut <- !isTRUE(is.na(heldOutFold))
+  fitFileSuffix <- SpaDES.core::paramCheckOtherMods(sim, "fitFileSuffix")
   prepInputsFSURL <- SpaDES.core::paramCheckOtherMods(sim, "spreadFitGoogleDriveFolder")
   fireSenseParamsRDS <- SpaDES.core::paramCheckOtherMods(sim, "spreadFitFilename")
   latest <- identical(fireSenseParamsRDS, "latest")
@@ -283,7 +290,8 @@ Init <- function(sim) {
   spreadFitPreRun <- if (heldOut) {
     NULL
   } else if (latest) {
-    fireSenseUtils::latestSpreadFits(prepInputsFSURL, destinationPath = inputPath(sim))
+    fireSenseUtils::latestSpreadFits(prepInputsFSURL, destinationPath = inputPath(sim),
+                                      suffix = fitFileSuffix)
   } else if (NROW(remoteFile) == 0L) {
     message("fireSense_ELFs: no '", fireSenseParamsRDS, "' in ", prepInputsFSURL,
             " -- treating this as no pre-run SpreadFit results yet.")
@@ -386,7 +394,8 @@ Init <- function(sim) {
     ignitionRows <- readIgnitionFitRows(ELFpolys,
                                         folder = SpaDES.core::paramCheckOtherMods(sim, "ignitionFitGoogleDriveFolder"),
                                         filename = SpaDES.core::paramCheckOtherMods(sim, "ignitionFitFilename"),
-                                        destinationPath = inputPath)
+                                        destinationPath = inputPath,
+                                        fitFileSuffix = fitFileSuffix)
     ignitionFits <- ignitionFitLists(ignitionRows, ELFpolys$ELFind, required = hasStudyAreaLarge)
     fireSense_IgnitionFittedList <- ignitionFits$ignition
     fireSense_EscapeFittedList <- ignitionFits$escape
