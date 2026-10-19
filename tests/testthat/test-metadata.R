@@ -79,7 +79,8 @@ test_that("parameter defaults are unchanged", {
   ## no event is cached: the national ELF list has its own cache, keyed on ELFversion alone
   expect_false(p$.useCache)
   expect_identical(p$.useCloud, TRUE)
-  expect_identical(p$.useCacheArgs, list())
+  expect_identical(p$.neverCache, "init")
+  expect_identical(p$.useCacheArgs, list(.inputObjects = list(omitParams = labelParams)))
 })
 
 test_that("every parameter, input and output has a description", {

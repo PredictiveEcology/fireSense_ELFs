@@ -40,7 +40,7 @@ defineModule(sim, list(
   documentation = list("NEWS.md", "README.md", "fireSense_ELFs.Rmd"),
   reqdPkgs = list("SpaDES.core (>= 3.0.1)", "terra", 
                   "PredictiveEcology/reproducible@development (>= 3.2.1.9073)",
-                  "PredictiveEcology/SpaDES.core@development (>= 3.2.1.9003)",
+                  "PredictiveEcology/SpaDES.core@development (>= 3.2.1.9044)",
                   "PredictiveEcology/LandR@development (>= 1.2.0.9021)",
                   "deldir", "withr", "sf", "FOR-CAST/fireregimetools@main (>= 0.1.0.9008)",
                   "PredictiveEcology/fireSenseUtils@development (>= 0.2.3.9104)",
@@ -136,8 +136,16 @@ defineModule(sim, list(
                           "already built it for this `ELFversion`, otherwise build and upload it.",
                           "`\"pull\"`: download only, never upload (for read-only access). `FALSE`: build",
                           "locally without Google Drive. Needs Google Drive access to that folder.")),
-    defineParameter(".useCacheArgs", "list", list(), NA, NA,
-                    "Extra `Cache()` arguments for each event, by event name. None by default; see `.useCache`.")
+    defineParameter(".neverCache", "character", "init", NA, NA,
+                    paste("Events that are never cached, whatever `.useCache` says (read by SpaDES.core, 3.2.1.9037 or later):",
+                          "`init` reads the spread and ignition ledgers from Google Drive and the tmux queue, and a cached `init` replays an older answer.")),
+    defineParameter(".useCacheArgs", "list",
+                    list(.inputObjects = list(omitParams = c("fitFileSuffix", "queue_path", "spreadFitFilename",
+                                                             "ignitionFitFilename"))),
+                    NA, NA,
+                    paste("Extra `Cache()` arguments for each event, by event name; see `.useCache`. `omitParams` (read by",
+                          "SpaDES.core, 3.2.1.9044 or later) lists parameters left out of that event's cache key: the ledger",
+                          "suffix and file names and the queue path only say where `init` looks, and `.inputObjects` does not read them."))
   ),
   inputObjects = bindrows(
     expectsInput(".ELFind", "character", "Name of the ELF to use as the study area, e.g. \"4.3\" (the default)."),
@@ -395,7 +403,7 @@ Init <- function(sim) {
   ## The species table (no _Spp genus entries, only species with LANDIS traits, Engelmann
   ## spruce merged into Pice_eng) comes from LandR, so every module uses the same one.
   species <- LandR::speciesInStudyArea(studyAreaELF, sppEquivCol = P(sim)$sppEquivCol, dPath = inputPath) |>
-    reproducible::Cache(omitArgs = "studyArea",
+    reproducible::Cache(omitArgs = c("studyArea", "dPath"), # dPath is only where the table is downloaded
                         ## read inside the function, so its contents are not otherwise part of the key: a LandR
                         ## change to it (e.g. a FuelClass) would keep returning the cached, stale sppEquiv
                         .cacheExtra = list(sa = attr(studyAreaELF, "tags"),

@@ -28,3 +28,6 @@ allCalls <- function(expr) {
   args <- args[!vapply(args, function(a) missing(a), logical(1))]
   c(list(expr), unlist(lapply(args, allCalls), recursive = FALSE))
 }
+
+## the parameters that only say where init looks (ledger suffix and files, queue); see test-cacheLabels.R
+labelParams <- c("fitFileSuffix", "queue_path", "spreadFitFilename", "ignitionFitFilename")
