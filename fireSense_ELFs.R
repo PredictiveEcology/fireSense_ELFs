@@ -77,9 +77,6 @@ defineModule(sim, list(
                           "read: `spreadFitPreRun` is NULL, no ELF counts as fitted, and `studyAreaLarge` is not masked to",
                           "fitted ELFs. Set it for every fireSense module at once with `.globals = list(heldOutFold = 1L)`;",
                           "`init` stops if `fireSense_spreadFit` has a different value. Any other value is an error.")),
-    defineParameter("queue_path", "character", NULL,
-                    NA, NA, "A character scalar indicating what the filename of the queue.rds file is from experimentTmux; ",
-                    "if NULL, then this can't determine which ELFs are being run (no 'yellow' on the map)"),
     defineParameter("borderBuffer", "numeric", 5000, 0, NA,
                     paste("Metres. Cells within this distance of the Canada-United States land border (49th parallel,",
                           "Great Lakes and St Lawrence, Alaska-Yukon/BC; not the coast) are removed from every ELF",
@@ -427,20 +424,8 @@ Init <- function(sim) {
   
   if (anyPlotting(Par$.plots)) {
     
-    runningELFs <- NULL
-    if (!is.null(Par$queue_path)) {
-      activeRunningPath <- SpaDES.project::tmuxActiveRunningPath(activeRunningPath = NULL, Par$queue_path)
-      
-      fi <- rownames(
-        SpaDES.project:::activeRunningFileInfo(queue_path = Par$queue_path, activeRunningPath = activeRunningPath))
-      if (!is.null(fi)) {
-        runningELFs <- sapply(basename(fi) |> strsplit(split = "_"), function(x) x[[2]]) 
-      } 
-    } 
-    
-    
     Plots(fn = plotAllELFsFn, centred = ELFs$rasCentered,
-          crsToUse = terra::crs(ELFs$rasWhole[[11]]), alreadyRun = spreadFitPreRun, runningELFs = runningELFs,
+          crsToUse = terra::crs(ELFs$rasWhole[[11]]), alreadyRun = spreadFitPreRun, thisELF = ELF,
           path = inputPath, deviceArgs = list(width = 11, height = 8, units = "in", res = 300),
           filename = paste0("ELF_polygons.png")
     )
@@ -468,10 +453,10 @@ Init <- function(sim) {
 #' @param centred List of per-ELF `SpatRaster`s (`ELFs$rasCentered`); cells equal to 2 are the ELF without its buffer.
 #' @param crsToUse CRS that all ELFs are projected to for plotting.
 #' @param alreadyRun `data.frame` with a geometry column (`sim$spreadFitPreRun`); drawn green. May be `NULL`.
-#' @param runningELFs Character vector of ELF names that are running; drawn yellow. May be `NULL`.
+#' @param thisELF Character; this run's ELF (`sim$.ELFind`), drawn yellow. May be `NULL`.
 #'
 #' @return Called for its plot.
-plotAllELFsFn <- function(centred, crsToUse, alreadyRun, runningELFs) {
+plotAllELFsFn <- function(centred, crsToUse, alreadyRun, thisELF) {
   allELFs <- { Map(r = centred, function(r) {
     r2 <- r == 2
     r2[!terra::values(r2, mat = FALSE) %in% TRUE] <- NA
@@ -491,9 +476,9 @@ plotAllELFsFn <- function(centred, crsToUse, alreadyRun, runningELFs) {
       
     }
   }
-  if (!missing(runningELFs)) {
-    if (NROW(runningELFs)) {
-      turnYellow <- sapply(runningELFs, function(x) grep(pattern = x, names(allELFs)))
+  if (!missing(thisELF)) { # this run's ELF in yellow
+    if (NROW(thisELF)) {
+      turnYellow <- sapply(thisELF, function(x) grep(pattern = x, names(allELFs)))
       terra::plot(allELFs[turnYellow,], add = TRUE, col = "yellow", alpha = 0.5)
     }
   }
