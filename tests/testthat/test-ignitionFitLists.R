@@ -43,7 +43,7 @@ initMultiELF <- function(ELFinds, ...) {
   unlink(toyPaths()$inputPath, recursive = TRUE)
   writeToyLedger(ELFinds)
   sim <- toySimInitLocalLedger(list(studyAreaLarge = toyStudyAreaLarge()), ...)
-  mockInitWorld(ELFs = toyELFsWithPoly(), downloads = FALSE)
+  mockInitWorld(ELFs = toyELFsWithPoly())
   mockSpreadFitsForAllELFs()
   runInit(sim)
 }
@@ -66,7 +66,7 @@ initSingleELF <- function(ELF) {
   unlink(toyPaths()$inputPath, recursive = TRUE)
   writeToyLedger("3.1.2")
   sim <- toySimInitLocalLedger(list(.ELFind = ELF))
-  mockInitWorld(ELFs = toyELFsWithPoly(), downloads = FALSE)
+  mockInitWorld(ELFs = toyELFsWithPoly())
   suppressMessages(runInit(sim))
 }
 
@@ -94,7 +94,7 @@ test_that("\"latest\" reads each touched ELF's row from the newest ledger files,
     rows
   }, .package = "fireSenseUtils")
   sim <- toySimInit(objects = list(studyAreaLarge = toyStudyAreaLarge()))
-  mockInitWorld(ELFs = toyELFsWithPoly(), downloads = FALSE)
+  mockInitWorld(ELFs = toyELFsWithPoly())
   mockSpreadFitsForAllELFs()
   out <- suppressMessages(runInit(sim))
   expect_setequal(asked, c("3.1.1", "3.1.2"))
@@ -104,7 +104,7 @@ test_that("\"latest\" reads each touched ELF's row from the newest ledger files,
 
 test_that("with heldOutFold the ignition ledger is not read either", {
   sim <- toySimInit(objects = list(studyAreaLarge = toyStudyAreaLarge()), params = list(heldOutFold = 1L))
-  mockInitWorld(ELFs = toyELFsWithPoly(), downloads = FALSE)
+  mockInitWorld(ELFs = toyELFsWithPoly())
   mockNoLedger()
   out <- suppressMessages(runInit(sim))
   expect_null(out$fireSense_IgnitionFittedList)

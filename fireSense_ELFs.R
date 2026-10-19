@@ -39,10 +39,10 @@ defineModule(sim, list(
   citation = list("citation.bib"),
   documentation = list("NEWS.md", "README.md", "fireSense_ELFs.Rmd"),
   reqdPkgs = list("SpaDES.core (>= 3.0.1)", "terra", 
-                  "PredictiveEcology/reproducible@development (>= 3.2.1.9025)",
+                  "PredictiveEcology/reproducible@development (>= 3.2.1.9073)",
                   "PredictiveEcology/SpaDES.core@development (>= 3.2.1.9003)",
                   "PredictiveEcology/LandR@development (>= 1.2.0.9021)",
-                  "deldir", "withr", "googledrive", "sf", "FOR-CAST/fireregimetools@main (>= 0.1.0.9008)",
+                  "deldir", "withr", "sf", "FOR-CAST/fireregimetools@main (>= 0.1.0.9008)",
                   "PredictiveEcology/fireSenseUtils@development (>= 0.2.3.9104)",
                   "PredictiveEcology/SpaDES.project@development (>= 1.0.1.9205)"),
   parameters = bindrows(
@@ -280,33 +280,24 @@ Init <- function(sim) {
   prepInputsFSURL <- SpaDES.core::paramCheckOtherMods(sim, "spreadFitGoogleDriveFolder")
   fireSenseParamsRDS <- SpaDES.core::paramCheckOtherMods(sim, "spreadFitFilename")
   latest <- identical(fireSenseParamsRDS, "latest")
-  gdLs <- if (!latest && !heldOut) googledrive::drive_ls(prepInputsFSURL)
-  remoteFile <- gdLs[gdLs$name %in% fireSenseParamsRDS,]
-  ## A ledger that does not exist yet means "nothing has been fitted", which is the
-  ## normal state at the start of a new experiment: the first completed fit creates
-  ## the file. Without this, `remoteFile$drive_resource[[1]]` was a subscript error
-  ## in every job, and in fireSenseUtils::runELFs() before the queue was even built,
-  ## so pointing `spreadFitFilename` at a new file could not be done at all.
+  ## A ledger with no rows means "nothing has been fitted", which is the normal state at the start of a
+  ## new experiment: the first completed fit creates the file. The ledger is read the way
+  ## fireSense_spreadFit writes it (reproducible's CacheGeo family): from the copy in `inputPath(sim)`,
+  ## which is refreshed from the Drive folder only when that is reachable.
   spreadFitPreRun <- if (heldOut) {
     NULL
   } else if (latest) {
     fireSenseUtils::latestSpreadFits(prepInputsFSURL, destinationPath = inputPath(sim),
                                       suffix = fitFileSuffix)
-  } else if (NROW(remoteFile) == 0L) {
-    message("fireSense_ELFs: no '", fireSenseParamsRDS, "' in ", prepInputsFSURL,
-            " -- treating this as no pre-run SpreadFit results yet.")
-    NULL
   } else {
-    ## reproducible downloads into a temporary folder and then replaces the file, so a job reading the
-    ## same file (two jobs on one ELF share inputPath) never sees it half-written. CHECKSUMS.txt still
-    ## matches an outdated local copy, so `purge = 7` fetches it again when its md5 differs from Drive's.
-    localRDS <- file.path(inputPath(sim), remoteFile$name)
-    stale <- file.exists(localRDS) &&
-      !identical(unname(tools::md5sum(localRDS)), remoteFile$drive_resource[[1]]$md5Checksum)
-    gdMeta <- reproducible::preProcess(url = paste0("https://drive.google.com/file/d/", remoteFile$id),
-                                       targetFile = remoteFile$name, destinationPath = inputPath(sim),
-                                       fun = NA, purge = if (stale) 7 else FALSE)
-    readRDS(gdMeta$targetFilePath)
+    ledger <- reproducible::CacheGeoLedger(fireSenseParamsRDS, remote = prepInputsFSURL,
+                                           destinationPath = inputPath(sim), key = "polygonID")
+    rows <- reproducible::CacheGeoRead(ledger, area = NULL)
+    if (NROW(rows) == 0L) {
+      message("fireSense_ELFs: no '", fireSenseParamsRDS, "' in ", prepInputsFSURL,
+              " -- treating this as no pre-run SpreadFit results yet.")
+      NULL
+    } else rows
   }
   
   
