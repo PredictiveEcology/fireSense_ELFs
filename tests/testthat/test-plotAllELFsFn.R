@@ -22,7 +22,7 @@ recordPlots <- function(env = parent.frame()) {
 
 test_that("with nothing fitted or running, only the ELF cores and their labels are drawn", {
   calls <- recordPlots()
-  plotAllELFsFn(toyELFs()$rasCentered, crsToUse = "EPSG:3978", alreadyRun = NULL, runningELFs = NULL)
+  plotAllELFsFn(toyELFs()$rasCentered, crsToUse = "EPSG:3978", alreadyRun = NULL, thisELF = NULL)
 
   expect_length(calls$plot, 1L)
   all4 <- calls$plot[[1]]$x
@@ -42,7 +42,7 @@ test_that("fitted ELFs are overlaid in green", {
   fitted <- sf::st_as_sf(terra::as.polygons(terra::ext(0, 15000, 0, 20000), crs = "EPSG:3978"))
   fitted$polygonID <- "3.1.1"
   plotAllELFsFn(toyELFs()$rasCentered, crsToUse = "EPSG:3978",
-                alreadyRun = as.data.frame(fitted), runningELFs = NULL)
+                alreadyRun = as.data.frame(fitted), thisELF = NULL)
 
   expect_length(calls$plot, 2L)
   green <- calls$plot[[2]]
@@ -55,7 +55,7 @@ test_that("fitted ELFs are overlaid in green", {
 test_that("running ELFs are overlaid in yellow, matched by name", {
   calls <- recordPlots()
   plotAllELFsFn(toyELFs()$rasCentered, crsToUse = "EPSG:3978",
-                alreadyRun = NULL, runningELFs = c("5.1", "3.1.2"))
+                alreadyRun = NULL, thisELF = c("5.1", "3.1.2"))
 
   expect_length(calls$plot, 2L)
   yellow <- calls$plot[[2]]
@@ -68,12 +68,12 @@ test_that("running ELFs are overlaid in yellow, matched by name", {
 test_that("an empty table of fitted ELFs and no running ELFs add no overlay", {
   calls <- recordPlots()
   plotAllELFsFn(toyELFs()$rasCentered, crsToUse = "EPSG:3978",
-                alreadyRun = data.frame(), runningELFs = character(0))
+                alreadyRun = data.frame(), thisELF = character(0))
   expect_length(calls$plot, 1L)
 })
 
 test_that("the ELFs are drawn in the CRS asked for", {
   calls <- recordPlots()
-  plotAllELFsFn(toyELFs()$rasCentered, crsToUse = "EPSG:4326", alreadyRun = NULL, runningELFs = NULL)
+  plotAllELFsFn(toyELFs()$rasCentered, crsToUse = "EPSG:4326", alreadyRun = NULL, thisELF = NULL)
   expect_true(terra::is.lonlat(calls$plot[[1]]$x))
 })
