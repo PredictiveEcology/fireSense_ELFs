@@ -32,7 +32,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">fireSense_ELFs</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">1.2.0.9002</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">1.2.0.9006</span>
       </span>
     </div>
 
@@ -71,9 +71,9 @@
   <div class="col-md-9 contents">
     <div class="page-header toc-ignore">
       <h1 data-toc-skip>fireSense_ELFs Manual</h1>
-            <h3 data-toc-skip class="subtitle">v.1.2.0.9002</h3>
+            <h3 data-toc-skip class="subtitle">v.1.2.0.9006</h3>
             
-            <h4 data-toc-skip class="date">Last updated: 2026-10-14</h4>
+            <h4 data-toc-skip class="date">Last updated: 2026-10-19</h4>
       
 
       <div class="hidden name"><code>fireSense_ELFs.Rmd</code></div>
@@ -239,6 +239,25 @@ The column in <code>sim$speciesEquivalency</code> data.table to use as a naming 
 </tr>
 <tr>
 <td style="text-align:left;">
+fitFileSuffix
+</td>
+<td style="text-align:left;">
+character
+</td>
+<td style="text-align:left;">
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+Text put after the model tag in the ledger file names, e.g. <code>"_boundfix_rep81"</code>, so a test run writes and reads (<code>"latest"</code>) only its own files, never the production ones. <code>""</code> (the default) is the production ledger. The same parameter of <code>fireSense_spreadFit</code>, <code>fireSense_ignitionFit</code> and <code>fireSense_dataPrepFit</code>; set it for all with <code>.globals = list(fitFileSuffix = ...)</code>; modules that disagree stop (<code><a href="https://spades-core.predictiveecology.org/reference/paramCheckOtherMods.html" class="external-link">SpaDES.core::paramCheckOtherMods()</a></code>). Ignored when a file name is given.
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
 spreadFitFilename
 </td>
 <td style="text-align:left;">
@@ -274,7 +293,7 @@ NA
 NA
 </td>
 <td style="text-align:left;">
-Google Drive folder URL that holds <code>spreadFitFilename</code> and, with <code>.useCloud</code>, the shared ELF maps.
+Google Drive folder URL that holds <code>spreadFitFilename</code> and, with <code>.useCloud</code>, the shared ELF maps. The default is <code><a href="https://rdrr.io/pkg/fireSenseUtils/man/fitLedgerFolders.html" class="external-link">fireSenseUtils::spreadFitLedgerFolder()</a></code>, which follows <code>options(fireSenseUtils.spreadFitLedgerFolder = )</code>.
 </td>
 </tr>
 <tr>
@@ -314,7 +333,7 @@ NA
 NA
 </td>
 <td style="text-align:left;">
-Google Drive folder URL that holds <code>ignitionFitFilename</code>. <code>NULL</code> reads a named ledger file from <code>inputPath(sim)</code>, with no Google Drive access.
+Google Drive folder URL that holds <code>ignitionFitFilename</code>. The default is <code><a href="https://rdrr.io/pkg/fireSenseUtils/man/fitLedgerFolders.html" class="external-link">fireSenseUtils::ignitionFitLedgerFolder()</a></code> (<code>options(fireSenseUtils.ignitionFitLedgerFolder = )</code>). <code>NULL</code> reads a named ledger file from <code>inputPath(sim)</code>, with no Google Drive access.
 </td>
 </tr>
 <tr>
@@ -335,25 +354,6 @@ NA
 </td>
 <td style="text-align:left;">
 NA (default): unchanged. <code>1</code> or <code>2</code>: a cross-validation fold is being fitted (the same parameter as in <code>fireSense_spreadFit</code>), so the SpreadFit ledger is not relevant and is not read: <code>spreadFitPreRun</code> is NULL, no ELF counts as fitted, and <code>studyAreaLarge</code> is not masked to fitted ELFs. Set it for every fireSense module at once with <code>.globals = list(heldOutFold = 1L)</code>; <code>init</code> stops if <code>fireSense_spreadFit</code> has a different value. Any other value is an error.
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-queue_path
-</td>
-<td style="text-align:left;">
-character
-</td>
-<td style="text-align:left;">
-</td>
-<td style="text-align:left;">
-NA
-</td>
-<td style="text-align:left;">
-NA
-</td>
-<td style="text-align:left;">
-A character scalar indicating what the filename of the queue.rds file is from experimentTmux; if NULL, then this can’t determine which ELFs are being run (no ‘yellow’ on the map)
 </td>
 </tr>
 <tr>
@@ -384,7 +384,7 @@ fireYears
 integer
 </td>
 <td style="text-align:left;">
-1985, 19….
+1986, 19….
 </td>
 <td style="text-align:left;">
 NA
@@ -604,7 +604,7 @@ ELFversion
 character
 </td>
 <td style="text-align:left;">
-2026-10-11
+2026-10-14
 </td>
 <td style="text-align:left;">
 NA
@@ -687,7 +687,7 @@ Extra <code><a href="https://reproducible.predictiveecology.org/reference/Cache.
 <div class="section level4">
 <h4 id="plotting">Plotting<a class="anchor" aria-label="anchor" href="#plotting"></a>
 </h4>
-<p>Unless <code>.plots</code> is <code>NA</code>, <code>init</code> plots a map of all ELFs (green: already fitted; yellow: running now, if <code>queue_path</code> is given) and the study areas of this run. Plot files go to <code>inputPath</code>.</p>
+<p>Unless <code>.plots</code> is <code>NA</code>, <code>init</code> plots a map of all ELFs (green: already fitted; yellow: this run’s ELF, <code>.ELFind</code>) and the study areas of this run. Plot files go to <code>inputPath</code>.</p>
 </div>
 <div class="section level4">
 <h4 id="saving">Saving<a class="anchor" aria-label="anchor" href="#saving"></a>

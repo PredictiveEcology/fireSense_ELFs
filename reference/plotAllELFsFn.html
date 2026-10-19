@@ -17,7 +17,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">fireSense_ELFs</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">1.2.0.9002</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">1.2.0.9006</span>
       </span>
     </div>
 
@@ -57,7 +57,7 @@
     </div>
 
     <div id="ref-usage">
-    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">plotAllELFsFn</span><span class="op">(</span><span class="va">centred</span>, <span class="va">crsToUse</span>, <span class="va">alreadyRun</span>, <span class="va">runningELFs</span><span class="op">)</span></span></code></pre></div>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">plotAllELFsFn</span><span class="op">(</span><span class="va">centred</span>, <span class="va">crsToUse</span>, <span class="va">alreadyRun</span>, <span class="va">thisELF</span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div id="arguments">
@@ -76,8 +76,8 @@
 <dd><p><code>data.frame</code> with a geometry column (<code>sim$spreadFitPreRun</code>); drawn green. May be <code>NULL</code>.</p></dd>
 
 
-<dt id="arg-runningelfs">runningELFs<a class="anchor" aria-label="anchor" href="#arg-runningelfs"></a></dt>
-<dd><p>Character vector of ELF names that are running; drawn yellow. May be <code>NULL</code>.</p></dd>
+<dt id="arg-thiself">thisELF<a class="anchor" aria-label="anchor" href="#arg-thiself"></a></dt>
+<dd><p>Character; this run's ELF (<code>sim$.ELFind</code>), drawn yellow. May be <code>NULL</code>.</p></dd>
 
 </dl></div>
     <div id="value">
