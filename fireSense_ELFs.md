@@ -1,7 +1,7 @@
 ---
 title: "fireSense_ELFs Manual"
-subtitle: "v.1.2.0.9002"
-date: "Last updated: 2026-10-14"
+subtitle: "v.1.2.0.9006"
+date: "Last updated: 2026-10-19"
 output:
   bookdown::html_document2:
     toc: true
@@ -126,6 +126,14 @@ Summary of user-visible parameters (Table \@ref(tab:moduleParams-fireSense-ELFs)
    <td style="text-align:left;"> The column in `sim$speciesEquivalency` data.table to use as a naming convention. </td>
   </tr>
   <tr>
+   <td style="text-align:left;"> fitFileSuffix </td>
+   <td style="text-align:left;"> character </td>
+   <td style="text-align:left;">  </td>
+   <td style="text-align:left;"> NA </td>
+   <td style="text-align:left;"> NA </td>
+   <td style="text-align:left;"> Text put after the model tag in the ledger file names, e.g. `"_boundfix_rep81"`, so a test run writes and reads (`"latest"`) only its own files, never the production ones. `""` (the default) is the production ledger. The same parameter of `fireSense_spreadFit`, `fireSense_ignitionFit` and `fireSense_dataPrepFit`; set it for all with `.globals = list(fitFileSuffix = ...)`; modules that disagree stop (`SpaDES.core::paramCheckOtherMods()`). Ignored when a file name is given. </td>
+  </tr>
+  <tr>
    <td style="text-align:left;"> spreadFitFilename </td>
    <td style="text-align:left;"> character </td>
    <td style="text-align:left;"> latest </td>
@@ -139,7 +147,7 @@ Summary of user-visible parameters (Table \@ref(tab:moduleParams-fireSense-ELFs)
    <td style="text-align:left;"> https://.... </td>
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> NA </td>
-   <td style="text-align:left;"> Google Drive folder URL that holds `spreadFitFilename` and, with `.useCloud`, the shared ELF maps. </td>
+   <td style="text-align:left;"> Google Drive folder URL that holds `spreadFitFilename` and, with `.useCloud`, the shared ELF maps. The default is `fireSenseUtils::spreadFitLedgerFolder()`, which follows `options(fireSenseUtils.spreadFitLedgerFolder = )`. </td>
   </tr>
   <tr>
    <td style="text-align:left;"> ignitionFitFilename </td>
@@ -155,7 +163,7 @@ Summary of user-visible parameters (Table \@ref(tab:moduleParams-fireSense-ELFs)
    <td style="text-align:left;"> https://.... </td>
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> NA </td>
-   <td style="text-align:left;"> Google Drive folder URL that holds `ignitionFitFilename`. `NULL` reads a named ledger file from `inputPath(sim)`, with no Google Drive access. </td>
+   <td style="text-align:left;"> Google Drive folder URL that holds `ignitionFitFilename`. The default is `fireSenseUtils::ignitionFitLedgerFolder()` (`options(fireSenseUtils.ignitionFitLedgerFolder = )`). `NULL` reads a named ledger file from `inputPath(sim)`, with no Google Drive access. </td>
   </tr>
   <tr>
    <td style="text-align:left;"> heldOutFold </td>
@@ -164,14 +172,6 @@ Summary of user-visible parameters (Table \@ref(tab:moduleParams-fireSense-ELFs)
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> NA (default): unchanged. `1` or `2`: a cross-validation fold is being fitted (the same parameter as in `fireSense_spreadFit`), so the SpreadFit ledger is not relevant and is not read: `spreadFitPreRun` is NULL, no ELF counts as fitted, and `studyAreaLarge` is not masked to fitted ELFs. Set it for every fireSense module at once with `.globals = list(heldOutFold = 1L)`; `init` stops if `fireSense_spreadFit` has a different value. Any other value is an error. </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> queue_path </td>
-   <td style="text-align:left;"> character </td>
-   <td style="text-align:left;">  </td>
-   <td style="text-align:left;"> NA </td>
-   <td style="text-align:left;"> NA </td>
-   <td style="text-align:left;"> A character scalar indicating what the filename of the queue.rds file is from experimentTmux; if NULL, then this can't determine which ELFs are being run (no 'yellow' on the map) </td>
   </tr>
   <tr>
    <td style="text-align:left;"> borderBuffer </td>
@@ -184,7 +184,7 @@ Summary of user-visible parameters (Table \@ref(tab:moduleParams-fireSense-ELFs)
   <tr>
    <td style="text-align:left;"> fireYears </td>
    <td style="text-align:left;"> integer </td>
-   <td style="text-align:left;"> 1985, 19.... </td>
+   <td style="text-align:left;"> 1986, 19.... </td>
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> Fire years over which each ELF's natural ignitions and fire polygons are counted. An ELF with too few is merged with a neighbour that shares its base, or not fitted (see `fireSenseUtils::ELFmergePlan()`). The default is `fireSenseUtils::defaultFireYears()`, the default of `fireSense_dataPrepFit`'s `fireYears`, so the ELFs are merged over the years the fit uses; `init` warns if another module in the simList has different `fireYears`. `NULL`: no counting and no merging. </td>
@@ -272,7 +272,7 @@ Summary of user-visible parameters (Table \@ref(tab:moduleParams-fireSense-ELFs)
   <tr>
    <td style="text-align:left;"> ELFversion </td>
    <td style="text-align:left;"> character </td>
-   <td style="text-align:left;"> 2026-10-11 </td>
+   <td style="text-align:left;"> 2026-10-14 </td>
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> The only thing that decides whether the national ELF list is rebuilt. The list is built once, kept in the cache and, with `.useCloud`, shared through Google Drive. Change this by hand to rebuild it. Changing other parameters (`fireYears`, `minNaturalIgnitions`, ...) or the code does NOT rebuild it unless this changes. </td>
@@ -310,7 +310,7 @@ Summary of user-visible parameters (Table \@ref(tab:moduleParams-fireSense-ELFs)
 
 ### Plotting
 
-Unless `.plots` is `NA`, `init` plots a map of all ELFs (green: already fitted; yellow: running now, if `queue_path` is given) and the study areas of this run. Plot files go to `inputPath`.
+Unless `.plots` is `NA`, `init` plots a map of all ELFs (green: already fitted; yellow: this run's ELF, `.ELFind`) and the study areas of this run. Plot files go to `inputPath`.
 
 ### Saving
 
