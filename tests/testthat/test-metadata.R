@@ -77,7 +77,7 @@ test_that("parameter defaults are unchanged", {
   expect_identical(p$.plots, "screen")
   expect_identical(as.numeric(p$.plotInitialTime), 1) # start(sim)
   expect_identical(p$.studyAreaName, NA)
-  expect_identical(p$ELFversion, "2026-10-14")
+  expect_identical(p$ELFversion, "2026-10-26")
   ## no event is cached: the national ELF list has its own cache, keyed on ELFversion alone
   expect_false(p$.useCache)
   expect_identical(p$.useCloud, TRUE)

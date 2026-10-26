@@ -1,5 +1,7 @@
 # fireSense_ELFs (development version)
 
+* `ELFversion` is now `"2026-10-26"` (was `"2026-10-14"`), so the national ELF list is rebuilt once with fireSenseUtils 0.2.3.9120: merged ELFs no longer overlap, cores form a clean partition without stray pixels, and a cache-restored province raster no longer crashes `makeELFs()` (fireSenseUtils#179). `fireSenseUtils` floor raised to 0.2.3.9120.
+
 * Removed the `queue_path` parameter. The ELF map now colours this run's ELF (`.ELFind`) instead of reading the tmux queue's running-job files. As a parameter it was part of `init`'s cache key, so every new queue name redid `init`.
 
 - A named `spreadFitFilename` ledger is read with `reproducible::CacheGeoLedger()` and `CacheGeoRead()`, as `fireSense_spreadFit` writes it, instead of listing the Drive folder with `googledrive::drive_ls()` on every job. The module no longer needs internet to find out which ELFs are fitted when the ledger is already in `inputPath()` (offline fallback comes with reproducible's own change). `sim$spreadFitPreRun` is now an `sf` object. `googledrive` leaves `reqdPkgs`; `reproducible` floor raised to 3.2.1.9073, the first version with the CacheGeo ledger API.
