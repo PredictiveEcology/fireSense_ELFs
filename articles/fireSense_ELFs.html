@@ -32,7 +32,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">fireSense_ELFs</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">1.2.0.9007</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">1.2.0.9008</span>
       </span>
     </div>
 
@@ -71,9 +71,9 @@
   <div class="col-md-9 contents">
     <div class="page-header toc-ignore">
       <h1 data-toc-skip>fireSense_ELFs Manual</h1>
-            <h3 data-toc-skip class="subtitle">v.1.2.0.9007</h3>
+            <h3 data-toc-skip class="subtitle">v.1.2.0.9008</h3>
             
-            <h4 data-toc-skip class="date">Last updated: 2026-10-19</h4>
+            <h4 data-toc-skip class="date">Last updated: 2026-10-26</h4>
       
 
       <div class="hidden name"><code>fireSense_ELFs.Rmd</code></div>
@@ -215,6 +215,9 @@ max
 <th style="text-align:left;">
 paramDesc
 </th>
+<th style="text-align:left;">
+cacheKey
+</th>
 </tr></thead>
 <tbody>
 <tr>
@@ -236,6 +239,9 @@ NA
 <td style="text-align:left;">
 The column in <code>sim$speciesEquivalency</code> data.table to use as a naming convention.
 </td>
+<td style="text-align:left;">
+TRUE
+</td>
 </tr>
 <tr>
 <td style="text-align:left;">
@@ -254,6 +260,9 @@ NA
 </td>
 <td style="text-align:left;">
 Text put after the model tag in the ledger file names, e.g. <code>"_boundfix_rep81"</code>, so a test run writes and reads (<code>"latest"</code>) only its own files, never the production ones. <code>""</code> (the default) is the production ledger. The same parameter of <code>fireSense_spreadFit</code>, <code>fireSense_ignitionFit</code> and <code>fireSense_dataPrepFit</code>; set it for all with <code>.globals = list(fitFileSuffix = ...)</code>; modules that disagree stop (<code><a href="https://spades-core.predictiveecology.org/reference/paramCheckOtherMods.html" class="external-link">SpaDES.core::paramCheckOtherMods()</a></code>). Ignored when a file name is given.
+</td>
+<td style="text-align:left;">
+TRUE
 </td>
 </tr>
 <tr>
@@ -275,6 +284,9 @@ NA
 <td style="text-align:left;">
 Name of the file in <code>spreadFitGoogleDriveFolder</code> that holds previously fitted SpreadFit parameters. <code>"latest"</code> (the default) takes each ELF’s fit from the most recent file that has it (<code><a href="https://rdrr.io/pkg/fireSenseUtils/man/spreadFitLedger.html" class="external-link">fireSenseUtils::latestSpreadFits()</a></code>).
 </td>
+<td style="text-align:left;">
+TRUE
+</td>
 </tr>
 <tr>
 <td style="text-align:left;">
@@ -294,6 +306,9 @@ NA
 </td>
 <td style="text-align:left;">
 Google Drive folder URL that holds <code>spreadFitFilename</code> and, with <code>.useCloud</code>, the shared ELF maps. The default is <code><a href="https://rdrr.io/pkg/fireSenseUtils/man/fitLedgerFolders.html" class="external-link">fireSenseUtils::spreadFitLedgerFolder()</a></code>, which follows <code>options(fireSenseUtils.spreadFitLedgerFolder = )</code>.
+</td>
+<td style="text-align:left;">
+TRUE
 </td>
 </tr>
 <tr>
@@ -315,6 +330,9 @@ NA
 <td style="text-align:left;">
 Name of the file in <code>ignitionFitGoogleDriveFolder</code> that holds the ignition/escape fits of <code>fireSense_ignitionFit</code>. <code>"latest"</code> (the default) takes each ELF’s fit from the most recent file that has it (<code><a href="https://rdrr.io/pkg/fireSenseUtils/man/ignitionFitLedger.html" class="external-link">fireSenseUtils::latestIgnitionFits()</a></code>).
 </td>
+<td style="text-align:left;">
+TRUE
+</td>
 </tr>
 <tr>
 <td style="text-align:left;">
@@ -334,6 +352,9 @@ NA
 </td>
 <td style="text-align:left;">
 Google Drive folder URL that holds <code>ignitionFitFilename</code>. The default is <code><a href="https://rdrr.io/pkg/fireSenseUtils/man/fitLedgerFolders.html" class="external-link">fireSenseUtils::ignitionFitLedgerFolder()</a></code> (<code>options(fireSenseUtils.ignitionFitLedgerFolder = )</code>). <code>NULL</code> reads a named ledger file from <code>inputPath(sim)</code>, with no Google Drive access.
+</td>
+<td style="text-align:left;">
+TRUE
 </td>
 </tr>
 <tr>
@@ -355,6 +376,9 @@ NA
 <td style="text-align:left;">
 NA (default): unchanged. <code>1</code> or <code>2</code>: a cross-validation fold is being fitted (the same parameter as in <code>fireSense_spreadFit</code>), so the SpreadFit ledger is not relevant and is not read: <code>spreadFitPreRun</code> is NULL, no ELF counts as fitted, and <code>studyAreaLarge</code> is not masked to fitted ELFs. Set it for every fireSense module at once with <code>.globals = list(heldOutFold = 1L)</code>; <code>init</code> stops if <code>fireSense_spreadFit</code> has a different value. Any other value is an error.
 </td>
+<td style="text-align:left;">
+TRUE
+</td>
 </tr>
 <tr>
 <td style="text-align:left;">
@@ -374,6 +398,9 @@ NA
 </td>
 <td style="text-align:left;">
 Metres. Cells within this distance of the Canada-United States land border (49th parallel, Great Lakes and St Lawrence, Alaska-Yukon/BC; not the coast) are removed from every ELF (<code>NA</code> in <code>rasterToMatchLargeELF</code>, <code>rasterToMatchELF</code>, and out of <code>studyAreaLarge</code>, <code>studyAreaLargeELF</code>, <code>studyAreaELF</code>). ClimateNA’s DEM is invalid in the United States, which contaminates interpolated climate in Canadian cells ~2 km from the border; the fire data are Canada-only. The line is Natural Earth 10 m <code>admin_0_boundary_lines_land</code>. <code>0</code> or <code>NA</code> removes nothing.
+</td>
+<td style="text-align:left;">
+TRUE
 </td>
 </tr>
 <tr>
@@ -395,6 +422,9 @@ NA
 <td style="text-align:left;">
 Fire years over which each ELF’s natural ignitions and fire polygons are counted. An ELF with too few is merged with a neighbour that shares its base, or not fitted (see <code><a href="https://rdrr.io/pkg/fireSenseUtils/man/ELFmergePlan.html" class="external-link">fireSenseUtils::ELFmergePlan()</a></code>). The default is <code><a href="https://rdrr.io/pkg/fireSenseUtils/man/defaultFireYears.html" class="external-link">fireSenseUtils::defaultFireYears()</a></code>, the default of <code>fireSense_dataPrepFit</code>’s <code>fireYears</code>, so the ELFs are merged over the years the fit uses; <code>init</code> warns if another module in the simList has different <code>fireYears</code>. <code>NULL</code>: no counting and no merging.
 </td>
+<td style="text-align:left;">
+TRUE
+</td>
 </tr>
 <tr>
 <td style="text-align:left;">
@@ -414,6 +444,9 @@ NA
 </td>
 <td style="text-align:left;">
 An ELF with fewer natural-cause ignitions than this over <code>fireYears</code> has too few fires.
+</td>
+<td style="text-align:left;">
+TRUE
 </td>
 </tr>
 <tr>
@@ -435,6 +468,9 @@ NA
 <td style="text-align:left;">
 An ELF with fewer fire polygons than this over <code>fireYears</code> has too few fires.
 </td>
+<td style="text-align:left;">
+TRUE
+</td>
 </tr>
 <tr>
 <td style="text-align:left;">
@@ -454,6 +490,9 @@ NA
 </td>
 <td style="text-align:left;">
 Size (ha) a fire must reach to count as escaped, as in <code>fireSense_dataPrepFit</code>’s <code>escapeSizeHa</code>. The escape and spread fits use only escaped fires; <code>init</code> warns if another module in the simList has a different <code>escapeSizeHa</code>.
+</td>
+<td style="text-align:left;">
+TRUE
 </td>
 </tr>
 <tr>
@@ -475,6 +514,9 @@ NA
 <td style="text-align:left;">
 An ELF with fewer escaped natural fires than this over <code>fireYears</code> has too few fires. 5 is the minimum the escape fit’s 5-fold cross-validation needs.
 </td>
+<td style="text-align:left;">
+TRUE
+</td>
 </tr>
 <tr>
 <td style="text-align:left;">
@@ -494,6 +536,9 @@ NA
 </td>
 <td style="text-align:left;">
 After the fire-count merging, an ELF whose core is smaller than this (km2) is merged with a similar neighbour that shares its base (<code><a href="https://rdrr.io/pkg/fireSenseUtils/man/ELFsizePlan.html" class="external-link">fireSenseUtils::ELFsizePlan()</a></code>), choosing the merge that leaves the fewest small ELFs without a partner. Land cover is SCANFI v2 2020. <code>NULL</code> or <code>NA</code> turns the rule off; so does <code>fireYears = NULL</code>.
+</td>
+<td style="text-align:left;">
+TRUE
 </td>
 </tr>
 <tr>
@@ -515,6 +560,9 @@ numeric
 <td style="text-align:left;">
 Size rule: largest Bray-Curtis distance between the land-cover shares of two ELFs that may merge.
 </td>
+<td style="text-align:left;">
+TRUE
+</td>
 </tr>
 <tr>
 <td style="text-align:left;">
@@ -534,6 +582,9 @@ NA
 </td>
 <td style="text-align:left;">
 Size rule: largest ratio (larger over smaller) of the burn rates (%/yr over <code>fireYears</code>) of two ELFs that may merge.
+</td>
+<td style="text-align:left;">
+TRUE
 </td>
 </tr>
 <tr>
@@ -555,6 +606,9 @@ NA
 <td style="text-align:left;">
 Passed to <code>types</code> in <code><a href="https://spades-core.predictiveecology.org/reference/Plots.html" class="external-link">Plots()</a></code>. If any, <code>init</code> plots the map of all ELFs and this run’s study areas.
 </td>
+<td style="text-align:left;">
+TRUE
+</td>
 </tr>
 <tr>
 <td style="text-align:left;">
@@ -574,6 +628,9 @@ NA
 </td>
 <td style="text-align:left;">
 <code>NA</code> turns off screen plots in <code><a href="https://spades-core.predictiveecology.org/reference/Plots.html" class="external-link">Plots()</a></code>. No plot event is scheduled.
+</td>
+<td style="text-align:left;">
+TRUE
 </td>
 </tr>
 <tr>
@@ -595,6 +652,9 @@ NA
 <td style="text-align:left;">
 Human-readable name for the study area; used in the filename of the single-ELF raster.
 </td>
+<td style="text-align:left;">
+TRUE
+</td>
 </tr>
 <tr>
 <td style="text-align:left;">
@@ -604,7 +664,7 @@ ELFversion
 character
 </td>
 <td style="text-align:left;">
-2026-10-14
+2026-10-26
 </td>
 <td style="text-align:left;">
 NA
@@ -614,6 +674,9 @@ NA
 </td>
 <td style="text-align:left;">
 The only thing that decides whether the national ELF list is rebuilt. The list is built once, kept in the cache and, with <code>.useCloud</code>, shared through Google Drive. Change this by hand to rebuild it. Changing other parameters (<code>fireYears</code>, <code>minNaturalIgnitions</code>, …) or the code does NOT rebuild it unless this changes.
+</td>
+<td style="text-align:left;">
+TRUE
 </td>
 </tr>
 <tr>
@@ -635,6 +698,9 @@ NA
 <td style="text-align:left;">
 Events to cache. The default caches no event: the national ELF list has its own cache, keyed on <code>ELFversion</code> alone, which an event cache (keyed on parameters and module version) would undo.
 </td>
+<td style="text-align:left;">
+TRUE
+</td>
 </tr>
 <tr>
 <td style="text-align:left;">
@@ -655,6 +721,9 @@ NA
 <td style="text-align:left;">
 Share the national ELF list (see <code>ELFversion</code>) through Google Drive, in the fireSense folder named by <code>spreadFitGoogleDriveFolder</code> (the same folder that holds the fitted-parameter file). <code>TRUE</code>: download the list if someone has already built it for this <code>ELFversion</code>, otherwise build and upload it. <code>"pull"</code>: download only, never upload (for read-only access). <code>FALSE</code>: build locally without Google Drive. Needs Google Drive access to that folder.
 </td>
+<td style="text-align:left;">
+TRUE
+</td>
 </tr>
 <tr>
 <td style="text-align:left;">
@@ -673,6 +742,9 @@ NA
 </td>
 <td style="text-align:left;">
 Extra <code><a href="https://reproducible.predictiveecology.org/reference/Cache.html" class="external-link">Cache()</a></code> arguments for each event, by event name. None by default; see <code>.useCache</code>.
+</td>
+<td style="text-align:left;">
+TRUE
 </td>
 </tr>
 </tbody>
