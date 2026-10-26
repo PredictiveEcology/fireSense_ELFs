@@ -115,14 +115,15 @@ test_that("by default (\"latest\") the fits come from the newest current-model f
   files$drive_resource <- list(list(md5Checksum = "bbb", modifiedTime = "2026-09-25T00:00:00Z"),
                                list(md5Checksum = "ccc", modifiedTime = "2026-09-20T00:00:00Z"))
   mockInitWorld(driveFiles = files)
-  ## fireSenseUtils::latestSpreadFits() fetches the file with reproducible's downloader
+  ## reproducible::CacheGeoRead() downloads the ledger into a temporary file beside it, then renames it
+  ## (reproducible >= 3.2.1.9081), so a job reading the ledger never sees it half-written
   local_mocked_bindings(
-    preProcess = function(targetFile = NULL, url = NULL, destinationPath = ".", ...) {
-      path <- file.path(destinationPath, targetFile)
+    drive_download = function(file, path, ...) {
+      if (basename(path) %in% c("fireSenseParams.rds", current)) stop("downloaded over the ledger itself")
       saveRDS(data.frame(polygonID = c("3.1.2", "5.1"), objFunVal = c(0.25, 0.5)), path)
-      list(targetFilePath = path)
+      invisible(NULL)
     },
-    .package = "reproducible")
+    .package = "googledrive")
   unlink(file.path(toyPaths()$inputPath, c("fireSenseParams.rds", current)))
   out <- suppressMessages(runInit(sim))
   expect_identical(out$spreadFitPreRun$polygonID, c("3.1.2", "5.1"))
