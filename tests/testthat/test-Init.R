@@ -120,7 +120,7 @@ test_that("by default (\"latest\") the fits come from the newest current-model f
   local_mocked_bindings(
     drive_download = function(file, path, ...) {
       if (basename(path) %in% c("fireSenseParams.rds", current)) stop("downloaded over the ledger itself")
-      saveRDS(data.frame(polygonID = c("3.1.2", "5.1"), objFunVal = c(0.25, 0.5)), path)
+      saveRDS(toyLedgerRows(), path)   # a ledger is sf, as fireSense_spreadFit's CacheGeo writes it
       invisible(NULL)
     },
     .package = "googledrive")
