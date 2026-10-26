@@ -43,7 +43,7 @@ defineModule(sim, list(
                   "PredictiveEcology/SpaDES.core@development (>= 3.2.1.9003)",
                   "PredictiveEcology/LandR@development (>= 1.2.0.9021)",
                   "deldir", "withr", "sf", "FOR-CAST/fireregimetools@main (>= 0.1.0.9008)",
-                  "PredictiveEcology/fireSenseUtils@development (>= 0.2.3.9104)",
+                  "PredictiveEcology/fireSenseUtils@development (>= 0.2.3.9120)",
                   "PredictiveEcology/SpaDES.project@development (>= 1.0.1.9205)"),
   parameters = bindrows(
     defineParameter("sppEquivCol", "character", "LandR", NA, NA,
@@ -117,7 +117,7 @@ defineModule(sim, list(
                     "`NA` turns off screen plots in `Plots()`. No plot event is scheduled."),
     defineParameter(".studyAreaName", "character", NA, NA, NA,
                     "Human-readable name for the study area; used in the filename of the single-ELF raster."),
-    defineParameter("ELFversion", "character", "2026-10-14", NA, NA,
+    defineParameter("ELFversion", "character", "2026-10-26", NA, NA,
                     paste("The only thing that decides whether the national ELF list is rebuilt. The list is built once,",
                           "kept in the cache and, with `.useCloud`, shared through Google Drive. Change this by hand to",
                           "rebuild it. Changing other parameters (`fireYears`, `minNaturalIgnitions`, ...) or the code",
