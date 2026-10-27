@@ -13,7 +13,7 @@ defineModule(sim, list(
            role = c("aut", "cre"))
   ),
   childModules = character(0),
-  version = list(fireSense_ELFs = "1.2.0.9002"),
+  version = list(fireSense_ELFs = "1.2.0.9008"),
   ## This module defines the study area every other fireSense module works in, so
   ## it has to be scheduled first. The object dependency graph only orders modules
   ## that actually exchange objects, so a module that needs the study area
@@ -39,29 +39,37 @@ defineModule(sim, list(
   citation = list("citation.bib"),
   documentation = list("NEWS.md", "README.md", "fireSense_ELFs.Rmd"),
   reqdPkgs = list("SpaDES.core (>= 3.0.1)", "terra", 
-                  "PredictiveEcology/reproducible@development (>= 3.2.1.9025)",
+                  "PredictiveEcology/reproducible@development (>= 3.2.1.9073)",
                   "PredictiveEcology/SpaDES.core@development (>= 3.2.1.9037)",
                   "PredictiveEcology/LandR@development (>= 1.2.0.9021)",
-                  "deldir", "withr", "googledrive", "sf", "FOR-CAST/fireregimetools@main (>= 0.1.0.9008)",
-                  "PredictiveEcology/fireSenseUtils@development (>= 0.2.3.9091)",
+                  "deldir", "withr", "sf", "FOR-CAST/fireregimetools@main (>= 0.1.0.9008)",
+                  "PredictiveEcology/fireSenseUtils@development (>= 0.2.3.9120)",
                   "PredictiveEcology/SpaDES.project@development (>= 1.0.1.9205)"),
   parameters = bindrows(
     defineParameter("sppEquivCol", "character", "LandR", NA, NA,
                     "The column in `sim$speciesEquivalency` data.table to use as a naming convention."),
+    defineParameter("fitFileSuffix", "character", "", NA, NA,
+                    paste("Text put after the model tag in the ledger file names, e.g. `\"_boundfix_rep81\"`, so a test run",
+                          "writes and reads (`\"latest\"`) only its own files, never the production ones. `\"\"` (the",
+                          "default) is the production ledger. The same parameter of `fireSense_spreadFit`, `fireSense_ignitionFit` and `fireSense_dataPrepFit`;",
+                          "set it for all with `.globals = list(fitFileSuffix = ...)`; modules that disagree stop",
+                          "(`SpaDES.core::paramCheckOtherMods()`). Ignored when a file name is given.")),
     defineParameter("spreadFitFilename", "character", "latest",
                     NA, NA, paste("Name of the file in `spreadFitGoogleDriveFolder` that holds previously fitted SpreadFit",
                                   "parameters. `\"latest\"` (the default) takes each ELF's fit from the most recent",
                                   "file that has it (`fireSenseUtils::latestSpreadFits()`).")),
     defineParameter("spreadFitGoogleDriveFolder", "character",
-                    "https://drive.google.com/drive/folders/1X9-mRjyLMNpgkP_cfqhbr_AQEPOsVCHf",
-                    NA, NA, "Google Drive folder URL that holds `spreadFitFilename` and, with `.useCloud`, the shared ELF maps."),
+                    fireSenseUtils::spreadFitLedgerFolder(),
+                    NA, NA, paste("Google Drive folder URL that holds `spreadFitFilename` and, with `.useCloud`, the shared ELF maps.",
+                                  "The default is `fireSenseUtils::spreadFitLedgerFolder()`, which follows `options(fireSenseUtils.spreadFitLedgerFolder = )`.")),
     defineParameter("ignitionFitFilename", "character", "latest",
                     NA, NA, paste("Name of the file in `ignitionFitGoogleDriveFolder` that holds the ignition/escape fits of",
                                   "`fireSense_ignitionFit`. `\"latest\"` (the default) takes each ELF's fit from the most recent",
                                   "file that has it (`fireSenseUtils::latestIgnitionFits()`).")),
     defineParameter("ignitionFitGoogleDriveFolder", "character",
-                    "https://drive.google.com/drive/folders/1X9-mRjyLMNpgkP_cfqhbr_AQEPOsVCHf",
-                    NA, NA, paste("Google Drive folder URL that holds `ignitionFitFilename`. `NULL` reads a named",
+                    fireSenseUtils::ignitionFitLedgerFolder(),
+                    NA, NA, paste("Google Drive folder URL that holds `ignitionFitFilename`. The default is",
+                                  "`fireSenseUtils::ignitionFitLedgerFolder()` (`options(fireSenseUtils.ignitionFitLedgerFolder = )`). `NULL` reads a named",
                                   "ledger file from `inputPath(sim)`, with no Google Drive access.")),
     defineParameter("heldOutFold", "integer", default = NA, NA, NA,
                     paste("NA (default): unchanged. `1` or `2`: a cross-validation fold is being fitted (the same",
@@ -69,9 +77,6 @@ defineModule(sim, list(
                           "read: `spreadFitPreRun` is NULL, no ELF counts as fitted, and `studyAreaLarge` is not masked to",
                           "fitted ELFs. Set it for every fireSense module at once with `.globals = list(heldOutFold = 1L)`;",
                           "`init` stops if `fireSense_spreadFit` has a different value. Any other value is an error.")),
-    defineParameter("queue_path", "character", NULL,
-                    NA, NA, "A character scalar indicating what the filename of the queue.rds file is from experimentTmux; ",
-                    "if NULL, then this can't determine which ELFs are being run (no 'yellow' on the map)"),
     defineParameter("borderBuffer", "numeric", 5000, 0, NA,
                     paste("Metres. Cells within this distance of the Canada-United States land border (49th parallel,",
                           "Great Lakes and St Lawrence, Alaska-Yukon/BC; not the coast) are removed from every ELF",
@@ -112,7 +117,7 @@ defineModule(sim, list(
                     "`NA` turns off screen plots in `Plots()`. No plot event is scheduled."),
     defineParameter(".studyAreaName", "character", NA, NA, NA,
                     "Human-readable name for the study area; used in the filename of the single-ELF raster."),
-    defineParameter("ELFversion", "character", "2026-10-11", NA, NA,
+    defineParameter("ELFversion", "character", "2026-10-26", NA, NA,
                     paste("The only thing that decides whether the national ELF list is rebuilt. The list is built once,",
                           "kept in the cache and, with `.useCloud`, shared through Google Drive. Change this by hand to",
                           "rebuild it. Changing other parameters (`fireYears`, `minNaturalIgnitions`, ...) or the code",
@@ -271,35 +276,28 @@ Init <- function(sim) {
     stop("fireSense_ELFs: parameter 'heldOutFold' must be NA, 1L or 2L; got: ",
          paste(format(heldOutFold), collapse = ", "))
   heldOut <- !isTRUE(is.na(heldOutFold))
+  fitFileSuffix <- SpaDES.core::paramCheckOtherMods(sim, "fitFileSuffix")
   prepInputsFSURL <- SpaDES.core::paramCheckOtherMods(sim, "spreadFitGoogleDriveFolder")
   fireSenseParamsRDS <- SpaDES.core::paramCheckOtherMods(sim, "spreadFitFilename")
   latest <- identical(fireSenseParamsRDS, "latest")
-  gdLs <- if (!latest && !heldOut) googledrive::drive_ls(prepInputsFSURL)
-  remoteFile <- gdLs[gdLs$name %in% fireSenseParamsRDS,]
-  ## A ledger that does not exist yet means "nothing has been fitted", which is the
-  ## normal state at the start of a new experiment: the first completed fit creates
-  ## the file. Without this, `remoteFile$drive_resource[[1]]` was a subscript error
-  ## in every job, and in fireSenseUtils::runELFs() before the queue was even built,
-  ## so pointing `spreadFitFilename` at a new file could not be done at all.
+  ## A ledger with no rows means "nothing has been fitted", which is the normal state at the start of a
+  ## new experiment: the first completed fit creates the file. The ledger is read the way
+  ## fireSense_spreadFit writes it (reproducible's CacheGeo family): from the copy in `inputPath(sim)`,
+  ## which is refreshed from the Drive folder only when that is reachable.
   spreadFitPreRun <- if (heldOut) {
     NULL
   } else if (latest) {
-    fireSenseUtils::latestSpreadFits(prepInputsFSURL, destinationPath = inputPath(sim))
-  } else if (NROW(remoteFile) == 0L) {
-    message("fireSense_ELFs: no '", fireSenseParamsRDS, "' in ", prepInputsFSURL,
-            " -- treating this as no pre-run SpreadFit results yet.")
-    NULL
+    fireSenseUtils::latestSpreadFits(prepInputsFSURL, destinationPath = inputPath(sim),
+                                      suffix = fitFileSuffix)
   } else {
-    ## reproducible downloads into a temporary folder and then replaces the file, so a job reading the
-    ## same file (two jobs on one ELF share inputPath) never sees it half-written. CHECKSUMS.txt still
-    ## matches an outdated local copy, so `purge = 7` fetches it again when its md5 differs from Drive's.
-    localRDS <- file.path(inputPath(sim), remoteFile$name)
-    stale <- file.exists(localRDS) &&
-      !identical(unname(tools::md5sum(localRDS)), remoteFile$drive_resource[[1]]$md5Checksum)
-    gdMeta <- reproducible::preProcess(url = paste0("https://drive.google.com/file/d/", remoteFile$id),
-                                       targetFile = remoteFile$name, destinationPath = inputPath(sim),
-                                       fun = NA, purge = if (stale) 7 else FALSE)
-    readRDS(gdMeta$targetFilePath)
+    ledger <- reproducible::CacheGeoLedger(fireSenseParamsRDS, remote = prepInputsFSURL,
+                                           destinationPath = inputPath(sim), key = "polygonID")
+    rows <- reproducible::CacheGeoRead(ledger, area = NULL)
+    if (NROW(rows) == 0L) {
+      message("fireSense_ELFs: no '", fireSenseParamsRDS, "' in ", prepInputsFSURL,
+              " -- treating this as no pre-run SpreadFit results yet.")
+      NULL
+    } else rows
   }
   
   
@@ -387,7 +385,8 @@ Init <- function(sim) {
     ignitionRows <- readIgnitionFitRows(ELFpolys,
                                         folder = SpaDES.core::paramCheckOtherMods(sim, "ignitionFitGoogleDriveFolder"),
                                         filename = SpaDES.core::paramCheckOtherMods(sim, "ignitionFitFilename"),
-                                        destinationPath = inputPath)
+                                        destinationPath = inputPath,
+                                        fitFileSuffix = fitFileSuffix)
     ignitionFits <- ignitionFitLists(ignitionRows, ELFpolys$ELFind, required = hasStudyAreaLarge)
     fireSense_IgnitionFittedList <- ignitionFits$ignition
     fireSense_EscapeFittedList <- ignitionFits$escape
@@ -428,20 +427,8 @@ Init <- function(sim) {
   
   if (anyPlotting(Par$.plots)) {
     
-    runningELFs <- NULL
-    if (!is.null(Par$queue_path)) {
-      activeRunningPath <- SpaDES.project::tmuxActiveRunningPath(activeRunningPath = NULL, Par$queue_path)
-      
-      fi <- rownames(
-        SpaDES.project:::activeRunningFileInfo(queue_path = Par$queue_path, activeRunningPath = activeRunningPath))
-      if (!is.null(fi)) {
-        runningELFs <- sapply(basename(fi) |> strsplit(split = "_"), function(x) x[[2]]) 
-      } 
-    } 
-    
-    
     Plots(fn = plotAllELFsFn, centred = ELFs$rasCentered,
-          crsToUse = terra::crs(ELFs$rasWhole[[11]]), alreadyRun = spreadFitPreRun, runningELFs = runningELFs,
+          crsToUse = terra::crs(ELFs$rasWhole[[11]]), alreadyRun = spreadFitPreRun, thisELF = ELF,
           path = inputPath, deviceArgs = list(width = 11, height = 8, units = "in", res = 300),
           filename = paste0("ELF_polygons.png")
     )
@@ -469,10 +456,10 @@ Init <- function(sim) {
 #' @param centred List of per-ELF `SpatRaster`s (`ELFs$rasCentered`); cells equal to 2 are the ELF without its buffer.
 #' @param crsToUse CRS that all ELFs are projected to for plotting.
 #' @param alreadyRun `data.frame` with a geometry column (`sim$spreadFitPreRun`); drawn green. May be `NULL`.
-#' @param runningELFs Character vector of ELF names that are running; drawn yellow. May be `NULL`.
+#' @param thisELF Character; this run's ELF (`sim$.ELFind`), drawn yellow. May be `NULL`.
 #'
 #' @return Called for its plot.
-plotAllELFsFn <- function(centred, crsToUse, alreadyRun, runningELFs) {
+plotAllELFsFn <- function(centred, crsToUse, alreadyRun, thisELF) {
   allELFs <- { Map(r = centred, function(r) {
     r2 <- r == 2
     r2[!terra::values(r2, mat = FALSE) %in% TRUE] <- NA
@@ -492,9 +479,9 @@ plotAllELFsFn <- function(centred, crsToUse, alreadyRun, runningELFs) {
       
     }
   }
-  if (!missing(runningELFs)) {
-    if (NROW(runningELFs)) {
-      turnYellow <- sapply(runningELFs, function(x) grep(pattern = x, names(allELFs)))
+  if (!missing(thisELF)) { # this run's ELF in yellow
+    if (NROW(thisELF)) {
+      turnYellow <- sapply(thisELF, function(x) grep(pattern = x, names(allELFs)))
       terra::plot(allELFs[turnYellow,], add = TRUE, col = "yellow", alpha = 0.5)
     }
   }
@@ -504,8 +491,8 @@ plotAllELFsFn <- function(centred, crsToUse, alreadyRun, runningELFs) {
 
 #' Default `.ELFind`
 #'
-#' Sets `sim$.ELFind` to `"4.3"` if not supplied, and records in
-#' `mod$ELFindSupplied` whether it was.
+#' Sets `sim$.ELFind` to `"4.3"` if not supplied (with a message, unless a
+#' `studyAreaLarge` is supplied), and records in `mod$ELFindSupplied` whether it was.
 #'
 #' @param sim A `simList`.
 #'
@@ -516,7 +503,13 @@ plotAllELFsFn <- function(centred, crsToUse, alreadyRun, runningELFs) {
   ## former can conflict with a `studyAreaLarge`. See .assertOneStudyArea().
   mod$ELFindSupplied <- suppliedElsewhere(".ELFind", sim)
   if (!mod$ELFindSupplied) {
-    sim$.ELFind <- "4.3"
+    defaultELF <- "4.3"
+    sim$.ELFind <- defaultELF
+    if (!suppliedElsewhere("studyAreaLarge", sim)) {
+      message("fireSense_ELFs: neither `.ELFind` nor `studyAreaLarge` was supplied, so the study area is ELF ",
+              defaultELF, " (the module's default). To use another ELF, set `.ELFind` in setupProject() ",
+              "(e.g. `.ELFind = \"12.3\"`) or supply your own `studyAreaLarge`.")
+    }
   }
   
   sim

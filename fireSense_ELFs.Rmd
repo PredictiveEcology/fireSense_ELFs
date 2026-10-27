@@ -105,7 +105,7 @@ knitr::kable(df_params, caption = "List of (ref:fireSense-ELFs) parameters and t
 
 ### Plotting
 
-Unless `.plots` is `NA`, `init` plots a map of all ELFs (green: already fitted; yellow: running now, if `queue_path` is given) and the study areas of this run. Plot files go to `inputPath`.
+Unless `.plots` is `NA`, `init` plots a map of all ELFs (green: already fitted; yellow: this run's ELF, `.ELFind`) and the study areas of this run. Plot files go to `inputPath`.
 
 ### Saving
 

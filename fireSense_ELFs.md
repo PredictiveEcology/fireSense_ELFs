@@ -1,7 +1,7 @@
 ---
 title: "fireSense_ELFs Manual"
-subtitle: "v.1.2.0.9001"
-date: "Last updated: 2026-10-14"
+subtitle: "v.1.2.0.9008"
+date: "Last updated: 2026-10-26"
 output:
   bookdown::html_document2:
     toc: true
@@ -114,6 +114,7 @@ Summary of user-visible parameters (Table \@ref(tab:moduleParams-fireSense-ELFs)
    <th style="text-align:left;"> min </th>
    <th style="text-align:left;"> max </th>
    <th style="text-align:left;"> paramDesc </th>
+   <th style="text-align:left;"> cacheKey </th>
   </tr>
  </thead>
 <tbody>
@@ -124,6 +125,16 @@ Summary of user-visible parameters (Table \@ref(tab:moduleParams-fireSense-ELFs)
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> The column in `sim$speciesEquivalency` data.table to use as a naming convention. </td>
+   <td style="text-align:left;"> TRUE </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> fitFileSuffix </td>
+   <td style="text-align:left;"> character </td>
+   <td style="text-align:left;">  </td>
+   <td style="text-align:left;"> NA </td>
+   <td style="text-align:left;"> NA </td>
+   <td style="text-align:left;"> Text put after the model tag in the ledger file names, e.g. `"_boundfix_rep81"`, so a test run writes and reads (`"latest"`) only its own files, never the production ones. `""` (the default) is the production ledger. The same parameter of `fireSense_spreadFit`, `fireSense_ignitionFit` and `fireSense_dataPrepFit`; set it for all with `.globals = list(fitFileSuffix = ...)`; modules that disagree stop (`SpaDES.core::paramCheckOtherMods()`). Ignored when a file name is given. </td>
+   <td style="text-align:left;"> TRUE </td>
   </tr>
   <tr>
    <td style="text-align:left;"> spreadFitFilename </td>
@@ -132,6 +143,7 @@ Summary of user-visible parameters (Table \@ref(tab:moduleParams-fireSense-ELFs)
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> Name of the file in `spreadFitGoogleDriveFolder` that holds previously fitted SpreadFit parameters. `"latest"` (the default) takes each ELF's fit from the most recent file that has it (`fireSenseUtils::latestSpreadFits()`). </td>
+   <td style="text-align:left;"> TRUE </td>
   </tr>
   <tr>
    <td style="text-align:left;"> spreadFitGoogleDriveFolder </td>
@@ -139,7 +151,8 @@ Summary of user-visible parameters (Table \@ref(tab:moduleParams-fireSense-ELFs)
    <td style="text-align:left;"> https://.... </td>
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> NA </td>
-   <td style="text-align:left;"> Google Drive folder URL that holds `spreadFitFilename` and, with `.useCloud`, the shared ELF maps. </td>
+   <td style="text-align:left;"> Google Drive folder URL that holds `spreadFitFilename` and, with `.useCloud`, the shared ELF maps. The default is `fireSenseUtils::spreadFitLedgerFolder()`, which follows `options(fireSenseUtils.spreadFitLedgerFolder = )`. </td>
+   <td style="text-align:left;"> TRUE </td>
   </tr>
   <tr>
    <td style="text-align:left;"> ignitionFitFilename </td>
@@ -148,6 +161,7 @@ Summary of user-visible parameters (Table \@ref(tab:moduleParams-fireSense-ELFs)
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> Name of the file in `ignitionFitGoogleDriveFolder` that holds the ignition/escape fits of `fireSense_ignitionFit`. `"latest"` (the default) takes each ELF's fit from the most recent file that has it (`fireSenseUtils::latestIgnitionFits()`). </td>
+   <td style="text-align:left;"> TRUE </td>
   </tr>
   <tr>
    <td style="text-align:left;"> ignitionFitGoogleDriveFolder </td>
@@ -155,7 +169,8 @@ Summary of user-visible parameters (Table \@ref(tab:moduleParams-fireSense-ELFs)
    <td style="text-align:left;"> https://.... </td>
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> NA </td>
-   <td style="text-align:left;"> Google Drive folder URL that holds `ignitionFitFilename`. `NULL` reads a named ledger file from `inputPath(sim)`, with no Google Drive access. </td>
+   <td style="text-align:left;"> Google Drive folder URL that holds `ignitionFitFilename`. The default is `fireSenseUtils::ignitionFitLedgerFolder()` (`options(fireSenseUtils.ignitionFitLedgerFolder = )`). `NULL` reads a named ledger file from `inputPath(sim)`, with no Google Drive access. </td>
+   <td style="text-align:left;"> TRUE </td>
   </tr>
   <tr>
    <td style="text-align:left;"> heldOutFold </td>
@@ -164,14 +179,7 @@ Summary of user-visible parameters (Table \@ref(tab:moduleParams-fireSense-ELFs)
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> NA (default): unchanged. `1` or `2`: a cross-validation fold is being fitted (the same parameter as in `fireSense_spreadFit`), so the SpreadFit ledger is not relevant and is not read: `spreadFitPreRun` is NULL, no ELF counts as fitted, and `studyAreaLarge` is not masked to fitted ELFs. Set it for every fireSense module at once with `.globals = list(heldOutFold = 1L)`; `init` stops if `fireSense_spreadFit` has a different value. Any other value is an error. </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> queue_path </td>
-   <td style="text-align:left;"> character </td>
-   <td style="text-align:left;">  </td>
-   <td style="text-align:left;"> NA </td>
-   <td style="text-align:left;"> NA </td>
-   <td style="text-align:left;"> A character scalar indicating what the filename of the queue.rds file is from experimentTmux; if NULL, then this can't determine which ELFs are being run (no 'yellow' on the map) </td>
+   <td style="text-align:left;"> TRUE </td>
   </tr>
   <tr>
    <td style="text-align:left;"> borderBuffer </td>
@@ -180,14 +188,16 @@ Summary of user-visible parameters (Table \@ref(tab:moduleParams-fireSense-ELFs)
    <td style="text-align:left;"> 0 </td>
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> Metres. Cells within this distance of the Canada-United States land border (49th parallel, Great Lakes and St Lawrence, Alaska-Yukon/BC; not the coast) are removed from every ELF (`NA` in `rasterToMatchLargeELF`, `rasterToMatchELF`, and out of `studyAreaLarge`, `studyAreaLargeELF`, `studyAreaELF`). ClimateNA's DEM is invalid in the United States, which contaminates interpolated climate in Canadian cells ~2 km from the border; the fire data are Canada-only. The line is Natural Earth 10 m `admin_0_boundary_lines_land`. `0` or `NA` removes nothing. </td>
+   <td style="text-align:left;"> TRUE </td>
   </tr>
   <tr>
    <td style="text-align:left;"> fireYears </td>
    <td style="text-align:left;"> integer </td>
-   <td style="text-align:left;"> 1985, 19.... </td>
+   <td style="text-align:left;"> 1986, 19.... </td>
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> Fire years over which each ELF's natural ignitions and fire polygons are counted. An ELF with too few is merged with a neighbour that shares its base, or not fitted (see `fireSenseUtils::ELFmergePlan()`). The default is `fireSenseUtils::defaultFireYears()`, the default of `fireSense_dataPrepFit`'s `fireYears`, so the ELFs are merged over the years the fit uses; `init` warns if another module in the simList has different `fireYears`. `NULL`: no counting and no merging. </td>
+   <td style="text-align:left;"> TRUE </td>
   </tr>
   <tr>
    <td style="text-align:left;"> minNaturalIgnitions </td>
@@ -196,6 +206,7 @@ Summary of user-visible parameters (Table \@ref(tab:moduleParams-fireSense-ELFs)
    <td style="text-align:left;"> 0 </td>
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> An ELF with fewer natural-cause ignitions than this over `fireYears` has too few fires. </td>
+   <td style="text-align:left;"> TRUE </td>
   </tr>
   <tr>
    <td style="text-align:left;"> minFirePolygons </td>
@@ -204,6 +215,7 @@ Summary of user-visible parameters (Table \@ref(tab:moduleParams-fireSense-ELFs)
    <td style="text-align:left;"> 0 </td>
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> An ELF with fewer fire polygons than this over `fireYears` has too few fires. </td>
+   <td style="text-align:left;"> TRUE </td>
   </tr>
   <tr>
    <td style="text-align:left;"> escapeSizeHa </td>
@@ -212,6 +224,7 @@ Summary of user-visible parameters (Table \@ref(tab:moduleParams-fireSense-ELFs)
    <td style="text-align:left;"> 0 </td>
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> Size (ha) a fire must reach to count as escaped, as in `fireSense_dataPrepFit`'s `escapeSizeHa`. The escape and spread fits use only escaped fires; `init` warns if another module in the simList has a different `escapeSizeHa`. </td>
+   <td style="text-align:left;"> TRUE </td>
   </tr>
   <tr>
    <td style="text-align:left;"> minEscapes </td>
@@ -220,6 +233,7 @@ Summary of user-visible parameters (Table \@ref(tab:moduleParams-fireSense-ELFs)
    <td style="text-align:left;"> 0 </td>
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> An ELF with fewer escaped natural fires than this over `fireYears` has too few fires. 5 is the minimum the escape fit's 5-fold cross-validation needs. </td>
+   <td style="text-align:left;"> TRUE </td>
   </tr>
   <tr>
    <td style="text-align:left;"> minRegionAreaKm2 </td>
@@ -228,6 +242,7 @@ Summary of user-visible parameters (Table \@ref(tab:moduleParams-fireSense-ELFs)
    <td style="text-align:left;"> 0 </td>
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> After the fire-count merging, an ELF whose core is smaller than this (km2) is merged with a similar neighbour that shares its base (`fireSenseUtils::ELFsizePlan()`), choosing the merge that leaves the fewest small ELFs without a partner. Land cover is SCANFI v2 2020. `NULL` or `NA` turns the rule off; so does `fireYears = NULL`. </td>
+   <td style="text-align:left;"> TRUE </td>
   </tr>
   <tr>
    <td style="text-align:left;"> maxLandCoverDist </td>
@@ -236,6 +251,7 @@ Summary of user-visible parameters (Table \@ref(tab:moduleParams-fireSense-ELFs)
    <td style="text-align:left;"> 0 </td>
    <td style="text-align:left;"> 1 </td>
    <td style="text-align:left;"> Size rule: largest Bray-Curtis distance between the land-cover shares of two ELFs that may merge. </td>
+   <td style="text-align:left;"> TRUE </td>
   </tr>
   <tr>
    <td style="text-align:left;"> maxBurnRatio </td>
@@ -244,6 +260,7 @@ Summary of user-visible parameters (Table \@ref(tab:moduleParams-fireSense-ELFs)
    <td style="text-align:left;"> 1 </td>
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> Size rule: largest ratio (larger over smaller) of the burn rates (%/yr over `fireYears`) of two ELFs that may merge. </td>
+   <td style="text-align:left;"> TRUE </td>
   </tr>
   <tr>
    <td style="text-align:left;"> .plots </td>
@@ -252,6 +269,7 @@ Summary of user-visible parameters (Table \@ref(tab:moduleParams-fireSense-ELFs)
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> Passed to `types` in `Plots()`. If any, `init` plots the map of all ELFs and this run's study areas. </td>
+   <td style="text-align:left;"> TRUE </td>
   </tr>
   <tr>
    <td style="text-align:left;"> .plotInitialTime </td>
@@ -260,6 +278,7 @@ Summary of user-visible parameters (Table \@ref(tab:moduleParams-fireSense-ELFs)
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> `NA` turns off screen plots in `Plots()`. No plot event is scheduled. </td>
+   <td style="text-align:left;"> TRUE </td>
   </tr>
   <tr>
    <td style="text-align:left;"> .studyAreaName </td>
@@ -268,14 +287,16 @@ Summary of user-visible parameters (Table \@ref(tab:moduleParams-fireSense-ELFs)
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> Human-readable name for the study area; used in the filename of the single-ELF raster. </td>
+   <td style="text-align:left;"> TRUE </td>
   </tr>
   <tr>
    <td style="text-align:left;"> ELFversion </td>
    <td style="text-align:left;"> character </td>
-   <td style="text-align:left;"> 2026-10-11 </td>
+   <td style="text-align:left;"> 2026-10-26 </td>
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> The only thing that decides whether the national ELF list is rebuilt. The list is built once, kept in the cache and, with `.useCloud`, shared through Google Drive. Change this by hand to rebuild it. Changing other parameters (`fireYears`, `minNaturalIgnitions`, ...) or the code does NOT rebuild it unless this changes. </td>
+   <td style="text-align:left;"> TRUE </td>
   </tr>
   <tr>
    <td style="text-align:left;"> .useCache </td>
@@ -284,6 +305,7 @@ Summary of user-visible parameters (Table \@ref(tab:moduleParams-fireSense-ELFs)
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> Events to cache. The default caches no event: the national ELF list has its own cache, keyed on `ELFversion` alone, which an event cache (keyed on parameters and module version) would undo. </td>
+   <td style="text-align:left;"> TRUE </td>
   </tr>
   <tr>
    <td style="text-align:left;"> .useCloud </td>
@@ -292,6 +314,7 @@ Summary of user-visible parameters (Table \@ref(tab:moduleParams-fireSense-ELFs)
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> Share the national ELF list (see `ELFversion`) through Google Drive, in the fireSense folder named by `spreadFitGoogleDriveFolder` (the same folder that holds the fitted-parameter file). `TRUE`: download the list if someone has already built it for this `ELFversion`, otherwise build and upload it. `"pull"`: download only, never upload (for read-only access). `FALSE`: build locally without Google Drive. Needs Google Drive access to that folder. </td>
+   <td style="text-align:left;"> TRUE </td>
   </tr>
   <tr>
    <td style="text-align:left;"> .useCacheArgs </td>
@@ -300,6 +323,7 @@ Summary of user-visible parameters (Table \@ref(tab:moduleParams-fireSense-ELFs)
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> Extra `Cache()` arguments for each event, by event name. None by default; see `.useCache`. </td>
+   <td style="text-align:left;"> TRUE </td>
   </tr>
 </tbody>
 </table>
@@ -310,7 +334,7 @@ Summary of user-visible parameters (Table \@ref(tab:moduleParams-fireSense-ELFs)
 
 ### Plotting
 
-Unless `.plots` is `NA`, `init` plots a map of all ELFs (green: already fitted; yellow: running now, if `queue_path` is given) and the study areas of this run. Plot files go to `inputPath`.
+Unless `.plots` is `NA`, `init` plots a map of all ELFs (green: already fitted; yellow: this run's ELF, `.ELFind`) and the study areas of this run. Plot files go to `inputPath`.
 
 ### Saving
 

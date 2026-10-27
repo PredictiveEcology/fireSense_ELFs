@@ -43,7 +43,7 @@ initMultiELF <- function(ELFinds, ...) {
   unlink(toyPaths()$inputPath, recursive = TRUE)
   writeToyLedger(ELFinds)
   sim <- toySimInitLocalLedger(list(studyAreaLarge = toyStudyAreaLarge()), ...)
-  mockInitWorld(ELFs = toyELFsWithPoly(), downloads = FALSE)
+  mockInitWorld(ELFs = toyELFsWithPoly())
   mockSpreadFitsForAllELFs()
   runInit(sim)
 }
@@ -66,7 +66,7 @@ initSingleELF <- function(ELF) {
   unlink(toyPaths()$inputPath, recursive = TRUE)
   writeToyLedger("3.1.2")
   sim <- toySimInitLocalLedger(list(.ELFind = ELF))
-  mockInitWorld(ELFs = toyELFsWithPoly(), downloads = FALSE)
+  mockInitWorld(ELFs = toyELFsWithPoly())
   suppressMessages(runInit(sim))
 }
 
@@ -83,9 +83,10 @@ test_that("a single ELF with no fit gets NULL, because this run is about to fit 
 })
 
 test_that("\"latest\" reads each touched ELF's row from the newest ledger files, by polygonID", {
-  asked <- NULL
-  local_mocked_bindings(latestIgnitionFits = function(cloudFolderID, destinationPath, polygonIDs = NULL) {
+  asked <- askedSuffix <- NULL
+  local_mocked_bindings(latestIgnitionFits = function(cloudFolderID, destinationPath, polygonIDs = NULL, suffix = "") {
     asked <<- polygonIDs
+    askedSuffix <<- suffix
     rows <- data.frame(polygonID = c("3.1.1", "3.1.2"))
     cols <- fireSenseUtils::ignitionFitAdditionalColNamesTxt
     rows[[cols[1]]] <- lapply(rows$polygonID, toyFit, process = "ignition")
@@ -93,17 +94,28 @@ test_that("\"latest\" reads each touched ELF's row from the newest ledger files,
     rows
   }, .package = "fireSenseUtils")
   sim <- toySimInit(objects = list(studyAreaLarge = toyStudyAreaLarge()))
-  mockInitWorld(ELFs = toyELFsWithPoly(), downloads = FALSE)
+  mockInitWorld(ELFs = toyELFsWithPoly())
   mockSpreadFitsForAllELFs()
   out <- suppressMessages(runInit(sim))
   expect_setequal(asked, c("3.1.1", "3.1.2"))
+  expect_identical(askedSuffix, "")                      # the production ledger
   expect_setequal(names(out$fireSense_IgnitionFittedList), c("3.1.1", "3.1.2"))
 })
 
 test_that("with heldOutFold the ignition ledger is not read either", {
   sim <- toySimInit(objects = list(studyAreaLarge = toyStudyAreaLarge()), params = list(heldOutFold = 1L))
-  mockInitWorld(ELFs = toyELFsWithPoly(), downloads = FALSE)
+  mockInitWorld(ELFs = toyELFsWithPoly())
   mockNoLedger()
   out <- suppressMessages(runInit(sim))
   expect_null(out$fireSense_IgnitionFittedList)
+})
+
+test_that("with a fitFileSuffix, \"latest\" reads the ignition files with that suffix and no others", {
+  askedSuffix <- NULL
+  local_mocked_bindings(latestIgnitionFits = function(cloudFolderID, destinationPath, polygonIDs = NULL, suffix = "") {
+    askedSuffix <<- suffix
+    NULL
+  }, .package = "fireSenseUtils")
+  readIgnitionFitRows(toyELFsWithPoly(), "folder", "latest", tempdir(), fitFileSuffix = "_boundfix_rep81")
+  expect_identical(askedSuffix, "_boundfix_rep81")
 })

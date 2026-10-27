@@ -68,53 +68,43 @@ test_that("every declared output except the fire-count ones is created", {
                                       "fireSense_IgnitionFittedList", "fireSense_EscapeFittedList"))
 })
 
-test_that("a missing fitted-parameter file means nothing has been fitted yet, and says so", {
+test_that("the ledger is read through CacheGeoRead from inputPath, never listing Google Drive", {
   sim <- toySimInit(objects = list(.ELFind = "3.1.2"), params = list(spreadFitFilename = "fireSenseParams.rds"))
   mockInitWorld()
+  ledgerSeen <- mockLedgerRead()
+  ledgerFolder <- sim@params$fireSense_ELFs$spreadFitGoogleDriveFolder
+  ## reproducible lists that folder for the shared ELF maps; only a listing made by Init itself is the defect
+  local_mocked_bindings(
+    drive_ls = function(path = NULL, ...) {
+      if (identical(sys.call(-1)[[1]], quote(Init))) stop("Init must not list the ledger folder with googledrive::drive_ls()")
+      data.frame(name = character(0))
+    },
+    .package = "googledrive")
+  out <- suppressMessages(runInit(sim))
+  expect_identical(out$spreadFitPreRun$polygonID, c("3.1.2", "5.1"))
+  expect_identical(ledgerSeen$ledger$file, "fireSenseParams.rds")
+  expect_identical(ledgerSeen$ledger$key, "polygonID")
+  expect_identical(normalizePath(ledgerSeen$ledger$destinationPath), normalizePath(toyPaths()$inputPath))
+  expect_identical(ledgerSeen$ledger$remote, ledgerFolder)
+  expect_null(ledgerSeen$area)                                    # the whole ledger
+})
+
+test_that("a ledger with no rows means nothing has been fitted yet, and says so", {
+  sim <- toySimInit(objects = list(.ELFind = "3.1.2"), params = list(spreadFitFilename = "fireSenseParams.rds"))
+  mockInitWorld()
+  mockLedgerRead(toyLedgerRows()[integer(0), , drop = FALSE])
   msgs <- capture_messages(out <- runInit(sim))
   expect_null(out$spreadFitPreRun)
   expect_true(any(grepl("no 'fireSenseParams.rds' in .* treating this as no pre-run SpreadFit results yet",
                         msgs)))
 })
 
-test_that("the fitted-parameter file is read from the folder when it is there", {
-  sim <- toySimInit(objects = list(.ELFind = "3.1.2"), params = list(spreadFitFilename = "fireSenseParams.rds"))
-  files <- data.frame(name = c("other.rds", "fireSenseParams.rds"))
-  files$id <- c("id_other", "id_params")
-  files$drive_resource <- list(list(md5Checksum = "aaa"), list(md5Checksum = "bbb"))
-  drive <- mockInitWorld(driveFiles = files)
-  unlink(file.path(toyPaths()$inputPath, "fireSenseParams.rds"))
-  out <- suppressMessages(runInit(sim))
-  expect_identical(out$spreadFitPreRun,
-                   data.frame(polygonID = c("3.1.2", "5.1"), objFunVal = c(0.25, 0.5)))
-  expect_true(file.exists(file.path(toyPaths()$inputPath, "fireSenseParams.rds")))
-  ## fetched with reproducible, into inputPath, by the file's Drive id
-  expect_length(drive$calls, 1L)
-  expect_identical(drive$calls[[1]]$targetFile, "fireSenseParams.rds")
-  expect_identical(normalizePath(drive$calls[[1]]$destinationPath), normalizePath(toyPaths()$inputPath))
-  expect_match(drive$calls[[1]]$url, "id_params", fixed = TRUE)
-  expect_false(isTRUE(drive$calls[[1]]$purge == 7))                # no local copy yet
-})
-
-test_that("a local copy that differs from Drive's md5 is fetched again", {
-  sim <- toySimInit(objects = list(.ELFind = "3.1.2"), params = list(spreadFitFilename = "fireSenseParams.rds"))
-  files <- data.frame(name = "fireSenseParams.rds", id = "id_params")
-  files$drive_resource <- list(list(md5Checksum = "bbb"))
-  drive <- mockInitWorld(driveFiles = files)
-  writeBin(as.raw(1:3), file.path(toyPaths()$inputPath, "fireSenseParams.rds"))
-  out <- suppressMessages(runInit(sim))
-  expect_identical(drive$calls[[1]]$purge, 7)
-  expect_identical(out$spreadFitPreRun$polygonID, c("3.1.2", "5.1"))
-})
-
-test_that("spreadFitFilename chooses which file in the folder is read", {
+test_that("spreadFitFilename chooses which ledger file is read", {
   sim <- toySimInit(objects = list(.ELFind = "3.1.2"), params = list(spreadFitFilename = "mine.rds"))
-  files <- data.frame(name = "fireSenseParams.rds")
-  files$drive_resource <- list(list(md5Checksum = "bbb"))
-  mockInitWorld(driveFiles = files)
-  msgs <- capture_messages(out <- runInit(sim))
-  expect_null(out$spreadFitPreRun)
-  expect_true(any(grepl("no 'mine.rds' in ", msgs, fixed = TRUE)))
+  mockInitWorld()
+  ledgerSeen <- mockLedgerRead()
+  suppressMessages(runInit(sim))
+  expect_identical(ledgerSeen$ledger$file, "mine.rds")
 })
 
 test_that("by default (\"latest\") the fits come from the newest current-model file, not a named one", {
@@ -125,6 +115,15 @@ test_that("by default (\"latest\") the fits come from the newest current-model f
   files$drive_resource <- list(list(md5Checksum = "bbb", modifiedTime = "2026-09-25T00:00:00Z"),
                                list(md5Checksum = "ccc", modifiedTime = "2026-09-20T00:00:00Z"))
   mockInitWorld(driveFiles = files)
+  ## reproducible::CacheGeoRead() downloads the ledger into a temporary file beside it, then renames it
+  ## (reproducible >= 3.2.1.9081), so a job reading the ledger never sees it half-written
+  local_mocked_bindings(
+    drive_download = function(file, path, ...) {
+      if (basename(path) %in% c("fireSenseParams.rds", current)) stop("downloaded over the ledger itself")
+      saveRDS(toyLedgerRows(), path)   # a ledger is sf, as fireSense_spreadFit's CacheGeo writes it
+      invisible(NULL)
+    },
+    .package = "googledrive")
   unlink(file.path(toyPaths()$inputPath, c("fireSenseParams.rds", current)))
   out <- suppressMessages(runInit(sim))
   expect_identical(out$spreadFitPreRun$polygonID, c("3.1.2", "5.1"))

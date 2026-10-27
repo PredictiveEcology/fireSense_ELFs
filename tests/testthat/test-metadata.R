@@ -42,7 +42,7 @@ test_that("no parameter has been removed or retyped", {
   classes <- vapply(md$parameters$paramClass, paste, "", collapse = "|")
   names(classes) <- unlist(md$parameters$paramName)
   expected <- c(sppEquivCol = "character", spreadFitFilename = "character",
-                spreadFitGoogleDriveFolder = "character", queue_path = "character",
+                spreadFitGoogleDriveFolder = "character",
                 ignitionFitFilename = "character", ignitionFitGoogleDriveFolder = "character",
                 fireYears = "integer", minNaturalIgnitions = "numeric", minFirePolygons = "numeric",
                 escapeSizeHa = "numeric", minEscapes = "numeric",
@@ -54,18 +54,18 @@ test_that("no parameter has been removed or retyped", {
   expect_identical(classes[names(expected)], expected)
   ## removed on purpose (declared but never read); they must not come back unused
   expect_false(any(c(".plotInterval", ".saveInitialTime", ".saveInterval") %in% names(classes)))
+  ## queue_path (2026-10-19): run state, not configuration; as a parameter it entered init's cache key, so every
+  ## new queue name redid init. The map colours this run's .ELFind instead
+  expect_false("queue_path" %in% names(classes))
 })
 
 test_that("parameter defaults are unchanged", {
   p <- SpaDES.core::params(toySimInit(params = list(ELFversion = NULL, .useCache = NULL, .useCloud = NULL, .plots = NULL, fireYears = NULL)))$fireSense_ELFs
   expect_identical(p$sppEquivCol, "LandR")
   expect_identical(p$spreadFitFilename, "latest")
-  expect_identical(p$spreadFitGoogleDriveFolder,
-                   "https://drive.google.com/drive/folders/1X9-mRjyLMNpgkP_cfqhbr_AQEPOsVCHf")
+  expect_identical(p$spreadFitGoogleDriveFolder, fireSenseUtils::spreadFitLedgerFolder())
   expect_identical(p$ignitionFitFilename, "latest")
-  expect_identical(p$ignitionFitGoogleDriveFolder,
-                   "https://drive.google.com/drive/folders/1X9-mRjyLMNpgkP_cfqhbr_AQEPOsVCHf")
-  expect_null(p$queue_path)
+  expect_identical(p$ignitionFitGoogleDriveFolder, fireSenseUtils::ignitionFitLedgerFolder())
   expect_identical(p$fireYears, fireSenseUtils::defaultFireYears())
   expect_identical(p$minNaturalIgnitions, 50)
   expect_identical(p$minFirePolygons, 50)
@@ -77,7 +77,7 @@ test_that("parameter defaults are unchanged", {
   expect_identical(p$.plots, "screen")
   expect_identical(as.numeric(p$.plotInitialTime), 1) # start(sim)
   expect_identical(p$.studyAreaName, NA)
-  expect_identical(p$ELFversion, "2026-10-11")
+  expect_identical(p$ELFversion, "2026-10-26")
   ## no event is cached: the national ELF list has its own cache, keyed on ELFversion alone
   expect_false(p$.useCache)
   expect_identical(p$.useCloud, TRUE)
