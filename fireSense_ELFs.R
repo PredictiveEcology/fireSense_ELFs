@@ -40,7 +40,7 @@ defineModule(sim, list(
   documentation = list("NEWS.md", "README.md", "fireSense_ELFs.Rmd"),
   reqdPkgs = list("SpaDES.core (>= 3.0.1)", "terra", 
                   "PredictiveEcology/reproducible@development (>= 3.2.1.9073)",
-                  "PredictiveEcology/SpaDES.core@development (>= 3.2.1.9003)",
+                  "PredictiveEcology/SpaDES.core@development (>= 3.2.1.9037)",
                   "PredictiveEcology/LandR@development (>= 1.2.0.9021)",
                   "deldir", "withr", "sf", "FOR-CAST/fireregimetools@main (>= 0.1.0.9008)",
                   "PredictiveEcology/fireSenseUtils@development (>= 0.2.3.9120)",
@@ -133,6 +133,9 @@ defineModule(sim, list(
                           "already built it for this `ELFversion`, otherwise build and upload it.",
                           "`\"pull\"`: download only, never upload (for read-only access). `FALSE`: build",
                           "locally without Google Drive. Needs Google Drive access to that folder.")),
+    defineParameter(".neverCache", "character", "init", NA, NA,
+                    paste("Events that are never cached, whatever `.useCache` says (read by SpaDES.core, 3.2.1.9037 or later):",
+                          "`init` reads the spread-fit and ignition-fit ledgers on Google Drive, which are not part of the event's cache key.")),
     defineParameter(".useCacheArgs", "list", list(), NA, NA,
                     "Extra `Cache()` arguments for each event, by event name. None by default; see `.useCache`.")
   ),

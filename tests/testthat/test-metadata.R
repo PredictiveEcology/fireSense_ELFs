@@ -48,7 +48,7 @@ test_that("no parameter has been removed or retyped", {
                 escapeSizeHa = "numeric", minEscapes = "numeric",
                 minRegionAreaKm2 = "numeric", maxLandCoverDist = "numeric", maxBurnRatio = "numeric",
                 .plots = "character", .plotInitialTime = "numeric", .studyAreaName = "character",
-                ELFversion = "character", .useCache = "logical", .useCloud = "logical|character", .useCacheArgs = "list")
+                ELFversion = "character", .neverCache = "character", .useCache = "logical", .useCloud = "logical|character", .useCacheArgs = "list")
   ## `%in%`, not identical: work in progress adds parameters, and an addition breaks no caller
   expect_true(all(names(expected) %in% names(classes)))
   expect_identical(classes[names(expected)], expected)
