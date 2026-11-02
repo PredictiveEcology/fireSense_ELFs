@@ -145,11 +145,6 @@ defineModule(sim, list(
                  sourceURL = NA) # nolint: in_no_default
   ),
   outputObjects = bindrows(
-    createsOutput(".ELFind", objectClass = "character",
-                  desc = paste("This run's ELF(s). As supplied; else, with a `studyAreaLarge`, the fitted ELFs it",
-                               "covers (as a user may name them, see `.assertOneStudyArea()`), which the fit modules",
-                               "check for stored fits and the predict modules simulate; else \"4.3\". An output so",
-                               "that it reaches the other modules when `init` runs during `simInit()`.")),
     createsOutput("ELFs", objectClass = "SpatRaster",
                   desc = paste("All ELFs, from `fireSenseUtils::makeELFs()`: a list with `rasWhole` and `rasCentered`",
                                "(one SpatRaster per ELF), plus `poly` when `studyAreaLarge` is supplied.")),
@@ -434,8 +429,7 @@ Init <- function(sim) {
     rasterToMatch <- studyAreaGrid(rastTemplate, studyAreaLarge)
   
   # Put them all in the sim
-  ## `.ELFind` is not a local here: it stays as supplied, or was set above for a studyAreaLarge
-  objsHere <- setdiff(depends(sim)@dependencies[[currentModule(sim)]]@outputObjects$objectName, ".ELFind")
+  objsHere <- depends(sim)@dependencies[[currentModule(sim)]]@outputObjects$objectName
   list2env(mget(objsHere, envir = environment()), envir = envir(sim))
   
   if (anyPlotting(Par$.plots)) {

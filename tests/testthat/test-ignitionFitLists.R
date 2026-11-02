@@ -121,9 +121,9 @@ test_that("with a fitFileSuffix, \"latest\" reads the ignition files with that s
 })
 
 ## `.ELFind` of a study area over several ELFs. It used to stay "4.3" (the default for no study area at
-## all), and, as it was not an output, it was lost when init ran during simInit(): fireSense_spreadFit
-## then set it to `.runName` (NA), and the fit modules, finding no stored fit for that "ELF", stopped with
-## doFit = FALSE (2026-11-02, a predict-only run over ELFs 6.6.1 and 6.6.2).
+## all); the fit modules, finding no stored fit for that "ELF", stopped with doFit = FALSE (2026-11-02, a
+## predict-only run over ELFs 6.6.1 and 6.6.2). (It reaches the other modules when init runs during
+## simInit() only with SpaDES.core's fix for objects whose name starts with ".".)
 test_that("a study area over several ELFs makes .ELFind those ELFs, not the default", {
   out <- suppressMessages(initMultiELF(c("3.1.1", "3.1.2", "5.1")))
   expect_identical(out$.ELFind, c("3.1.1", "3.1.2"))
