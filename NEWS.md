@@ -1,5 +1,7 @@
 # fireSense_ELFs (development version)
 
+* Over several ELFs (`studyAreaLarge`), `rasterToMatchLargeELF` is made on the grid of `rasterToMatch` (the template's), not on the 5 km grid of the ELF maps: `fireSense_spreadPredict` blends neighbour ELFs on that grid and stopped with "rasterToMatchLargeELF is not on the grid of sim$flammableRTM". New internal `studyAreaGrid()` makes both.
+
 * A `studyAreaLarge` without `.ELFind` (a run that predicts over several ELFs) makes `.ELFind` the fitted ELFs it covers, set by `init`, instead of the default `"4.3"`. `.ELFind` is now an output, so it reaches the other modules when `init` runs during `simInit()`; it was lost there, `fireSense_spreadFit` set it to `.runName` (`NA`), and the fit modules, which now never fit by default, stopped finding no stored fit for that "ELF".
 * With both `studyAreaLarge` and `.ELFind` supplied, `init` checks that they agree (`.assertOneStudyArea()`) again: SpaDES skips `.inputObjects` when every input is supplied, so `init` took `.ELFind` as not supplied and never checked it.
 

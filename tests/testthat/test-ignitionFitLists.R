@@ -155,3 +155,23 @@ test_that("a .ELFind the user gives with the study area is checked and kept (.in
   expect_identical(initWith(c("5.1", "3.1.2", "3.1.1"))$.ELFind, c("5.1", "3.1.2", "3.1.1"))
   expect_error(initWith("3.1.2"), "describe different study areas")
 })
+
+## fireSense_spreadPredict blends neighbour ELFs on the grid of flammableRTM (rasterToMatch's), and
+## stopped with "rasterToMatchLargeELF is not on the grid of sim$flammableRTM": over several ELFs it was
+## made on the 5 km grid of the ELF maps, not the template's (2026-11-02).
+test_that("over several ELFs, rasterToMatchLargeELF is on the grid of rasterToMatch, not of the ELF maps", {
+  unlink(toyPaths()$inputPath, recursive = TRUE)
+  writeToyLedger(c("3.1.1", "3.1.2", "5.1"))
+  sim <- toySimInitLocalLedger(list(studyAreaLarge = toyStudyAreaLarge()))
+  mockInitWorld(ELFs = toyELFsWithPoly())
+  fine <- function(inputPath) terra::disagg(toyGrid(), 5) + 1     # a 1 km template; the ELF maps are 5 km
+  local_mocked_bindings(ELFtemplateRaster = fine)
+  local_mocked_bindings(ELFtemplateRaster = fine, .package = "fireSenseUtils")
+  mockSpreadFitsForAllELFs()
+  out <- suppressMessages(runInit(sim))
+  expect_true(terra::compareGeom(out$rasterToMatchLargeELF, out$rasterToMatch, stopOnError = FALSE))
+  expect_equal(terra::res(out$rasterToMatchLargeELF), c(1000, 1000))
+  lv <- terra::levels(out$rasterToMatchLargeELF)[[1]]
+  expect_setequal(as.character(lv[[2]][lv[[1]] %in% terra::values(out$rasterToMatchLargeELF, mat = FALSE)]),
+                  c("3.1.1", "3.1.2"))
+})

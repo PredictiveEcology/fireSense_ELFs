@@ -338,15 +338,17 @@ Init <- function(sim) {
       ELF <- sort(unique(as.character(pp$ELFind)))
       sim$.ELFind <- ELF
     }
-    studyAreaLargeELF <- terra::project(pp, ELFs$rasWhole[[1]])
-    rr <- rasterize(studyAreaLargeELF, ELFs$rasWhole[[1]], field = "ELFind")
-    rasterToMatchLargeELF <- terra::trim(rr)
-    rasterToMatchELF <- rasterToMatchLargeELF
-    
+    studyAreaLargeELF <- terra::project(pp, rastTemplate)
     w <- 0.00000001 # the aggregate function creates artifacts --> lines that shouldn't be there
     salELFagg <- terra::aggregate(studyAreaLargeELF)
     studyAreaLarge <- terra::buffer(width = -w, terra::buffer(width = w, salELFagg))
     studyAreaELF <- studyAreaLargeELF
+    ## Each pixel's ELF, on the grid of rasterToMatch: fireSense_spreadPredict blends neighbour ELFs on
+    ## that grid (flammableRTM), and stopped with "rasterToMatchLargeELF is not on the grid of
+    ## flammableRTM" when this was the 5 km grid of the ELF maps.
+    grid <- if (is.null(sim$rasterToMatch)) studyAreaGrid(rastTemplate, studyAreaLarge) else sim$rasterToMatch
+    rasterToMatchLargeELF <- terra::mask(terra::rasterize(studyAreaLargeELF, grid, field = "ELFind"), grid)
+    rasterToMatchELF <- rasterToMatchLargeELF
 
   } else {
     rtml <- ELFs$rasWhole[[ELF]]
@@ -428,11 +430,8 @@ Init <- function(sim) {
   if (is.null(sim$studyArea)) # conditional; can't put it in metadata or this will not be run first
     studyArea <- studyAreaLarge
 
-  if (is.null(sim$rasterToMatch)) {# conditional; can't put it in metadata or this will not be run first
-    rasterToMatch <- postProcessTo(rastTemplate, maskTo = studyAreaLarge, cropTo = studyAreaLarge)
-    rasterToMatch <- terra::trim(rasterToMatch)
-    rasterToMatch <- ifel(!is.na(rasterToMatch), 1, NA) # needs to not be zero --> zero is like NA
-  }
+  if (is.null(sim$rasterToMatch)) # conditional; can't put it in metadata or this will not be run first
+    rasterToMatch <- studyAreaGrid(rastTemplate, studyAreaLarge)
   
   # Put them all in the sim
   ## `.ELFind` is not a local here: it stays as supplied, or was set above for a studyAreaLarge
