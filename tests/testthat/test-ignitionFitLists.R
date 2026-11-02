@@ -119,3 +119,39 @@ test_that("with a fitFileSuffix, \"latest\" reads the ignition files with that s
   readIgnitionFitRows(toyELFsWithPoly(), "folder", "latest", tempdir(), fitFileSuffix = "_boundfix_rep81")
   expect_identical(askedSuffix, "_boundfix_rep81")
 })
+
+## `.ELFind` of a study area over several ELFs. It used to stay "4.3" (the default for no study area at
+## all), and, as it was not an output, it was lost when init ran during simInit(): fireSense_spreadFit
+## then set it to `.runName` (NA), and the fit modules, finding no stored fit for that "ELF", stopped with
+## doFit = FALSE (2026-11-02, a predict-only run over ELFs 6.6.1 and 6.6.2).
+test_that("a study area over several ELFs makes .ELFind those ELFs, not the default", {
+  out <- suppressMessages(initMultiELF(c("3.1.1", "3.1.2", "5.1")))
+  expect_identical(out$.ELFind, c("3.1.1", "3.1.2"))
+})
+
+test_that("an ELF of the study area without a SpreadFit is left out of .ELFind, as of the study area", {
+  unlink(toyPaths()$inputPath, recursive = TRUE)
+  writeToyLedger(c("3.1.1", "3.1.2"))
+  sim <- toySimInitLocalLedger(list(studyAreaLarge = toyStudyAreaLarge()))
+  mockInitWorld(ELFs = toyELFsWithPoly())
+  local_mocked_bindings(latestSpreadFits = function(...) data.frame(polygonID = "3.1.1"),
+                        .package = "fireSenseUtils")
+  out <- suppressMessages(suppressWarnings(runInit(sim)))
+  expect_identical(out$.ELFind, "3.1.1")
+})
+
+## With both inputs supplied SpaDES skips .inputObjects, which recorded whether `.ELFind` was supplied;
+## Init then took it as not supplied, so .assertOneStudyArea() never checked it.
+test_that("a .ELFind the user gives with the study area is checked and kept (.inputObjects does not run then)", {
+  unlink(toyPaths()$inputPath, recursive = TRUE)
+  writeToyLedger(c("3.1.1", "3.1.2", "5.1"))
+  initWith <- function(elf) {
+    sim <- toySimInitLocalLedger(list(studyAreaLarge = toyStudyAreaLarge(), .ELFind = elf))
+    mockInitWorld(ELFs = toyELFsWithPoly())
+    mockSpreadFitsForAllELFs()
+    suppressMessages(runInit(sim))
+  }
+  ## the study area touches 3.1.1, 3.1.2 and 5.1
+  expect_identical(initWith(c("5.1", "3.1.2", "3.1.1"))$.ELFind, c("5.1", "3.1.2", "3.1.1"))
+  expect_error(initWith("3.1.2"), "describe different study areas")
+})

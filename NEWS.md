@@ -1,5 +1,8 @@
 # fireSense_ELFs (development version)
 
+* A `studyAreaLarge` without `.ELFind` (a run that predicts over several ELFs) makes `.ELFind` the fitted ELFs it covers, set by `init`, instead of the default `"4.3"`. `.ELFind` is now an output, so it reaches the other modules when `init` runs during `simInit()`; it was lost there, `fireSense_spreadFit` set it to `.runName` (`NA`), and the fit modules, which now never fit by default, stopped finding no stored fit for that "ELF".
+* With both `studyAreaLarge` and `.ELFind` supplied, `init` checks that they agree (`.assertOneStudyArea()`) again: SpaDES skips `.inputObjects` when every input is supplied, so `init` took `.ELFind` as not supplied and never checked it.
+
 * `ELFversion` is now `"2026-10-26"` (was `"2026-10-14"`), so the national ELF list is rebuilt once with fireSenseUtils 0.2.3.9120: merged ELFs no longer overlap, cores form a clean partition without stray pixels, and a cache-restored province raster no longer crashes `makeELFs()` (fireSenseUtils#179). `fireSenseUtils` floor raised to 0.2.3.9120.
 
 * Removed the `queue_path` parameter. The ELF map now colours this run's ELF (`.ELFind`) instead of reading the tmux queue's running-job files. As a parameter it was part of `init`'s cache key, so every new queue name redid `init`.

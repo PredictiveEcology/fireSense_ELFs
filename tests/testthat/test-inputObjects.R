@@ -13,11 +13,11 @@ test_that("a supplied .ELFind is kept and recorded as supplied", {
   expect_identical(toyModObj(sim, "ELFindSupplied"), TRUE)
 })
 
-test_that("supplying only studyAreaLarge leaves .ELFind a default, so it cannot conflict", {
+test_that("supplying only studyAreaLarge leaves .ELFind unset (init sets it to the ELFs covered)", {
   sal <- terra::as.polygons(terra::ext(toyGrid()), crs = "EPSG:3978")
   sim <- toySimInit(objects = list(studyAreaLarge = sal))
   expect_identical(toyModObj(sim, "ELFindSupplied"), FALSE)
-  expect_identical(sim$.ELFind, "4.3")
+  expect_null(sim$.ELFind)
   ## and the polygon is passed through untouched
   expect_equal(terra::expanse(sim$studyAreaLarge, unit = "km", transform = FALSE), 60 * 20)
 })
