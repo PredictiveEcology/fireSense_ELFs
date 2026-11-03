@@ -113,7 +113,7 @@ knitr::kable(df_outputs, caption = "List of (ref:fireSense-ELFs) outputs and the
 
 ### Usage
 
-```{r module usage example, eval = FALSE}
+```{r usage-fireSense-ELFs, eval = FALSE}
 library(SpaDES.core)
 
 mySim <- simInit(times = list(start = 2011, end = 2011),
