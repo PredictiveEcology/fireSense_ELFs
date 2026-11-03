@@ -1,7 +1,7 @@
 ---
 title: "fireSense_ELFs Manual"
 subtitle: "v.1.2.0.9008"
-date: "Last updated: 2026-10-26"
+date: "Last updated: 2026-11-03"
 output:
   bookdown::html_document2:
     toc: true
@@ -69,7 +69,7 @@ Table \@ref(tab:moduleInputs-fireSense-ELFs) shows the full list of module input
   <tr>
    <td style="text-align:left;"> .ELFind </td>
    <td style="text-align:left;"> character </td>
-   <td style="text-align:left;"> Name of the ELF to use as the study area, e.g. "4.3" (the default). </td>
+   <td style="text-align:left;"> Name of the ELF to use as the study area, e.g. "4.3" (the default when `studyAreaLarge` is not supplied either). </td>
    <td style="text-align:left;"> NA </td>
   </tr>
   <tr>
@@ -133,7 +133,7 @@ Summary of user-visible parameters (Table \@ref(tab:moduleParams-fireSense-ELFs)
    <td style="text-align:left;">  </td>
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> NA </td>
-   <td style="text-align:left;"> Text put after the model tag in the ledger file names, e.g. `"_boundfix_rep81"`, so a test run writes and reads (`"latest"`) only its own files, never the production ones. `""` (the default) is the production ledger. The same parameter of `fireSense_spreadFit`, `fireSense_ignitionFit` and `fireSense_dataPrepFit`; set it for all with `.globals = list(fitFileSuffix = ...)`; modules that disagree stop (`SpaDES.core::paramCheckOtherMods()`). Ignored when a file name is given. </td>
+   <td style="text-align:left;"> Text put after the model tag in the ledger file names, e.g. `"_boundfix_rep81"`, so a test run writes and reads (`"latest"`) only its own files, never the production ones. `""` (the default) writes the unsuffixed file and reads (`"latest"`) every file of the model tag, newest by the date in its suffix (`fireSenseUtils::ledgerFileOrder()`); experiment fits belong in `spreadFitLedgerFolder(testing = TRUE)`. The same parameter of `fireSense_spreadFit`, `fireSense_ignitionFit` and `fireSense_dataPrepFit`; set it for all with `.globals = list(fitFileSuffix = ...)`; modules that disagree stop (`SpaDES.core::paramCheckOtherMods()`). Ignored when a file name is given. </td>
    <td style="text-align:left;"> TRUE </td>
   </tr>
   <tr>
