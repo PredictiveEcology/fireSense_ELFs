@@ -40,7 +40,7 @@ defineModule(sim, list(
   documentation = list("NEWS.md", "README.md", "fireSense_ELFs.Rmd"),
   reqdPkgs = list("SpaDES.core (>= 3.0.1)", "terra", 
                   "PredictiveEcology/reproducible@development (>= 3.2.1.9073)",
-                  "PredictiveEcology/SpaDES.core@development (>= 3.2.1.9003)",
+                  "PredictiveEcology/SpaDES.core@development (>= 3.2.1.9056)",
                   "PredictiveEcology/LandR@development (>= 1.2.0.9021)",
                   "deldir", "withr", "sf", "FOR-CAST/fireregimetools@main (>= 0.1.0.9008)",
                   "PredictiveEcology/fireSenseUtils@development (>= 0.2.3.9120)",
@@ -51,7 +51,8 @@ defineModule(sim, list(
     defineParameter("fitFileSuffix", "character", "", NA, NA,
                     paste("Text put after the model tag in the ledger file names, e.g. `\"_boundfix_rep81\"`, so a test run",
                           "writes and reads (`\"latest\"`) only its own files, never the production ones. `\"\"` (the",
-                          "default) is the production ledger. The same parameter of `fireSense_spreadFit`, `fireSense_ignitionFit` and `fireSense_dataPrepFit`;",
+                          "default) writes the unsuffixed file and reads (`\"latest\"`) every file of the model tag, newest by the date in its",
+                          "suffix (`fireSenseUtils::ledgerFileOrder()`); experiment fits belong in `spreadFitLedgerFolder(testing = TRUE)`. The same parameter of `fireSense_spreadFit`, `fireSense_ignitionFit` and `fireSense_dataPrepFit`;",
                           "set it for all with `.globals = list(fitFileSuffix = ...)`; modules that disagree stop",
                           "(`SpaDES.core::paramCheckOtherMods()`). Ignored when a file name is given.")),
     defineParameter("spreadFitFilename", "character", "latest",
@@ -137,7 +138,8 @@ defineModule(sim, list(
                     "Extra `Cache()` arguments for each event, by event name. None by default; see `.useCache`.")
   ),
   inputObjects = bindrows(
-    expectsInput(".ELFind", "character", "Name of the ELF to use as the study area, e.g. \"4.3\" (the default)."),
+    expectsInput(".ELFind", "character", paste("Name of the ELF to use as the study area, e.g. \"4.3\" (the default",
+                                                 "when `studyAreaLarge` is not supplied either).")),
     expectsInput("studyAreaLarge", objectClass = "SpatVector",
                  desc = paste("Optional. If supplied, the study area is the ELFs it overlaps that have fitted",
                               "SpreadFit parameters, instead of `.ELFind`. Supply one or the other, not both."),
@@ -238,6 +240,9 @@ Init <- function(sim) {
                            maskOutBorder = maskOutBorder, selectCanadaUSBorder = selectCanadaUSBorder)
 
   hasStudyAreaLarge <- !is.null(sim$studyAreaLarge)
+  ## .inputObjects records whether `.ELFind` was supplied. SpaDES skips .inputObjects when every input
+  ## is supplied, and then it was.
+  ELFindSupplied <- if (is.null(mod$ELFindSupplied)) !is.null(sim$.ELFind) else isTRUE(mod$ELFindSupplied)
   if (!is.null(Par$fireYears)) {
     SpaDES.core::paramCheckOtherMods(sim, "fireYears", ifSetButDifferent = "warning")
     SpaDES.core::paramCheckOtherMods(sim, "escapeSizeHa", ifSetButDifferent = "warning")
@@ -256,7 +261,7 @@ Init <- function(sim) {
   ELFsExcluded <- built$excluded
   ELFfireStatus <- built$status
   ELFmerges <- built$plan
-  if (!is.null(ELFmerges)) {
+  if (!is.null(ELFmerges) && length(ELF) == 1L) {
     ## A job is queued under a merged ELF's name, but the default `.ELFind` (e.g. from global.R) may
     ## name one of its members
     runAs <- fireSenseUtils::ELFrunName(ELF, ELFmerges)
@@ -305,7 +310,7 @@ Init <- function(sim) {
     ELFsNeeded <- unique(out$poly$ID)
     ## Both study areas were supplied and they disagree: stop rather than pick one
     ## silently, which once produced five identically-fitted "different" ELFs.
-    .assertOneStudyArea(sim$.ELFind, isTRUE(mod$ELFindSupplied), ELFsNeeded)
+    .assertOneStudyArea(sim$.ELFind, ELFindSupplied, ELFsNeeded)
     v <- values(out$rast, dataframe = TRUE)
     out$rast[which(v[[1]] %in% "none")] <- NA
     out$rast <- terra::sieve(out$rast, threshold = 100, directions = 8)
@@ -322,15 +327,24 @@ Init <- function(sim) {
     pp <- terra::project(pp, sim$studyAreaLarge)
     pp <- terra::intersect(pp, sim$studyAreaLarge) |> maskOutBorder(borderZone)
     ELFpolys <- pp
-    studyAreaLargeELF <- terra::project(pp, ELFs$rasWhole[[1]])
-    rr <- rasterize(studyAreaLargeELF, ELFs$rasWhole[[1]], field = "ELFind")
-    rasterToMatchLargeELF <- terra::trim(rr)
-    rasterToMatchELF <- rasterToMatchLargeELF
-    
+    ## This run's ELFs, unless the user named them (.assertOneStudyArea() checked those): the ones the
+    ## study area covers that have a fit. Not the default "4.3", which the fit modules took for this run's
+    ## ELF: with doFit = FALSE they stopped, finding no stored fit for it.
+    if (!ELFindSupplied) {
+      ELF <- sort(unique(as.character(pp$ELFind)))
+      sim$.ELFind <- ELF
+    }
+    studyAreaLargeELF <- terra::project(pp, rastTemplate)
     w <- 0.00000001 # the aggregate function creates artifacts --> lines that shouldn't be there
     salELFagg <- terra::aggregate(studyAreaLargeELF)
     studyAreaLarge <- terra::buffer(width = -w, terra::buffer(width = w, salELFagg))
     studyAreaELF <- studyAreaLargeELF
+    ## Each pixel's ELF, on the grid of rasterToMatch: fireSense_spreadPredict blends neighbour ELFs on
+    ## that grid (flammableRTM), and stopped with "rasterToMatchLargeELF is not on the grid of
+    ## flammableRTM" when this was the 5 km grid of the ELF maps.
+    grid <- if (is.null(sim$rasterToMatch)) studyAreaGrid(rastTemplate, studyAreaLarge) else sim$rasterToMatch
+    rasterToMatchLargeELF <- terra::mask(terra::rasterize(studyAreaLargeELF, grid, field = "ELFind"), grid)
+    rasterToMatchELF <- rasterToMatchLargeELF
 
   } else {
     rtml <- ELFs$rasWhole[[ELF]]
@@ -412,11 +426,8 @@ Init <- function(sim) {
   if (is.null(sim$studyArea)) # conditional; can't put it in metadata or this will not be run first
     studyArea <- studyAreaLarge
 
-  if (is.null(sim$rasterToMatch)) {# conditional; can't put it in metadata or this will not be run first
-    rasterToMatch <- postProcessTo(rastTemplate, maskTo = studyAreaLarge, cropTo = studyAreaLarge)
-    rasterToMatch <- terra::trim(rasterToMatch)
-    rasterToMatch <- ifel(!is.na(rasterToMatch), 1, NA) # needs to not be zero --> zero is like NA
-  }
+  if (is.null(sim$rasterToMatch)) # conditional; can't put it in metadata or this will not be run first
+    rasterToMatch <- studyAreaGrid(rastTemplate, studyAreaLarge)
   
   # Put them all in the sim
   objsHere <- depends(sim)@dependencies[[currentModule(sim)]]@outputObjects$objectName
@@ -437,9 +448,9 @@ Init <- function(sim) {
             filename = "ELFs_postMerge")
 
     Plots(as.list(sim[grep("studyArea|rasterToMatchELF", names(sim), value = TRUE)]),
-          title = paste0("StudyArea ", sim$.ELFind),
+          title = paste0("StudyArea ", paste(sim$.ELFind, collapse = ", ")),
           fn = SpaDES.project::plotSAs,
-          filename = paste0("studyAreas", sim$.ELFind),
+          filename = paste0("studyAreas", paste(sim$.ELFind, collapse = "_")),
           path = inputPath,
           ggsaveArgs = list(width = 11, height = 8, units = "in"))
     
@@ -488,8 +499,9 @@ plotAllELFsFn <- function(centred, crsToUse, alreadyRun, thisELF) {
 
 #' Default `.ELFind`
 #'
-#' Sets `sim$.ELFind` to `"4.3"` if not supplied (with a message, unless a
-#' `studyAreaLarge` is supplied), and records in `mod$ELFindSupplied` whether it was.
+#' Sets `sim$.ELFind` to `"4.3"`, with a message, if neither it nor `studyAreaLarge` is supplied (with
+#' a `studyAreaLarge`, Init sets it to the ELFs it covers), and records in `mod$ELFindSupplied` whether
+#' it was supplied.
 #'
 #' @param sim A `simList`.
 #'
@@ -499,14 +511,13 @@ plotAllELFsFn <- function(centred, crsToUse, alreadyRun, thisELF) {
   ## Init has to tell an ELF the user asked for from the fallback below: only the
   ## former can conflict with a `studyAreaLarge`. See .assertOneStudyArea().
   mod$ELFindSupplied <- suppliedElsewhere(".ELFind", sim)
-  if (!mod$ELFindSupplied) {
+  ## with a studyAreaLarge, Init sets `.ELFind` to the ELFs it covers
+  if (!mod$ELFindSupplied && !suppliedElsewhere("studyAreaLarge", sim)) {
     defaultELF <- "4.3"
     sim$.ELFind <- defaultELF
-    if (!suppliedElsewhere("studyAreaLarge", sim)) {
-      message("fireSense_ELFs: neither `.ELFind` nor `studyAreaLarge` was supplied, so the study area is ELF ",
-              defaultELF, " (the module's default). To use another ELF, set `.ELFind` in setupProject() ",
-              "(e.g. `.ELFind = \"12.3\"`) or supply your own `studyAreaLarge`.")
-    }
+    message("fireSense_ELFs: neither `.ELFind` nor `studyAreaLarge` was supplied, so the study area is ELF ",
+            defaultELF, " (the module's default). To use another ELF, set `.ELFind` in setupProject() ",
+            "(e.g. `.ELFind = \"12.3\"`) or supply your own `studyAreaLarge`.")
   }
   
   sim
