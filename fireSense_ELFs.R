@@ -38,7 +38,7 @@ defineModule(sim, list(
   timeunit = "year",
   citation = list("citation.bib"),
   documentation = list("NEWS.md", "README.md", "fireSense_ELFs.Rmd"),
-  reqdPkgs = list("SpaDES.core (>= 3.0.1)", "googledrive", "terra",
+  reqdPkgs = list("SpaDES.core (>= 3.0.1)", "data.table", "googledrive", "httr2", "terra",
                   "PredictiveEcology/reproducible@development (>= 3.2.1.9073)",
                   "PredictiveEcology/SpaDES.core@development (>= 3.2.1.9056)",
                   "PredictiveEcology/LandR@development (>= 1.2.0.9021)",
