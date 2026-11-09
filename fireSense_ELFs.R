@@ -429,8 +429,9 @@ Init <- function(sim) {
   if (is.null(sim$rasterToMatch)) # conditional; can't put it in metadata or this will not be run first
     rasterToMatch <- studyAreaGrid(rastTemplate, studyAreaLarge)
   
-  # Put them all in the sim
+  # Put them all in the sim; a supplied rasterToMatch or studyArea was not made here and stays as it is
   objsHere <- depends(sim)@dependencies[[currentModule(sim)]]@outputObjects$objectName
+  objsHere <- objsHere[vapply(objsHere, exists, logical(1), envir = environment(), inherits = FALSE)]
   list2env(mget(objsHere, envir = environment()), envir = envir(sim))
   
   if (anyPlotting(Par$.plots)) {
