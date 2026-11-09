@@ -1,6 +1,7 @@
 # fireSense_ELFs (development version)
 
 * With a `studyAreaLarge`, `init` finds the ELFs the study area covers before reading the SpreadFit ledger and passes them as `polygonIDs` to `fireSenseUtils::latestSpreadFits()`, which then stops reading ledger files once it has them all, instead of reading every file in the Drive folder. `sim$spreadFitPreRun` (and the ELF map's "already fitted" layer) then holds only those ELFs.
+* `init` no longer stops with "value for 'rasterToMatch' not found" when `rasterToMatch` or `studyArea` is supplied: only the outputs `init` made are put in the simList, so the supplied objects stay as they are.
 
 * Over several ELFs (`studyAreaLarge`), `rasterToMatchLargeELF` is made on the grid of `rasterToMatch` (the template's), not on the 5 km grid of the ELF maps: `fireSense_spreadPredict` blends neighbour ELFs on that grid and stopped with "rasterToMatchLargeELF is not on the grid of sim$flammableRTM". New internal `studyAreaGrid()` makes both.
 

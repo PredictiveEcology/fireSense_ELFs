@@ -276,3 +276,15 @@ test_that("for a single ELF the SpreadFit ledger is still read whole", {
   suppressMessages(runInit(sim))
   expect_null(asked)
 })
+
+test_that("a supplied rasterToMatch and studyArea stay in the simList untouched", {
+  rtm <- terra::rast(toyGrid()) 
+  terra::values(rtm) <- 1
+  sa <- terra::as.polygons(terra::ext(rtm), crs = terra::crs(rtm))
+  sim <- toySimInit(objects = list(.ELFind = "3.1.2", rasterToMatch = rtm, studyArea = sa))
+  mockInitWorld()
+  out <- suppressMessages(runInit(sim))
+  expect_identical(out$rasterToMatch, rtm)
+  expect_identical(out$studyArea, sa)
+  expect_false(is.null(out$rasterToMatchELF))                          # the other outputs are still made
+})
