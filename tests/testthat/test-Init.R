@@ -247,6 +247,36 @@ test_that("by default init counts fires over the fit's years and merges the thin
   expect_identical(out$ELFsExcluded, "5.1")
 })
 
+test_that("over a study area, the SpreadFit ledger is read only as far as the ELFs it covers", {
+  ## the ledger lookup stops once every id in `polygonIDs` is found; with none it reads every ledger file
+  asked <- "not called"
+  local_mocked_bindings(latestSpreadFits = function(cloudFolderID, destinationPath, polygonIDs = NULL, suffix = "") {
+    asked <<- polygonIDs
+    data.frame(polygonID = c("3.1.1", "3.1.2", "5.1"))
+  }, latestIgnitionFits = function(...) {                              # fits for both ELFs, as test-ignitionFitLists.R
+    rows <- data.frame(polygonID = c("3.1.1", "3.1.2"))
+    for (col in fireSenseUtils::ignitionFitAdditionalColNamesTxt) rows[[col]] <- list(list(), list())
+    rows
+  }, .package = "fireSenseUtils")
+  sim <- toySimInit(objects = list(studyAreaLarge = terra::vect(terra::ext(0, 30000, 0, 20000), crs = "EPSG:3978")))
+  mockInitWorld(ELFs = toyELFsWithPoly())
+  suppressMessages(runInit(sim))
+  ## the ELFs the study area reaches (5.1 only through its buffer); not 1.1, the toy ELF map's other ELF
+  expect_setequal(asked, c("3.1.1", "3.1.2", "5.1"))
+})
+
+test_that("for a single ELF the SpreadFit ledger is still read whole", {
+  asked <- "not called"
+  local_mocked_bindings(latestSpreadFits = function(cloudFolderID, destinationPath, polygonIDs = NULL, suffix = "") {
+    asked <<- polygonIDs
+    NULL
+  }, .package = "fireSenseUtils")
+  sim <- toySimInit(objects = list(.ELFind = "3.1.2"))
+  mockInitWorld()
+  suppressMessages(runInit(sim))
+  expect_null(asked)
+})
+
 test_that("a supplied rasterToMatch and studyArea stay in the simList untouched", {
   rtm <- terra::rast(toyGrid()) 
   terra::values(rtm) <- 1

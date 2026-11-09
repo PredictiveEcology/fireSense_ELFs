@@ -271,6 +271,22 @@ Init <- function(sim) {
     }
   }
 
+  ## Over a study area the ledger lookup below needs only the ELFs it covers, so they are found first.
+  ## Their names are the merged ELFs' (ELFs is built with the merges), as in the ledger's `polygonID`.
+  if (hasStudyAreaLarge) {
+    out <- ELFsInStudyArea(sim$studyAreaLarge, ELFsRaster = ELFs["rasWhole"], 
+                           ELFsPolygon = ELFs$poly, inputPath = inputPath(sim))
+    ELFsNeeded <- unique(out$poly$ID)
+    ## Both study areas were supplied and they disagree: stop rather than pick one
+    ## silently, which once produced five identically-fitted "different" ELFs.
+    .assertOneStudyArea(sim$.ELFind, ELFindSupplied, ELFsNeeded)
+    v <- values(out$rast, dataframe = TRUE)
+    out$rast[which(v[[1]] %in% "none")] <- NA
+    out$rast <- terra::sieve(out$rast, threshold = 100, directions = 8)
+    rr <- terra::trim(out$rast)
+    pp <- as.polygons(rr)
+  }
+
   # Check on what fireSense_spreadFit has already been run.
   # A held-out fold is fitted without the ledger: it is not read, and nothing counts as fitted.
   heldOutFold <- SpaDES.core::paramCheckOtherMods(sim, "heldOutFold")
@@ -290,6 +306,7 @@ Init <- function(sim) {
     NULL
   } else if (latest) {
     fireSenseUtils::latestSpreadFits(prepInputsFSURL, destinationPath = inputPath(sim),
+                                      polygonIDs = if (hasStudyAreaLarge) as.character(unique(pp$ELFind)),
                                       suffix = fitFileSuffix)
   } else {
     ledger <- reproducible::CacheGeoLedger(fireSenseParamsRDS, remote = prepInputsFSURL,
@@ -305,18 +322,6 @@ Init <- function(sim) {
   
   if (hasStudyAreaLarge) {
 
-    out <- ELFsInStudyArea(sim$studyAreaLarge, ELFsRaster = ELFs["rasWhole"], 
-                           ELFsPolygon = ELFs$poly, inputPath = inputPath(sim))
-    ELFsNeeded <- unique(out$poly$ID)
-    ## Both study areas were supplied and they disagree: stop rather than pick one
-    ## silently, which once produced five identically-fitted "different" ELFs.
-    .assertOneStudyArea(sim$.ELFind, ELFindSupplied, ELFsNeeded)
-    v <- values(out$rast, dataframe = TRUE)
-    out$rast[which(v[[1]] %in% "none")] <- NA
-    out$rast <- terra::sieve(out$rast, threshold = 100, directions = 8)
-    rr <- terra::trim(out$rast)
-    pp <- as.polygons(rr)
-    
     # Not all will have SpreadFit yet
     hasELFFittedData <- pp$ELFind %in% spreadFitPreRun$polygonID
     if (any(!hasELFFittedData) && !heldOut) {
