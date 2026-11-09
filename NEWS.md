@@ -1,5 +1,7 @@
 # fireSense_ELFs (development version)
 
+* `init` no longer stops with "value for 'rasterToMatch' not found" when `rasterToMatch` or `studyArea` is supplied: only the outputs `init` made are put in the simList, so the supplied objects stay as they are.
+
 * Over several ELFs (`studyAreaLarge`), `rasterToMatchLargeELF` is made on the grid of `rasterToMatch` (the template's), not on the 5 km grid of the ELF maps: `fireSense_spreadPredict` blends neighbour ELFs on that grid and stopped with "rasterToMatchLargeELF is not on the grid of sim$flammableRTM". New internal `studyAreaGrid()` makes both.
 
 * A `studyAreaLarge` without `.ELFind` (a run that predicts over several ELFs) makes `.ELFind` the fitted ELFs it covers, set by `init`, instead of the default `"4.3"`: the fit modules, which now never fit by default, stopped finding no stored fit for that "ELF". It reaches the other modules when `init` runs during `simInit()` with SpaDES.core's fix for objects whose name starts with `.` (they were dropped, and `fireSense_spreadFit` then set `.ELFind` to `.runName`, `NA`).
