@@ -272,7 +272,7 @@ test_that("over a study area, the SpreadFit ledger is read only as far as the EL
     for (col in fireSenseUtils::ignitionFitAdditionalColNamesTxt) rows[[col]] <- list(list(), list())
     rows
   }, .package = "fireSenseUtils")
-  sim <- toySimInit(objects = list(studyAreaLarge = terra::vect(terra::ext(0, 30000, 0, 20000), crs = "EPSG:3978")))
+  sim <- toySimInit(objects = list(studyArea_fireSense = terra::vect(terra::ext(0, 30000, 0, 20000), crs = "EPSG:3978")))
   mockInitWorld(ELFs = toyELFsWithPoly())
   suppressMessages(runInit(sim))
   ## the ELFs the study area reaches (5.1 only through its buffer); not 1.1, the toy ELF map's other ELF
@@ -301,4 +301,78 @@ test_that("a supplied rasterToMatch and studyArea stay in the simList untouched"
   expect_identical(out$rasterToMatch, rtm)
   expect_identical(out$studyArea, sa)
   expect_false(is.null(out$rasterToMatchELF))                          # the other outputs are still made
+})
+
+## --- studyArea_fireSense -----------------------------------------------------------------------
+## The toy area below covers ELFs 3.1.1 and 3.1.2 (5.1 reaches it only through cells the area cuts off).
+toySAfS <- function() terra::vect(terra::ext(0, 30000, 0, 20000), crs = "EPSG:3978")
+
+## Stored fits: spread for `spread`, ignition and escape for 3.1.1 and 3.1.2
+mockFits <- function(spread, env = parent.frame()) {
+  local_mocked_bindings(latestSpreadFits = function(...) data.frame(polygonID = spread),
+                        latestIgnitionFits = function(...) {
+                          rows <- data.frame(polygonID = c("3.1.1", "3.1.2"))
+                          for (col in fireSenseUtils::ignitionFitAdditionalColNamesTxt) rows[[col]] <- list(list(), list())
+                          rows
+                        }, .package = "fireSenseUtils", .env = env)
+}
+
+test_that("the old name studyAreaLarge works as studyArea_fireSense, with a deprecation warning", {
+  mockFits(c("3.1.1", "3.1.2", "5.1"))
+  sim <- toySimInit(objects = list(studyAreaLarge = toySAfS()))
+  mockInitWorld(ELFs = toyELFsWithPoly())
+  expect_warning(out <- suppressMessages(runInit(sim)), "studyAreaLarge.*deprecated")
+  expect_setequal(out$.ELFind, c("3.1.1", "3.1.2"))
+})
+
+test_that("a supplied studyArea that does not cover studyArea_fireSense stops: fire would have no buffer", {
+  mockFits(c("3.1.1", "3.1.2", "5.1"))
+  core <- terra::vect(terra::ext(5000, 25000, 5000, 15000), crs = "EPSG:3978")   # the area without its buffer
+  sim <- toySimInit(objects = list(studyArea_fireSense = toySAfS(), studyArea = core))
+  mockInitWorld(ELFs = toyELFsWithPoly())
+  expect_error(suppressMessages(runInit(sim)), "`studyArea` does not cover `studyArea_fireSense`")
+})
+
+test_that("studyArea equal to studyArea_fireSense passes the check", {
+  mockFits(c("3.1.1", "3.1.2", "5.1"))
+  sim <- toySimInit(objects = list(studyArea_fireSense = toySAfS(), studyArea = toySAfS()))
+  mockInitWorld(ELFs = toyELFsWithPoly())
+  out <- suppressMessages(runInit(sim))
+  expect_setequal(out$.ELFind, c("3.1.1", "3.1.2"))
+})
+
+test_that("an ELF without a fit stops when nothing can fit it, naming it and offering maskToELFsWithFits", {
+  mockFits("3.1.1")                                                 # 3.1.2 has no spread fit
+  sim <- toySimInit(objects = list(studyArea_fireSense = toySAfS()))
+  mockInitWorld(ELFs = toyELFsWithPoly())
+  err <- tryCatch(suppressMessages(runInit(sim)), error = function(e) conditionMessage(e))
+  expect_match(err, "no stored SpreadFit for ELF\\(s\\) 3\\.1\\.2 ")
+  expect_match(err, "ELF\\(s\\) 3\\.1\\.1 have fits")
+  expect_match(err, "maskToELFsWithFits = TRUE")
+})
+
+test_that("with no fit for any ELF the error does not offer maskToELFsWithFits", {
+  mockFits("1.1")                                                   # a fit, but not for these ELFs
+  sim <- toySimInit(objects = list(studyArea_fireSense = toySAfS()))
+  mockInitWorld(ELFs = toyELFsWithPoly())
+  err <- tryCatch(suppressMessages(runInit(sim)), error = function(e) conditionMessage(e))
+  expect_match(err, "None of its ELFs has a fit")
+  expect_no_match(err, "maskToELFsWithFits")
+})
+
+test_that("maskToELFsWithFits runs over the fitted ELFs and masks a supplied studyArea and rasterToMatch", {
+  mockFits("3.1.1")
+  rtm <- terra::rast(toyGrid())
+  terra::values(rtm) <- 1
+  sim <- toySimInit(objects = list(studyArea_fireSense = toySAfS(), studyArea = toySAfS(), rasterToMatch = rtm),
+                    params = list(maskToELFsWithFits = TRUE))
+  mockInitWorld(ELFs = toyELFsWithPoly())
+  out <- suppressWarnings(suppressMessages(runInit(sim)))
+  expect_identical(out$.ELFind, "3.1.1")
+  ## studyArea is cut to the fitted ELFs, which is what studyAreaLarge is
+  expect_lt(km2(out$studyArea), km2(toySAfS()))
+  expect_equal(km2(out$studyArea), km2(out$studyAreaLarge))
+  ## rasterToMatch keeps only cells of the fitted ELFs, and is written to inputPath
+  expect_lt(sum(!is.na(terra::values(out$rasterToMatch))), sum(!is.na(terra::values(rtm))))
+  expect_true(all(terra::sources(out$rasterToMatch) != ""))
 })

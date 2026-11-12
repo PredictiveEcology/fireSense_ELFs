@@ -1,9 +1,9 @@
-#' Refuse to run when `studyAreaLarge` and `.ELFind` describe different study areas
+#' Refuse to run when `studyArea_fireSense` and `.ELFind` describe different study areas
 #'
 #' @description
 #' `.ELFind` names one ELF, which is what the fitting workflow wants;
-#' `studyAreaLarge` is a polygon whose intersecting ELFs are used, which is what
-#' the prediction workflow wants. Supplying both is ambiguous: `studyAreaLarge`
+#' `studyArea_fireSense` is a polygon whose intersecting ELFs are used, which is what
+#' the prediction workflow wants. Supplying both is ambiguous: `studyArea_fireSense`
 #' decides the area while `.studyAreaName`, and so every input and output folder,
 #' is still named from `.ELFind`. Without this check, runs for different
 #' `.ELFind` values silently fit the same study area.
@@ -12,7 +12,7 @@
 #' @param elfIndSupplied logical(1); was `.ELFind` supplied by the user, rather
 #'   than defaulted by this module's `.inputObjects`? A default carries no
 #'   request, so it cannot conflict with anything.
-#' @param elfsInStudyAreaLarge character; the ELFs that `studyAreaLarge` covers.
+#' @param elfsInStudyAreaLarge character; the ELFs that `studyArea_fireSense` covers.
 #'
 #' @return `invisible(NULL)` when there is no conflict; otherwise an error
 #'   naming both study areas.
@@ -30,15 +30,15 @@
   if (length(elfInd) && length(covered) && setequal(elfInd, covered))
     return(invisible(NULL))
 
-  stop("fireSense_ELFs was given both `studyAreaLarge` and `.ELFind`, and they describe ",
+  stop("fireSense_ELFs was given both `studyArea_fireSense` and `.ELFind`, and they describe ",
        "different study areas:\n",
        "  .ELFind:                      ",
        if (length(elfInd)) paste(elfInd, collapse = ", ") else "<empty>", "\n",
-       "  studyAreaLarge covers ELF(s): ",
+       "  studyArea_fireSense covers ELF(s): ",
        if (length(covered)) paste(covered, collapse = ", ") else "none", "\n",
        "Supply one or the other: `.ELFind` alone to fit a single ELF, or ",
-       "`studyAreaLarge` alone to run whatever ELFs it covers. Supplying both is not a ",
-       "way to select an ELF within a larger area -- `studyAreaLarge` decides the area ",
+       "`studyArea_fireSense` alone to run whatever ELFs it covers. Supplying both is not a ",
+       "way to select an ELF within a larger area -- `studyArea_fireSense` decides the area ",
        "while `.ELFind` still names the input and output folders, so the run would be ",
        "labelled with an ELF it did not use.",
        call. = FALSE)

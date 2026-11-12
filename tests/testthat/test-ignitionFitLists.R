@@ -42,7 +42,7 @@ mockSpreadFitsForAllELFs <- function(env = parent.frame()) {
 initMultiELF <- function(ELFinds, ...) {
   unlink(toyPaths()$inputPath, recursive = TRUE)
   writeToyLedger(ELFinds)
-  sim <- toySimInitLocalLedger(list(studyAreaLarge = toyStudyAreaLarge()), ...)
+  sim <- toySimInitLocalLedger(list(studyArea_fireSense = toyStudyAreaLarge()), ...)
   mockInitWorld(ELFs = toyELFsWithPoly())
   mockSpreadFitsForAllELFs()
   runInit(sim)
@@ -93,7 +93,7 @@ test_that("\"latest\" reads each touched ELF's row from the newest ledger files,
     rows[[cols[2]]] <- lapply(rows$polygonID, toyFit, process = "escape")
     rows
   }, .package = "fireSenseUtils")
-  sim <- toySimInit(objects = list(studyAreaLarge = toyStudyAreaLarge()))
+  sim <- toySimInit(objects = list(studyArea_fireSense = toyStudyAreaLarge()))
   mockInitWorld(ELFs = toyELFsWithPoly())
   mockSpreadFitsForAllELFs()
   out <- suppressMessages(runInit(sim))
@@ -103,7 +103,7 @@ test_that("\"latest\" reads each touched ELF's row from the newest ledger files,
 })
 
 test_that("with heldOutFold the ignition ledger is not read either", {
-  sim <- toySimInit(objects = list(studyAreaLarge = toyStudyAreaLarge()), params = list(heldOutFold = 1L))
+  sim <- toySimInit(objects = list(studyArea_fireSense = toyStudyAreaLarge()), params = list(heldOutFold = 1L))
   mockInitWorld(ELFs = toyELFsWithPoly())
   mockNoLedger()
   out <- suppressMessages(runInit(sim))
@@ -129,10 +129,10 @@ test_that("a study area over several ELFs makes .ELFind those ELFs, not the defa
   expect_identical(out$.ELFind, c("3.1.1", "3.1.2"))
 })
 
-test_that("an ELF of the study area without a SpreadFit is left out of .ELFind, as of the study area", {
+test_that("with maskToELFsWithFits, an ELF of the study area without a SpreadFit is left out of .ELFind", {
   unlink(toyPaths()$inputPath, recursive = TRUE)
   writeToyLedger(c("3.1.1", "3.1.2"))
-  sim <- toySimInitLocalLedger(list(studyAreaLarge = toyStudyAreaLarge()))
+  sim <- toySimInitLocalLedger(list(studyArea_fireSense = toyStudyAreaLarge()), maskToELFsWithFits = TRUE)
   mockInitWorld(ELFs = toyELFsWithPoly())
   local_mocked_bindings(latestSpreadFits = function(...) data.frame(polygonID = "3.1.1"),
                         .package = "fireSenseUtils")
@@ -146,7 +146,7 @@ test_that("a .ELFind the user gives with the study area is checked and kept (.in
   unlink(toyPaths()$inputPath, recursive = TRUE)
   writeToyLedger(c("3.1.1", "3.1.2", "5.1"))
   initWith <- function(elf) {
-    sim <- toySimInitLocalLedger(list(studyAreaLarge = toyStudyAreaLarge(), .ELFind = elf))
+    sim <- toySimInitLocalLedger(list(studyArea_fireSense = toyStudyAreaLarge(), .ELFind = elf))
     mockInitWorld(ELFs = toyELFsWithPoly())
     mockSpreadFitsForAllELFs()
     suppressMessages(runInit(sim))
@@ -162,7 +162,7 @@ test_that("a .ELFind the user gives with the study area is checked and kept (.in
 test_that("over several ELFs, rasterToMatchLargeELF is on the grid of rasterToMatch, not of the ELF maps", {
   unlink(toyPaths()$inputPath, recursive = TRUE)
   writeToyLedger(c("3.1.1", "3.1.2", "5.1"))
-  sim <- toySimInitLocalLedger(list(studyAreaLarge = toyStudyAreaLarge()))
+  sim <- toySimInitLocalLedger(list(studyArea_fireSense = toyStudyAreaLarge()))
   mockInitWorld(ELFs = toyELFsWithPoly())
   fine <- function(inputPath) terra::disagg(toyGrid(), 5) + 1     # a 1 km template; the ELF maps are 5 km
   local_mocked_bindings(ELFtemplateRaster = fine)

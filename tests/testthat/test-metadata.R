@@ -9,7 +9,7 @@ test_that("the module is named fireSense_ELFs and runs before the other fireSens
   expect_identical(md$name, "fireSense_ELFs")
   expect_identical(md$timeunit, "year")
   ## moduleMetadata() does not return `loadOrder`; the parsed module in a simList has it
-  loadOrder <- SpaDES.core::depends(toySimInit())@dependencies$fireSense_ELFs@loadOrder
+  loadOrder <- SpaDES.core::depends(toySimInit(objects = list(.ELFind = "3.1.2")))@dependencies$fireSense_ELFs@loadOrder
   expect_true(all(c("fireSense_burn", "fireSense_dataPrepFit", "fireSense_ignitionFit",
                     "fireSense_spreadFit", "fireSense_dataPrepPredict", "fireSense_ignitionPredict",
                     "fireSense_spreadPredict", "fireSense_summary")
@@ -22,7 +22,7 @@ test_that("the module is named fireSense_ELFs and runs before the other fireSens
 test_that("inputs are the expected names and classes", {
   inputs <- stats::setNames(md$inputObjects$objectClass, md$inputObjects$objectName)
   expect_identical(inputs[order(names(inputs))],
-                   c(.ELFind = "character", studyAreaLarge = "SpatVector"))
+                   c(.ELFind = "character", studyArea_fireSense = "SpatVector", studyAreaLarge = "SpatVector"))
 })
 
 test_that("outputs are the expected names and classes", {
@@ -47,6 +47,7 @@ test_that("no parameter has been removed or retyped", {
                 fireYears = "integer", minNaturalIgnitions = "numeric", minFirePolygons = "numeric",
                 escapeSizeHa = "numeric", minEscapes = "numeric",
                 minRegionAreaKm2 = "numeric", maxLandCoverDist = "numeric", maxBurnRatio = "numeric",
+                maskToELFsWithFits = "logical",
                 .plots = "character", .plotInitialTime = "numeric", .studyAreaName = "character",
                 ELFversion = "character", .useCache = "logical", .useCloud = "logical|character", .useCacheArgs = "list")
   ## `%in%`, not identical: work in progress adds parameters, and an addition breaks no caller
@@ -60,7 +61,7 @@ test_that("no parameter has been removed or retyped", {
 })
 
 test_that("parameter defaults are unchanged", {
-  p <- SpaDES.core::params(toySimInit(params = list(ELFversion = NULL, .useCache = NULL, .useCloud = NULL, .plots = NULL, fireYears = NULL)))$fireSense_ELFs
+  p <- SpaDES.core::params(toySimInit(objects = list(.ELFind = "3.1.2"), params = list(ELFversion = NULL, .useCache = NULL, .useCloud = NULL, .plots = NULL, fireYears = NULL)))$fireSense_ELFs
   expect_identical(p$sppEquivCol, "LandR")
   expect_identical(p$spreadFitFilename, "latest")
   expect_identical(p$spreadFitGoogleDriveFolder, fireSenseUtils::spreadFitLedgerFolder())
@@ -74,6 +75,7 @@ test_that("parameter defaults are unchanged", {
   expect_identical(p$minRegionAreaKm2, 35000)
   expect_identical(p$maxLandCoverDist, 0.35)
   expect_identical(p$maxBurnRatio, 6)
+  expect_false(p$maskToELFsWithFits)
   expect_identical(p$.plots, "screen")
   expect_identical(as.numeric(p$.plotInitialTime), 1) # start(sim)
   expect_identical(p$.studyAreaName, NA)
