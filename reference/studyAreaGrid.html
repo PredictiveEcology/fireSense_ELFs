@@ -61,7 +61,7 @@ over several ELFs.</p>
     </div>
 
     <div id="ref-usage">
-    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">studyAreaGrid</span><span class="op">(</span><span class="va">rastTemplate</span>, <span class="va">studyArea</span><span class="op">)</span></span></code></pre></div>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">studyAreaGrid</span><span class="op">(</span><span class="va">rastTemplate</span>, <span class="va">studyArea</span>, filename <span class="op">=</span> <span class="st">""</span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div id="arguments">
@@ -74,6 +74,12 @@ over several ELFs.</p>
 
 <dt id="arg-studyarea">studyArea<a class="anchor" aria-label="anchor" href="#arg-studyarea"></a></dt>
 <dd><p>a polygon <code>SpatVector</code>.</p></dd>
+
+
+<dt id="arg-filename">filename<a class="anchor" aria-label="anchor" href="#arg-filename"></a></dt>
+<dd><p>optional file to write the grid to. A result kept in terra's temporary folder
+(as with <code>todisk = TRUE</code>) is lost once that folder is cleared, and a cache hit restores it
+into the cache folder; a named file is restored to where it was written.</p></dd>
 
 </dl></div>
     <div id="value">
