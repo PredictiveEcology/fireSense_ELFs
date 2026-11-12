@@ -432,7 +432,8 @@ Init <- function(sim) {
     studyArea <- studyAreaLarge
 
   if (is.null(sim$rasterToMatch)) # conditional; can't put it in metadata or this will not be run first
-    rasterToMatch <- studyAreaGrid(rastTemplate, studyAreaLarge)
+    rasterToMatch <- studyAreaGrid(rastTemplate, studyAreaLarge,
+                                   filename = file.path(inputPath, paste0("rasterToMatch_", studyAreaName(studyAreaLarge), ".tif")))
   
   # Put them all in the sim; a supplied rasterToMatch or studyArea was not made here and stays as it is
   objsHere <- depends(sim)@dependencies[[currentModule(sim)]]@outputObjects$objectName

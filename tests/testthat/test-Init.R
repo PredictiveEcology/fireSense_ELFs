@@ -42,6 +42,20 @@ test_that("init makes rasterToMatch 1 inside studyAreaLarge, on the template gri
   expect_equal(terra::res(rtm), c(5000, 5000))
 })
 
+test_that("init writes rasterToMatch to a file in inputPath, not to terra's temporary folder", {
+  ## with todisk = TRUE (as in runs), an unnamed result was a spat_*.tif in terra's temporary folder,
+  ## which a cache hit restored into the cache folder (and saveSimList() saved as a path there)
+  old <- terra::terraOptions(print = FALSE)$todisk
+  terra::terraOptions(todisk = TRUE)
+  on.exit(terra::terraOptions(todisk = old), add = TRUE)
+  sim <- toySimInit(objects = list(.ELFind = "3.1.2"))
+  mockInitWorld()
+  out <- suppressMessages(runInit(sim))
+  expect_identical(normalizePath(terra::sources(out$rasterToMatch)),
+                   normalizePath(file.path(inputPath(out), paste0("rasterToMatch_", reproducible::studyAreaName(out$studyAreaLarge), ".tif"))))
+  expect_identical(as.vector(terra::values(out$rasterToMatch)), rep(1, 20))
+})
+
 test_that("init puts the species table and the ELF maps in the simList", {
   sim <- toySimInit(objects = list(.ELFind = "3.1.2"))
   mockInitWorld()
