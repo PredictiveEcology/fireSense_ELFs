@@ -1,5 +1,8 @@
 # fireSense_ELFs (development version)
 
+* New input `studyArea_fireSense`: the area of interest plus its buffer. It picks the run's ELFs and is checked; every module still works over `studyArea`, which must cover it (`init` stops otherwise). It replaces `studyAreaLarge`, which still works with a deprecation warning. With neither it nor `.ELFind`, `simInit` stops; the default ELF 4.3 is gone.
+* Over `studyArea_fireSense`, an ELF without a stored SpreadFit stops `init` when no module can fit it (`doFit` FALSE), naming it. New parameter `maskToELFsWithFits = TRUE` runs over the ELFs that have fits instead, cropping and masking `studyArea` and `rasterToMatch` to them.
+
 * `init` writes `rasterToMatch` to `inputPath/rasterToMatch_<study area>.tif`. With terra's `todisk = TRUE` it was a temporary file in terra's folder in the scratch path, which a cache hit then restored into the cache folder; a saved simList kept only that path, so the raster was lost when the run was loaded elsewhere.
 
 * With a `studyAreaLarge`, `init` finds the ELFs the study area covers before reading the SpreadFit ledger and passes them as `polygonIDs` to `fireSenseUtils::latestSpreadFits()`, which then stops reading ledger files once it has them all, instead of reading every file in the Drive folder. `sim$spreadFitPreRun` (and the ELF map's "already fitted" layer) then holds only those ELFs.

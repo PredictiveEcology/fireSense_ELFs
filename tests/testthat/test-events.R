@@ -15,7 +15,7 @@
 ## test file in this suite passes on both.
 
 runOnly <- function(eventType) {
-  sim <- toySimInit()
+  sim <- toySimInit(objects = list(.ELFind = "3.1.2"))
   sim <- SpaDES.core::scheduleEvent(sim, 1, "fireSense_ELFs", eventType, eventPriority = 1)
   grDevices::pdf(NULL)
   on.exit(grDevices::dev.off(), add = TRUE)
@@ -37,7 +37,7 @@ test_that("any other unknown event warns and leaves the simList as it was", {
   out <- NULL
   expect_warning(out <- runOnly("notAnEvent"),
                  "Undefined event type: 'notAnEvent' in module 'fireSense_ELFs'")
-  expect_identical(out$.ELFind, "4.3")
+  expect_identical(out$.ELFind, "3.1.2")
   expect_null(out$ELFs) # init did not run
   done <- SpaDES.core::completed(out)
   expect_identical(done$eventType[done$moduleName == "fireSense_ELFs" & done$eventType != ".inputObjects"],

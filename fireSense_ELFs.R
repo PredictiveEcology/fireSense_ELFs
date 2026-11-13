@@ -112,6 +112,10 @@ defineModule(sim, list(
                     "Size rule: largest Bray-Curtis distance between the land-cover shares of two ELFs that may merge."),
     defineParameter("maxBurnRatio", "numeric", 6, 1, NA,
                     "Size rule: largest ratio (larger over smaller) of the burn rates (%/yr over `fireYears`) of two ELFs that may merge."),
+    defineParameter("maskToELFsWithFits", "logical", FALSE, NA, NA,
+                    paste("With `studyArea_fireSense`, when some of its ELFs have no stored SpreadFit and no module",
+                          "can fit them (`doFit` FALSE): `FALSE` (default) stops, naming them; `TRUE` runs over only",
+                          "the ELFs that have fits, cropping and masking `studyArea` and `rasterToMatch` to them.")),
     defineParameter(".plots", "character", "screen", NA, NA,
                     "Passed to `types` in `Plots()`. If any, `init` plots the map of all ELFs and this run's study areas."),
     defineParameter(".plotInitialTime", "numeric", start(sim), NA, NA,
@@ -138,28 +142,36 @@ defineModule(sim, list(
                     "Extra `Cache()` arguments for each event, by event name. None by default; see `.useCache`.")
   ),
   inputObjects = bindrows(
-    expectsInput(".ELFind", "character", paste("Name of the ELF to use as the study area, e.g. \"4.3\" (the default",
-                                                 "when `studyAreaLarge` is not supplied either).")),
+    expectsInput(".ELFind", "character", paste("Name of one ELF to run, e.g. \"4.3\" (fitting); the study area is the",
+                                                 "buffered ELF. Supply this or `studyArea_fireSense`, not both.")),
+    expectsInput("studyArea_fireSense", objectClass = "SpatVector",
+                 desc = paste("The area of interest plus its buffer (fires spread in from outside it); it must already",
+                              "be buffered. The run's ELFs are the ones it overlaps. Only for choosing and checking:",
+                              "every module still works over `studyArea`, which must cover it. If `studyArea` is",
+                              "already buffered, pass `studyArea_fireSense = studyArea`. Supply this or `.ELFind`."),
+                 sourceURL = NA), # nolint: in_no_default
     expectsInput("studyAreaLarge", objectClass = "SpatVector",
-                 desc = paste("Optional. If supplied, the study area is the ELFs it overlaps that have fitted",
-                              "SpreadFit parameters, instead of `.ELFind`. Supply one or the other, not both."),
+                 desc = "Deprecated: the old name of `studyArea_fireSense`, used (with a warning) when that is not supplied.",
                  sourceURL = NA) # nolint: in_no_default
   ),
   outputObjects = bindrows(
     createsOutput("ELFs", objectClass = "SpatRaster",
                   desc = paste("All ELFs, from `fireSenseUtils::makeELFs()`: a list with `rasWhole` and `rasCentered`",
-                               "(one SpatRaster per ELF), plus `poly` when `studyAreaLarge` is supplied.")),
+                               "(one SpatRaster per ELF), plus `poly` when `studyArea_fireSense` is supplied.")),
     createsOutput("rasterToMatchLargeELF", objectClass = "SpatRaster", 
                   desc = "Raster of the ELF(s) in the study area, including the ELF buffer when a single ELF is used."),
     createsOutput("rasterToMatchELF", objectClass = "SpatRaster",
                   desc = paste("`rasterToMatchLargeELF` without the buffer when a single ELF is used;",
-                               "identical to it when `studyAreaLarge` is supplied.")),
+                               "identical to it when `studyArea_fireSense` is supplied.")),
     createsOutput("rasterToMatch", objectClass = "SpatRaster",
-                  desc = "Only if not already in the `simList`: the national template raster cropped and masked to `studyAreaLarge`; 1 inside, `NA` outside."),
+                  desc = paste("Only if not already in the `simList`: the national template raster cropped and masked to",
+                               "`studyAreaLarge`; 1 inside, `NA` outside. With `maskToELFsWithFits`, a supplied one",
+                               "cropped and masked to the ELFs that have fits.")),
     createsOutput("studyArea", objectClass = "SpatVector",
-                  desc = "Only if not already in the `simList`: same as `studyAreaLarge`."),
+                  desc = paste("Only if not already in the `simList`: same as `studyAreaLarge`. With `maskToELFsWithFits`,",
+                               "a supplied one cropped to the ELFs that have fits.")),
     createsOutput("studyAreaLarge", objectClass = "SpatVector", 
-                  desc = paste("Single ELF: the buffered ELF. `studyAreaLarge` supplied: the supplied polygon intersected",
+                  desc = paste("Single ELF: the buffered ELF. `studyArea_fireSense` supplied: it intersected",
                                "with the ELFs that have fitted SpreadFit parameters, dissolved.")),
     createsOutput("studyAreaLargeELF", objectClass = "SpatVector",
                   desc = "Polygons of `rasterToMatchLargeELF`."),
@@ -187,7 +199,7 @@ defineModule(sim, list(
                                "CacheGeo, this will be NULL")),
     createsOutput("fireSense_IgnitionFittedList", "list",
                   desc = paste("One `fireSense_IgnitionFitted` per ELF the study area touches, named by `ELFind`, read from",
-                               "the ledger of `fireSense_ignitionFit`. With `studyAreaLarge` an ELF without a fit is an error.",
+                               "the ledger of `fireSense_ignitionFit`. With `studyArea_fireSense` an ELF without a fit is an error.",
                                "With one ELF, `NULL` when it has no fit yet (`fireSense_ignitionFit` is about to fit it),",
                                "and always `NULL` when `heldOutFold` is not `NA`.")),
     createsOutput("fireSense_EscapeFittedList", "list",
@@ -220,7 +232,7 @@ doEvent.fireSense_ELFs = function(sim, eventTime, eventType) {
 #' Makes the national ELF maps, optionally merges ELFs with too few fires, reads
 #' the previously fitted SpreadFit parameters from Google Drive, then derives the
 #' study areas, rasters to match and `sppEquiv` for `.ELFind` or
-#' for the ELFs under `studyAreaLarge`. Plots them if `.plots` asks for it.
+#' for the ELFs under `studyArea_fireSense`. Plots them if `.plots` asks for it.
 #'
 #' @param sim A `simList`.
 #'
@@ -239,7 +251,16 @@ Init <- function(sim) {
   borderCacheExtra <- list(borderBuffer = Par$borderBuffer, bufferBorder = bufferBorder,
                            maskOutBorder = maskOutBorder, selectCanadaUSBorder = selectCanadaUSBorder)
 
-  hasStudyAreaLarge <- !is.null(sim$studyAreaLarge)
+  ## The area of interest plus its buffer, which picks the ELFs; `studyAreaLarge` is its old name
+  saFS <- sim$studyArea_fireSense
+  if (is.null(saFS) && !is.null(sim$studyAreaLarge)) {
+    warning("fireSense_ELFs: `studyAreaLarge` is deprecated; supply it as `studyArea_fireSense`", call. = FALSE)
+    saFS <- sim$studyAreaLarge
+  }
+  hasStudyAreaLarge <- !is.null(saFS)
+  ## every module simulates over `studyArea`; a supplied one must hold the whole buffered area
+  if (hasStudyAreaLarge && !is.null(sim$studyArea))
+    .assertStudyAreaCovers(sim$studyArea, saFS)
   ## .inputObjects records whether `.ELFind` was supplied. SpaDES skips .inputObjects when every input
   ## is supplied, and then it was.
   ELFindSupplied <- if (is.null(mod$ELFindSupplied)) !is.null(sim$.ELFind) else isTRUE(mod$ELFindSupplied)
@@ -274,7 +295,7 @@ Init <- function(sim) {
   ## Over a study area the ledger lookup below needs only the ELFs it covers, so they are found first.
   ## Their names are the merged ELFs' (ELFs is built with the merges), as in the ledger's `polygonID`.
   if (hasStudyAreaLarge) {
-    out <- ELFsInStudyArea(sim$studyAreaLarge, ELFsRaster = ELFs["rasWhole"], 
+    out <- ELFsInStudyArea(saFS, ELFsRaster = ELFs["rasWhole"],
                            ELFsPolygon = ELFs$poly, inputPath = inputPath(sim))
     ELFsNeeded <- unique(out$poly$ID)
     ## Both study areas were supplied and they disagree: stop rather than pick one
@@ -322,15 +343,24 @@ Init <- function(sim) {
   
   if (hasStudyAreaLarge) {
 
+    ## the ELFs actually inside the area (the ELF map's cells can reach past its edge)
+    pp <- terra::project(pp, saFS)
+    pp <- terra::intersect(pp, saFS) |> maskOutBorder(borderZone)
+
     # Not all will have SpreadFit yet
     hasELFFittedData <- pp$ELFind %in% spreadFitPreRun$polygonID
-    if (any(!hasELFFittedData) && !heldOut) {
-      warning("Not all the ELFs have SpreadFit parameters; masking studyAreaLarge to ONLY the ELFs that have data")
+    noFit <- sort(unique(as.character(pp$ELFind[!hasELFFittedData])))
+    maskedToFits <- length(noFit) > 0L && !heldOut
+    if (maskedToFits) {
+      ## no fit and none can be made: stop, unless asked to run over the ELFs that have one
+      if (!isTRUE(Par$maskToELFsWithFits) && !.fitsAllowed(sim))
+        .stopNoFits(noFit, sort(unique(as.character(pp$ELFind[hasELFFittedData]))))
+      if (!any(hasELFFittedData))
+        stop("fireSense_ELFs: none of the ELFs in `studyArea_fireSense` has a stored SpreadFit", call. = FALSE)
+      warning("Not all the ELFs have SpreadFit parameters (", paste(noFit, collapse = ", "),
+              "); masking studyAreaLarge to ONLY the ELFs that have data")
       pp <- pp[pp$ELFind %in% spreadFitPreRun$polygonID,]
     }
-    
-    pp <- terra::project(pp, sim$studyAreaLarge)
-    pp <- terra::intersect(pp, sim$studyAreaLarge) |> maskOutBorder(borderZone)
     ELFpolys <- pp
     ## This run's ELFs, unless the user named them (.assertOneStudyArea() checked those): the ones the
     ## study area covers that have a fit. Not the default "4.3", which the fit modules took for this run's
@@ -431,6 +461,24 @@ Init <- function(sim) {
   if (is.null(sim$studyArea)) # conditional; can't put it in metadata or this will not be run first
     studyArea <- studyAreaLarge
 
+  ## maskToELFsWithFits: a supplied studyArea and rasterToMatch are cut to the ELFs that have fits too,
+  ## or the ELFs without one would be simulated with no spread parameters
+  if (hasStudyAreaLarge && maskedToFits && isTRUE(Par$maskToELFsWithFits)) {
+    if (!is.null(sim$studyArea)) {
+      sa <- if (inherits(sim$studyArea, "SpatVector")) sim$studyArea else terra::vect(sim$studyArea)
+      studyArea <- terra::crop(sa, terra::project(studyAreaLarge, sa))
+      if (inherits(sim$studyArea, "sf")) studyArea <- sf::st_as_sf(studyArea)
+    }
+    if (!is.null(sim$rasterToMatch)) {
+      keep <- terra::project(studyAreaLarge, sim$rasterToMatch)
+      rasterToMatch <- terra::mask(terra::crop(sim$rasterToMatch, keep), keep,
+                                   filename = file.path(inputPath, paste0("rasterToMatch_", studyAreaName(keep), ".tif")),
+                                   overwrite = TRUE)
+    }
+    message("fireSense_ELFs: maskToELFsWithFits: running over ELF(s) ", paste(ELF, collapse = ", "),
+            " only; `studyArea` and `rasterToMatch` are masked to them")
+  }
+
   if (is.null(sim$rasterToMatch)) # conditional; can't put it in metadata or this will not be run first
     rasterToMatch <- studyAreaGrid(rastTemplate, studyAreaLarge,
                                    filename = file.path(inputPath, paste0("rasterToMatch_", studyAreaName(studyAreaLarge), ".tif")))
@@ -504,28 +552,26 @@ plotAllELFsFn <- function(centred, crsToUse, alreadyRun, thisELF) {
   terra::text(cen, label = gsub("^X", "", names(allELFs)), cex = 0.8)
 }
 
-#' Default `.ELFind`
+#' Check that a study area was given
 #'
-#' Sets `sim$.ELFind` to `"4.3"`, with a message, if neither it nor `studyAreaLarge` is supplied (with
-#' a `studyAreaLarge`, Init sets it to the ELFs it covers), and records in `mod$ELFindSupplied` whether
-#' it was supplied.
+#' Stops if neither `.ELFind` nor `studyArea_fireSense` (or its old name `studyAreaLarge`) is supplied
+#' (with a `studyArea_fireSense`, Init sets `.ELFind` to the ELFs it covers), and records in
+#' `mod$ELFindSupplied` whether `.ELFind` was supplied.
 #'
 #' @param sim A `simList`.
 #'
 #' @return The `simList`.
 .inputObjects <- function(sim) {
   
-  ## Init has to tell an ELF the user asked for from the fallback below: only the
-  ## former can conflict with a `studyAreaLarge`. See .assertOneStudyArea().
+  ## Init has to tell an ELF the user asked for from one it set itself: only the
+  ## former can conflict with a `studyArea_fireSense`. See .assertOneStudyArea().
   mod$ELFindSupplied <- suppliedElsewhere(".ELFind", sim)
-  ## with a studyAreaLarge, Init sets `.ELFind` to the ELFs it covers
-  if (!mod$ELFindSupplied && !suppliedElsewhere("studyAreaLarge", sim)) {
-    defaultELF <- "4.3"
-    sim$.ELFind <- defaultELF
-    message("fireSense_ELFs: neither `.ELFind` nor `studyAreaLarge` was supplied, so the study area is ELF ",
-            defaultELF, " (the module's default). To use another ELF, set `.ELFind` in setupProject() ",
-            "(e.g. `.ELFind = \"12.3\"`) or supply your own `studyAreaLarge`.")
-  }
-  
+  ## with a studyArea_fireSense, Init sets `.ELFind` to the ELFs it covers
+  if (!mod$ELFindSupplied && !suppliedElsewhere("studyArea_fireSense", sim) &&
+      !suppliedElsewhere("studyAreaLarge", sim))
+    stop("fireSense_ELFs needs `studyArea_fireSense`: your area of interest plus a buffer (fires spread in ",
+         "from outside it). If `studyArea` is already buffered, pass `studyArea_fireSense = studyArea`. ",
+         "To run a single ELF instead, set `.ELFind` (e.g. `.ELFind = \"12.3\"`).", call. = FALSE)
+
   sim
 }
