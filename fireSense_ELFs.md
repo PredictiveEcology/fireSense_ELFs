@@ -1,7 +1,7 @@
 ---
 title: "fireSense_ELFs Manual"
 subtitle: "v.1.2.0.9009"
-date: "Last updated: 2026-11-12"
+date: "Last updated: 2026-11-13"
 output:
   bookdown::html_document2:
     toc: true
@@ -65,13 +65,19 @@ Table \@ref(tab:moduleInputs-fireSense-ELFs) shows the full list of module input
   <tr>
    <td style="text-align:left;"> .ELFind </td>
    <td style="text-align:left;"> character </td>
-   <td style="text-align:left;"> Name of the ELF to use as the study area, e.g. "4.3" (the default when `studyAreaLarge` is not supplied either). </td>
+   <td style="text-align:left;"> Name of one ELF to run, e.g. "4.3" (fitting); the study area is the buffered ELF. Supply this or `studyArea_fireSense`, not both. </td>
+   <td style="text-align:left;"> NA </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> studyArea_fireSense </td>
+   <td style="text-align:left;"> SpatVector </td>
+   <td style="text-align:left;"> The area of interest plus its buffer (fires spread in from outside it); it must already be buffered. The run's ELFs are the ones it overlaps. Only for choosing and checking: every module still works over `studyArea`, which must cover it. If `studyArea` is already buffered, pass `studyArea_fireSense = studyArea`. Supply this or `.ELFind`. </td>
    <td style="text-align:left;"> NA </td>
   </tr>
   <tr>
    <td style="text-align:left;"> studyAreaLarge </td>
    <td style="text-align:left;"> SpatVector </td>
-   <td style="text-align:left;"> Optional. If supplied, the study area is the ELFs it overlaps that have fitted SpreadFit parameters, instead of `.ELFind`. Supply one or the other, not both. </td>
+   <td style="text-align:left;"> Deprecated: the old name of `studyArea_fireSense`, used (with a warning) when that is not supplied. </td>
    <td style="text-align:left;"> NA </td>
   </tr>
 </tbody>
@@ -259,6 +265,15 @@ Summary of user-visible parameters (Table \@ref(tab:moduleParams-fireSense-ELFs)
    <td style="text-align:left;"> TRUE </td>
   </tr>
   <tr>
+   <td style="text-align:left;"> maskToELFsWithFits </td>
+   <td style="text-align:left;"> logical </td>
+   <td style="text-align:left;"> FALSE </td>
+   <td style="text-align:left;"> NA </td>
+   <td style="text-align:left;"> NA </td>
+   <td style="text-align:left;"> With `studyArea_fireSense`, when some of its ELFs have no stored SpreadFit and no module can fit them (`doFit` FALSE): `FALSE` (default) stops, naming them; `TRUE` runs over only the ELFs that have fits, cropping and masking `studyArea` and `rasterToMatch` to them. </td>
+   <td style="text-align:left;"> TRUE </td>
+  </tr>
+  <tr>
    <td style="text-align:left;"> .plots </td>
    <td style="text-align:left;"> character </td>
    <td style="text-align:left;"> screen </td>
@@ -353,7 +368,7 @@ Description of the module outputs (Table \@ref(tab:moduleOutputs-fireSense-ELFs)
   <tr>
    <td style="text-align:left;"> ELFs </td>
    <td style="text-align:left;"> SpatRaster </td>
-   <td style="text-align:left;"> All ELFs, from `fireSenseUtils::makeELFs()`: a list with `rasWhole` and `rasCentered` (one SpatRaster per ELF), plus `poly` when `studyAreaLarge` is supplied. </td>
+   <td style="text-align:left;"> All ELFs, from `fireSenseUtils::makeELFs()`: a list with `rasWhole` and `rasCentered` (one SpatRaster per ELF), plus `poly` when `studyArea_fireSense` is supplied. </td>
   </tr>
   <tr>
    <td style="text-align:left;"> rasterToMatchLargeELF </td>
@@ -363,22 +378,22 @@ Description of the module outputs (Table \@ref(tab:moduleOutputs-fireSense-ELFs)
   <tr>
    <td style="text-align:left;"> rasterToMatchELF </td>
    <td style="text-align:left;"> SpatRaster </td>
-   <td style="text-align:left;"> `rasterToMatchLargeELF` without the buffer when a single ELF is used; identical to it when `studyAreaLarge` is supplied. </td>
+   <td style="text-align:left;"> `rasterToMatchLargeELF` without the buffer when a single ELF is used; identical to it when `studyArea_fireSense` is supplied. </td>
   </tr>
   <tr>
    <td style="text-align:left;"> rasterToMatch </td>
    <td style="text-align:left;"> SpatRaster </td>
-   <td style="text-align:left;"> Only if not already in the `simList`: the national template raster cropped and masked to `studyAreaLarge`; 1 inside, `NA` outside. </td>
+   <td style="text-align:left;"> Only if not already in the `simList`: the national template raster cropped and masked to `studyAreaLarge`; 1 inside, `NA` outside. With `maskToELFsWithFits`, a supplied one cropped and masked to the ELFs that have fits. </td>
   </tr>
   <tr>
    <td style="text-align:left;"> studyArea </td>
    <td style="text-align:left;"> SpatVector </td>
-   <td style="text-align:left;"> Only if not already in the `simList`: same as `studyAreaLarge`. </td>
+   <td style="text-align:left;"> Only if not already in the `simList`: same as `studyAreaLarge`. With `maskToELFsWithFits`, a supplied one cropped to the ELFs that have fits. </td>
   </tr>
   <tr>
    <td style="text-align:left;"> studyAreaLarge </td>
    <td style="text-align:left;"> SpatVector </td>
-   <td style="text-align:left;"> Single ELF: the buffered ELF. `studyAreaLarge` supplied: the supplied polygon intersected with the ELFs that have fitted SpreadFit parameters, dissolved. </td>
+   <td style="text-align:left;"> Single ELF: the buffered ELF. `studyArea_fireSense` supplied: it intersected with the ELFs that have fitted SpreadFit parameters, dissolved. </td>
   </tr>
   <tr>
    <td style="text-align:left;"> studyAreaLargeELF </td>
@@ -418,7 +433,7 @@ Description of the module outputs (Table \@ref(tab:moduleOutputs-fireSense-ELFs)
   <tr>
    <td style="text-align:left;"> fireSense_IgnitionFittedList </td>
    <td style="text-align:left;"> list </td>
-   <td style="text-align:left;"> One `fireSense_IgnitionFitted` per ELF the study area touches, named by `ELFind`, read from the ledger of `fireSense_ignitionFit`. With `studyAreaLarge` an ELF without a fit is an error. With one ELF, `NULL` when it has no fit yet (`fireSense_ignitionFit` is about to fit it), and always `NULL` when `heldOutFold` is not `NA`. </td>
+   <td style="text-align:left;"> One `fireSense_IgnitionFitted` per ELF the study area touches, named by `ELFind`, read from the ledger of `fireSense_ignitionFit`. With `studyArea_fireSense` an ELF without a fit is an error. With one ELF, `NULL` when it has no fit yet (`fireSense_ignitionFit` is about to fit it), and always `NULL` when `heldOutFold` is not `NA`. </td>
   </tr>
   <tr>
    <td style="text-align:left;"> fireSense_EscapeFittedList </td>
