@@ -72,7 +72,7 @@
       <h1 data-toc-skip>fireSense_ELFs Manual</h1>
             <h3 data-toc-skip class="subtitle">v.1.2.0.9009</h3>
             
-            <h4 data-toc-skip class="date">Last updated: 2026-11-12</h4>
+            <h4 data-toc-skip class="date">Last updated: 2026-11-14</h4>
       
 
       <div class="hidden name"><code>fireSense_ELFs.Rmd</code></div>
@@ -143,7 +143,21 @@ sourceURL
 character
 </td>
 <td style="text-align:left;">
-Name of the ELF to use as the study area, e.g. “4.3” (the default when <code>studyAreaLarge</code> is not supplied either).
+Name of one ELF to run, e.g. “4.3” (fitting); the study area is the buffered ELF. Supply this or <code>studyArea_fireSense</code>, not both.
+</td>
+<td style="text-align:left;">
+NA
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+studyArea_fireSense
+</td>
+<td style="text-align:left;">
+SpatVector
+</td>
+<td style="text-align:left;">
+The area of interest plus its buffer (fires spread in from outside it); it must already be buffered. The run’s ELFs are the ones it overlaps. Only for choosing and checking: every module still works over <code>studyArea</code>, which must cover it. If <code>studyArea</code> is already buffered, pass <code>studyArea_fireSense = studyArea</code>. Supply this or <code>.ELFind</code>.
 </td>
 <td style="text-align:left;">
 NA
@@ -157,7 +171,7 @@ studyAreaLarge
 SpatVector
 </td>
 <td style="text-align:left;">
-Optional. If supplied, the study area is the ELFs it overlaps that have fitted SpreadFit parameters, instead of <code>.ELFind</code>. Supply one or the other, not both.
+Deprecated: the old name of <code>studyArea_fireSense</code>, used (with a warning) when that is not supplied.
 </td>
 <td style="text-align:left;">
 NA
@@ -586,6 +600,29 @@ TRUE
 </tr>
 <tr>
 <td style="text-align:left;">
+maskToELFsWithFits
+</td>
+<td style="text-align:left;">
+logical
+</td>
+<td style="text-align:left;">
+FALSE
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+With <code>studyArea_fireSense</code>, when some of its ELFs have no stored SpreadFit and no module can fit them (<code>doFit</code> FALSE): <code>FALSE</code> (default) stops, naming them; <code>TRUE</code> runs over only the ELFs that have fits, cropping and masking <code>studyArea</code> and <code>rasterToMatch</code> to them.
+</td>
+<td style="text-align:left;">
+TRUE
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
 .plots
 </td>
 <td style="text-align:left;">
@@ -791,7 +828,7 @@ ELFs
 SpatRaster
 </td>
 <td style="text-align:left;">
-All ELFs, from <code><a href="https://rdrr.io/pkg/fireSenseUtils/man/makeELFs.html" class="external-link">fireSenseUtils::makeELFs()</a></code>: a list with <code>rasWhole</code> and <code>rasCentered</code> (one SpatRaster per ELF), plus <code>poly</code> when <code>studyAreaLarge</code> is supplied.
+All ELFs, from <code><a href="https://rdrr.io/pkg/fireSenseUtils/man/makeELFs.html" class="external-link">fireSenseUtils::makeELFs()</a></code>: a list with <code>rasWhole</code> and <code>rasCentered</code> (one SpatRaster per ELF), plus <code>poly</code> when <code>studyArea_fireSense</code> is supplied.
 </td>
 </tr>
 <tr>
@@ -813,7 +850,7 @@ rasterToMatchELF
 SpatRaster
 </td>
 <td style="text-align:left;">
-<code>rasterToMatchLargeELF</code> without the buffer when a single ELF is used; identical to it when <code>studyAreaLarge</code> is supplied.
+<code>rasterToMatchLargeELF</code> without the buffer when a single ELF is used; identical to it when <code>studyArea_fireSense</code> is supplied.
 </td>
 </tr>
 <tr>
@@ -824,7 +861,7 @@ rasterToMatch
 SpatRaster
 </td>
 <td style="text-align:left;">
-Only if not already in the <code>simList</code>: the national template raster cropped and masked to <code>studyAreaLarge</code>; 1 inside, <code>NA</code> outside.
+Only if not already in the <code>simList</code>: the national template raster cropped and masked to <code>studyAreaLarge</code>; 1 inside, <code>NA</code> outside. With <code>maskToELFsWithFits</code>, a supplied one cropped and masked to the ELFs that have fits.
 </td>
 </tr>
 <tr>
@@ -835,7 +872,7 @@ studyArea
 SpatVector
 </td>
 <td style="text-align:left;">
-Only if not already in the <code>simList</code>: same as <code>studyAreaLarge</code>.
+Only if not already in the <code>simList</code>: same as <code>studyAreaLarge</code>. With <code>maskToELFsWithFits</code>, a supplied one cropped to the ELFs that have fits.
 </td>
 </tr>
 <tr>
@@ -846,7 +883,7 @@ studyAreaLarge
 SpatVector
 </td>
 <td style="text-align:left;">
-Single ELF: the buffered ELF. <code>studyAreaLarge</code> supplied: the supplied polygon intersected with the ELFs that have fitted SpreadFit parameters, dissolved.
+Single ELF: the buffered ELF. <code>studyArea_fireSense</code> supplied: it intersected with the ELFs that have fitted SpreadFit parameters, dissolved.
 </td>
 </tr>
 <tr>
@@ -934,7 +971,7 @@ fireSense_IgnitionFittedList
 list
 </td>
 <td style="text-align:left;">
-One <code>fireSense_IgnitionFitted</code> per ELF the study area touches, named by <code>ELFind</code>, read from the ledger of <code>fireSense_ignitionFit</code>. With <code>studyAreaLarge</code> an ELF without a fit is an error. With one ELF, <code>NULL</code> when it has no fit yet (<code>fireSense_ignitionFit</code> is about to fit it), and always <code>NULL</code> when <code>heldOutFold</code> is not <code>NA</code>.
+One <code>fireSense_IgnitionFitted</code> per ELF the study area touches, named by <code>ELFind</code>, read from the ledger of <code>fireSense_ignitionFit</code>. With <code>studyArea_fireSense</code> an ELF without a fit is an error. With one ELF, <code>NULL</code> when it has no fit yet (<code>fireSense_ignitionFit</code> is about to fit it), and always <code>NULL</code> when <code>heldOutFold</code> is not <code>NA</code>.
 </td>
 </tr>
 <tr>

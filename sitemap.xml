@@ -14,8 +14,11 @@
 <url><loc>/reference/canadaUSBorder.html</loc></url>
 <url><loc>/reference/doEvent.fireSense_ELFs.html</loc></url>
 <url><loc>/reference/dot-assertOneStudyArea.html</loc></url>
+<url><loc>/reference/dot-assertStudyAreaCovers.html</loc></url>
 <url><loc>/reference/dot-elfsToMemory.html</loc></url>
+<url><loc>/reference/dot-fitsAllowed.html</loc></url>
 <url><loc>/reference/dot-inputObjects.html</loc></url>
+<url><loc>/reference/dot-stopNoFits.html</loc></url>
 <url><loc>/reference/ignitionFitLists.html</loc></url>
 <url><loc>/reference/index.html</loc></url>
 <url><loc>/reference/maskOutBorder.html</loc></url>
