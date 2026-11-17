@@ -1,6 +1,6 @@
 ---
 title: "fireSense_ELFs Manual"
-subtitle: "v.1.2.0.9009"
+subtitle: "v.1.2.0.9010"
 date: "Last updated: 2026-11-17"
 output:
   bookdown::html_document2:
@@ -410,7 +410,7 @@ Description of the module outputs (Table \@ref(tab:moduleOutputs-fireSense-ELFs)
   <tr>
    <td style="text-align:left;"> sppEquiv </td>
    <td style="text-align:left;"> data.table </td>
-   <td style="text-align:left;"> Species table for `studyAreaELF` from `LandR::speciesInStudyArea()`. Zero rows for a few non-forested ELFs. </td>
+   <td style="text-align:left;"> Species table for `studyAreaLargeELF` (core plus buffer) from `LandR::speciesInStudyArea()`. Zero rows for a few non-forested ELFs. </td>
   </tr>
   <tr>
    <td style="text-align:left;"> ELFsExcluded </td>
