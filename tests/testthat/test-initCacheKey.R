@@ -11,7 +11,8 @@ sppEquivDigest <- function() {
   species <- Filter(function(x) identical(as.list(x)[-1][[1]][[1]], quote(LandR::speciesInStudyArea)), caches)
   expect_length(species, 1L)
   if (!length(species)) return(NULL)
-  Filter(function(x) identical(x[[1]], quote(reproducible::.robustDigest)), allCalls(species[[1]]$.cacheExtra))[[1]]
+  digests <- Filter(function(x) identical(x[[1]], quote(reproducible::.robustDigest)), allCalls(species[[1]]$.cacheExtra))
+  Filter(function(x) grepl("sppEquivalencies_CA", paste(deparse(x), collapse = ""), fixed = TRUE), digests)[[1]]
 }
 
 test_that("the species-table cache key includes a digest of LandR::sppEquivalencies_CA", {
