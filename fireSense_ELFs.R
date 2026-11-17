@@ -13,7 +13,7 @@ defineModule(sim, list(
            role = c("aut", "cre"))
   ),
   childModules = character(0),
-  version = list(fireSense_ELFs = "1.2.0.9009"),
+  version = list(fireSense_ELFs = "1.2.0.9010"),
   ## This module defines the study area every other fireSense module works in, so
   ## it has to be scheduled first. The object dependency graph only orders modules
   ## that actually exchange objects, so a module that needs the study area
@@ -394,7 +394,10 @@ Init <- function(sim) {
           terra::trim() } |>
         Cache(omitArgs = c("x"),
               .functionName = paste0("rasterToMatchLargeELF"),
+              ## `x` is omitted (it is a file-backed raster), so what the raster is built from must be in the
+              ## key: tags alone name the national list, and one key then held two different rasters
               .cacheExtra = c(list(ELFs = attr(ELFs, "tags"),
+                                   rtmlDigest = reproducible::.robustDigest(rtml),
                                    ELFind = ELF,
                                    rastTemplate = attr(rastTemplate, "tags")),
                               borderCacheExtra))
