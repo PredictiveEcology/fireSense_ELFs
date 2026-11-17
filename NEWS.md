@@ -1,5 +1,6 @@
 # fireSense_ELFs (development version)
 
+* `rasterToMatchLargeELF` (one ELF) is cached with a digest of the ELF raster it is built from in its key, not tags alone. When the national ELF list was rebuilt under the same tags, one key held two different rasters, and cached events built on the old one stayed valid.
 * New input `studyArea_fireSense`: the area of interest plus its buffer. It picks the run's ELFs and is checked; every module still works over `studyArea`, which must cover it (`init` stops otherwise). It replaces `studyAreaLarge`, which still works with a deprecation warning. With neither it nor `.ELFind`, `simInit` stops; the default ELF 4.3 is gone.
 * Over `studyArea_fireSense`, an ELF without a stored SpreadFit stops `init` when no module can fit it (`doFit` FALSE), naming it. New parameter `maskToELFsWithFits = TRUE` runs over the ELFs that have fits instead, cropping and masking `studyArea` and `rasterToMatch` to them.
 

@@ -394,7 +394,10 @@ Init <- function(sim) {
           terra::trim() } |>
         Cache(omitArgs = c("x"),
               .functionName = paste0("rasterToMatchLargeELF"),
+              ## `x` is omitted (it is a file-backed raster), so what the raster is built from must be in the
+              ## key: tags alone name the national list, and one key then held two different rasters
               .cacheExtra = c(list(ELFs = attr(ELFs, "tags"),
+                                   rtmlDigest = reproducible::.robustDigest(rtml),
                                    ELFind = ELF,
                                    rastTemplate = attr(rastTemplate, "tags")),
                               borderCacheExtra))
