@@ -39,7 +39,7 @@ announceStatement <- function() {
 
 ## Runs Init's species statements with `speciesInStudyArea()` stubbed to return `sppEquiv`,
 ## and reports what Init did with it (the table it kept, and the arguments it passed).
-runInit <- function(sppEquiv, ELF = "13.1") {
+runInit <- function(sppEquiv, ELF = "13.1", studyAreaELF = "core", studyAreaLargeELF = "coreAndBuffer") {
   stmts <- initStatements()
   txt <- vapply(stmts, function(s) paste(deparse(s), collapse = " "), character(1))
   getSpecies <- stmts[grepl("^species <- .*speciesInStudyArea", txt)]
@@ -52,7 +52,8 @@ runInit <- function(sppEquiv, ELF = "13.1") {
   args <- NULL
   local_mocked_bindings(speciesInStudyArea = function(...) {
     args <<- list(...)
-    list(speciesList = "ABIE_AMA", sppEquiv = sppEquiv)
+    list(speciesList = "ABIE_AMA",
+         sppEquiv = if (is.function(sppEquiv)) sppEquiv(..1) else sppEquiv)
   }, .package = "LandR", .env = parent.frame())
   local_mocked_bindings(Cache = function(FUN, ...) FUN, .package = "reproducible",
                         .env = parent.frame())
@@ -60,7 +61,8 @@ runInit <- function(sppEquiv, ELF = "13.1") {
   env <- new.env(parent = globalenv())
   env$P <- function(sim) list(sppEquivCol = "LandR")
   env$sim <- NULL
-  env$studyAreaELF <- structure(list(), tags = "studyAreaELF")
+  env$studyAreaELF <- studyAreaELF
+  env$studyAreaLargeELF <- studyAreaLargeELF
   env$inputPath <- tempdir()
   env$ELF <- ELF
   eval(getSpecies[[1]], env)
@@ -105,4 +107,19 @@ test_that("an ELF with tree species emits no such message", {
 
   msgs <- capture_messages(runInit(someSpecies))
   expect_false(any(grepl("no tree species", msgs)))
+})
+
+## The vegetation is built over the large ELF area (core plus buffer), so a species found only in the
+## buffer needs a layer and traits. Taking the list from the core polygon dropped Pinu_con from ELF 11.3
+## when a small shift of the core boundary left it outside the core.
+test_that("a species present only in the buffer is in the species list", {
+  ## the stub finds Pinu_con only where the area includes the buffer
+  presence <- function(area) {
+    spp <- if (identical(area, "coreAndBuffer")) c("Pice_mar", "Pinu_con") else "Pice_mar"
+    LandR::sppEquivalencies_CA[LandR::sppEquivalencies_CA$LandR %in% spp, , drop = FALSE]
+  }
+  out <- runInit(presence)
+
+  expect_identical(out$args[[1]], "coreAndBuffer")
+  expect_true("Pinu_con" %in% out$sppEquiv$LandR)
 })

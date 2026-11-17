@@ -178,7 +178,7 @@ defineModule(sim, list(
     createsOutput("studyAreaELF", objectClass = "SpatVector",
                   desc = "Polygons of `rasterToMatchELF`."),
     createsOutput("sppEquiv", objectClass = "data.table",
-                  desc = "Species table for `studyAreaELF` from `LandR::speciesInStudyArea()`. Zero rows for a few non-forested ELFs."),
+                  desc = "Species table for `studyAreaLargeELF` (core plus buffer) from `LandR::speciesInStudyArea()`. Zero rows for a few non-forested ELFs."),
     createsOutput("ELFsExcluded", "character",
                   desc = paste("ELFs with too few fires over `fireYears` that could not be merged; fireSenseUtils::runELFs()",
                                "leaves them out of the queue. NULL when `fireYears` is NULL.")),
@@ -443,11 +443,15 @@ Init <- function(sim) {
   
   ## The species table (no _Spp genus entries, only species with LANDIS traits, Engelmann
   ## spruce merged into Pice_eng) comes from LandR, so every module uses the same one.
-  species <- LandR::speciesInStudyArea(studyAreaELF, sppEquivCol = P(sim)$sppEquivCol, dPath = inputPath) |>
+  ## Over the large ELF area (core plus buffer), the area the vegetation is built over: a species that grows
+  ## only in the buffer is in the simulation, and must have a layer and traits. (The core polygon, `studyAreaELF`,
+  ## dropped Pinu_con from ELF 11.3 when its core shifted a little.)
+  species <- LandR::speciesInStudyArea(studyAreaLargeELF, sppEquivCol = P(sim)$sppEquivCol, dPath = inputPath) |>
     reproducible::Cache(omitArgs = "studyArea",
                         ## read inside the function, so its contents are not otherwise part of the key: a LandR
-                        ## change to it (e.g. a FuelClass) would keep returning the cached, stale sppEquiv
-                        .cacheExtra = list(sa = attr(studyAreaELF, "tags"),
+                        ## change to it (e.g. a FuelClass) would keep returning the cached, stale sppEquiv.
+                        ## The area is omitted too, so its content is in the key (it has no tags over several ELFs).
+                        .cacheExtra = list(sa = reproducible::.robustDigest(studyAreaLargeELF),
                                            sppEquivalencies = reproducible::.robustDigest(LandR::sppEquivalencies_CA)))
   sppEquiv <- species$sppEquiv
 
