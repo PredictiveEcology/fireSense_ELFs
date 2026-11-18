@@ -264,7 +264,7 @@ test_that("by default init counts fires over the fit's years and merges the thin
 test_that("over a study area, the SpreadFit ledger is read only as far as the ELFs it covers", {
   ## the ledger lookup stops once every id in `polygonIDs` is found; with none it reads every ledger file
   asked <- "not called"
-  local_mocked_bindings(latestSpreadFits = function(cloudFolderID, destinationPath, polygonIDs = NULL, suffix = "") {
+  local_mocked_bindings(latestSpreadFits = function(cloudFolderID, destinationPath, polygonIDs = NULL, escapeDefinition = NULL) {
     asked <<- polygonIDs
     data.frame(polygonID = c("3.1.1", "3.1.2", "5.1"))
   }, latestIgnitionFits = function(...) {                              # fits for both ELFs, as test-ignitionFitLists.R
@@ -283,7 +283,7 @@ test_that("over a study area, the SpreadFit ledger is read only as far as the EL
 
 test_that("for a single ELF the SpreadFit ledger is still read whole", {
   asked <- "not called"
-  local_mocked_bindings(latestSpreadFits = function(cloudFolderID, destinationPath, polygonIDs = NULL, suffix = "") {
+  local_mocked_bindings(latestSpreadFits = function(cloudFolderID, destinationPath, polygonIDs = NULL, escapeDefinition = NULL) {
     asked <<- polygonIDs
     NULL
   }, .package = "fireSenseUtils")

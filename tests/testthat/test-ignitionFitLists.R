@@ -83,10 +83,10 @@ test_that("a single ELF with no fit gets NULL, because this run is about to fit 
 })
 
 test_that("\"latest\" reads each touched ELF's row from the newest ledger files, by polygonID", {
-  asked <- askedSuffix <- NULL
-  local_mocked_bindings(latestIgnitionFits = function(cloudFolderID, destinationPath, polygonIDs = NULL, suffix = "") {
+  asked <- askedEscape <- NULL
+  local_mocked_bindings(latestIgnitionFits = function(cloudFolderID, destinationPath, polygonIDs = NULL, escapeDefinition = NULL) {
     asked <<- polygonIDs
-    askedSuffix <<- suffix
+    askedEscape <<- escapeDefinition
     rows <- data.frame(polygonID = c("3.1.1", "3.1.2"))
     cols <- fireSenseUtils::ignitionFitAdditionalColNamesTxt
     rows[[cols[1]]] <- lapply(rows$polygonID, toyFit, process = "ignition")
@@ -98,7 +98,7 @@ test_that("\"latest\" reads each touched ELF's row from the newest ledger files,
   mockSpreadFitsForAllELFs()
   out <- suppressMessages(runInit(sim))
   expect_setequal(asked, c("3.1.1", "3.1.2"))
-  expect_identical(askedSuffix, "")                      # the production ledger
+  expect_identical(askedEscape, fireSenseUtils::escapeDefinition())  # the run's escape definition (the defaults)
   expect_setequal(names(out$fireSense_IgnitionFittedList), c("3.1.1", "3.1.2"))
 })
 
@@ -110,14 +110,24 @@ test_that("with heldOutFold the ignition ledger is not read either", {
   expect_null(out$fireSense_IgnitionFittedList)
 })
 
-test_that("with a fitFileSuffix, \"latest\" reads the ignition files with that suffix and no others", {
-  askedSuffix <- NULL
-  local_mocked_bindings(latestIgnitionFits = function(cloudFolderID, destinationPath, polygonIDs = NULL, suffix = "") {
-    askedSuffix <<- suffix
+test_that("\"latest\" passes the run's escape definition, so fits made under another are skipped", {
+  asked <- NULL
+  local_mocked_bindings(latestIgnitionFits = function(cloudFolderID, destinationPath, polygonIDs = NULL, escapeDefinition = NULL) {
+    asked <<- escapeDefinition
     NULL
   }, .package = "fireSenseUtils")
-  readIgnitionFitRows(toyELFsWithPoly(), "folder", "latest", tempdir(), fitFileSuffix = "_boundfix_rep81")
-  expect_identical(askedSuffix, "_boundfix_rep81")
+  readIgnitionFitRows(toyELFsWithPoly(), "folder", "latest", tempdir(), escapeDefinition = fireSenseUtils::escapeDefinition(50))
+  expect_identical(asked, fireSenseUtils::escapeDefinition(50))
+})
+
+test_that("ignitionFitLists() keeps when each ELF's fit was written, for the run's metrics", {
+  cols <- fireSenseUtils::ignitionFitAdditionalColNamesTxt
+  rows <- data.frame(polygonID = c("5.1", "3.1.1"))
+  rows[[cols[1]]] <- list(toyFit("5.1", "ignition"), toyFit("3.1.1", "ignition"))
+  rows[[cols[2]]] <- list(toyFit("5.1", "escape"), toyFit("3.1.1", "escape"))
+  rows$writtenAt <- as.POSIXct(c("2026-10-29 10:00", "2026-11-05 10:00"), tz = "UTC")
+  out <- ignitionFitLists(rows, "3.1.1", required = TRUE)
+  expect_identical(attr(out$ignition, "ignitionFitWrittenAt"), c(`3.1.1` = rows$writtenAt[2]))
 })
 
 ## `.ELFind` of a study area over several ELFs. It used to stay "4.3" (the default for no study area at
