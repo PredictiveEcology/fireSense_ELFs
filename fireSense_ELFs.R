@@ -355,6 +355,10 @@ Init <- function(sim) {
     # Not all will have SpreadFit yet
     hasELFFittedData <- pp$ELFind %in% spreadFitPreRun$polygonID
     noFit <- sort(unique(as.character(pp$ELFind[!hasELFFittedData])))
+    overlapped <- sort(unique(as.character(pp$ELFind)))
+    message("fireSense_ELFs: the study area (studyArea_fireSense) overlaps ", length(overlapped), " ELF",
+            if (length(overlapped) != 1L) "s", ": ", paste(overlapped, collapse = ", "),
+            if (length(noFit)) paste0("; without a stored SpreadFit: ", paste(noFit, collapse = ", ")))
     maskedToFits <- length(noFit) > 0L && !heldOut
     if (maskedToFits) {
       ## no fit and none can be made: stop, unless asked to run over the ELFs that have one
