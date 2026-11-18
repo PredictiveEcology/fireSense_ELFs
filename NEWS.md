@@ -1,5 +1,6 @@
 # fireSense_ELFs (development version)
 
+* `fireSense_IgnitionFittedList` and `fireSense_EscapeFittedList` keep, with `ignitionFitFilename = "latest"`, the ledger file of each ELF's fit as attribute `ignitionFitFiles` (from `fireSenseUtils::latestIgnitionFits()`; `ignitionFitLists()` dropped it), so fireSense_summary can record the files a run's fits came from.
 * `ignitionFitFilename = "latest"` without `ignitionFitGoogleDriveFolder` now stops with `fireSenseUtils::latestIgnitionFits()`' own message; this module's copy of that check is gone. Needs fireSenseUtils with PredictiveEcology/fireSenseUtils#246.
 * `init` takes the species list (`sppEquiv`) from `studyAreaLargeELF` (core plus buffer), the area the vegetation is built over, not from the core polygon `studyAreaELF`. A species that grows only in the buffer is now in every ELF's species list. It was dropped before: a small shift of ELF 11.3's core removed Pinu_con (up to 6,134 cohort rows a year in the buffer). The species Cache call also keys on a digest of the area, which it lacked over several ELFs.
 * `rasterToMatchLargeELF` (one ELF) is cached with a digest of the ELF raster it is built from in its key, not tags alone. When the national ELF list was rebuilt under the same tags, one key held two different rasters, and cached events built on the old one stayed valid.

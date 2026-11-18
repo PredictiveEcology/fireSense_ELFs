@@ -179,3 +179,19 @@ test_that("over several ELFs, rasterToMatchLargeELF is on the grid of rasterToMa
 test_that("\"latest\" without a Drive folder stops with fireSenseUtils' message", {
   expect_error(readIgnitionFitRows(toyELFsWithPoly(), NULL, "latest", tempdir()), "`cloudFolderID` is NULL")
 })
+
+test_that("ignitionFitLists() keeps the ledger file of each ELF's fit, for the run's metrics", {
+  ## latestIgnitionFits() names each row's file in attribute `ignitionFitFiles`; the lists dropped it, so
+  ## fireSense_summary could only record the file a new fit would be written to
+  cols <- fireSenseUtils::ignitionFitAdditionalColNamesTxt
+  rows <- data.frame(polygonID = c("5.1", "3.1.1"))
+  rows[[cols[1]]] <- list(toyFit("5.1", "ignition"), toyFit("3.1.1", "ignition"))
+  rows[[cols[2]]] <- list(toyFit("5.1", "escape"), toyFit("3.1.1", "escape"))
+  attr(rows, "ignitionFitFiles") <- c(`5.1` = "a_20261029.rds", `3.1.1` = "b_20261101.rds")
+  out <- ignitionFitLists(rows, "3.1.1", required = TRUE)
+  expect_identical(attr(out$ignition, "ignitionFitFiles"), c(`3.1.1` = "b_20261101.rds"))
+  expect_identical(attr(out$escape, "ignitionFitFiles"), c(`3.1.1` = "b_20261101.rds"))
+  ## a named ledger (CacheGeo) has no such attribute, and none is made up
+  attr(rows, "ignitionFitFiles") <- NULL
+  expect_null(attr(ignitionFitLists(rows, "3.1.1", required = TRUE)$ignition, "ignitionFitFiles"))
+})
