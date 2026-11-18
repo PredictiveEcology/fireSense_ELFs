@@ -1,5 +1,6 @@
 # fireSense_ELFs (development version)
 
+* Over a study area (`studyArea_fireSense`), `init` says which ELFs it overlaps, and which of them have no stored SpreadFit, e.g. "fireSense_ELFs: the study area (studyArea_fireSense) overlaps 2 ELFs: 12.3, 14.1". The run's ELFs were otherwise only seen in other messages (the ledger readers' lists of every ELF in a file).
 * `.ELFind` is declared an output. Over a study area `init` sets it (the ELFs the area covers), but it was only an input, so when `init` came from the cache SpaDES did not restore it: the next modules saw `.ELFind` `NA` and fireSense_dataPrepFit stopped with "no usable stored fit for polygon NA".
 * `fireSense_IgnitionFittedList` and `fireSense_EscapeFittedList` keep, with `ignitionFitFilename = "latest"`, the ledger file of each ELF's fit as attribute `ignitionFitFiles` (from `fireSenseUtils::latestIgnitionFits()`; `ignitionFitLists()` dropped it), so fireSense_summary can record the files a run's fits came from.
 * `ignitionFitFilename = "latest"` without `ignitionFitGoogleDriveFolder` now stops with `fireSenseUtils::latestIgnitionFits()`' own message; this module's copy of that check is gone. Needs fireSenseUtils with PredictiveEcology/fireSenseUtils#246.
