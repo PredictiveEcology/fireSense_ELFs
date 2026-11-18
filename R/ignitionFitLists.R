@@ -41,7 +41,8 @@ readIgnitionFitRows <- function(ELFpolys, folder, filename, destinationPath, fit
 #' @param required If `TRUE`, an ELF without a row is an error naming it. If `FALSE`, ELFs without
 #'   a row are left out: a single-ELF run that is about to fit its ELF has none yet.
 #' @return `list(ignition =, escape =)`, each a list named by `ELFind`, or both `NULL` when no ELF has
-#'   a row and none is required.
+#'   a row and none is required. With `"latest"` rows, each list has attribute `ignitionFitFiles`: the ledger
+#'   file of each ELF's fit, named by `ELFind`.
 ignitionFitLists <- function(rows, ELFinds, required) {
   ELFinds <- as.character(ELFinds)
   idx <- match(ELFinds, as.character(rows$polygonID))
@@ -54,6 +55,10 @@ ignitionFitLists <- function(rows, ELFinds, required) {
   if (!length(idx))
     return(list(ignition = NULL, escape = NULL))
   cols <- fireSenseUtils::ignitionFitAdditionalColNamesTxt
-  list(ignition = stats::setNames(rows[[cols[1]]][idx], ELFinds),
-       escape = stats::setNames(rows[[cols[2]]][idx], ELFinds))
+  out <- list(ignition = stats::setNames(rows[[cols[1]]][idx], ELFinds),
+              escape = stats::setNames(rows[[cols[2]]][idx], ELFinds))
+  ## the ledger file each ELF's fit came from (`latestIgnitionFits()`), for the run's metrics (fireSense_summary)
+  files <- attr(rows, "ignitionFitFiles")
+  if (!is.null(files)) for (n in names(out)) attr(out[[n]], "ignitionFitFiles") <- files[ELFinds]
+  out
 }

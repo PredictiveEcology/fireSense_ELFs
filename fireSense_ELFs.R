@@ -201,7 +201,8 @@ defineModule(sim, list(
                   desc = paste("One `fireSense_IgnitionFitted` per ELF the study area touches, named by `ELFind`, read from",
                                "the ledger of `fireSense_ignitionFit`. With `studyArea_fireSense` an ELF without a fit is an error.",
                                "With one ELF, `NULL` when it has no fit yet (`fireSense_ignitionFit` is about to fit it),",
-                               "and always `NULL` when `heldOutFold` is not `NA`.")),
+                               "and always `NULL` when `heldOutFold` is not `NA`. With `ignitionFitFilename = \"latest\"`, attribute",
+                               "`ignitionFitFiles` names the ledger file of each ELF's fit.")),
     createsOutput("fireSense_EscapeFittedList", "list",
                   desc = "As `fireSense_IgnitionFittedList`, for `fireSense_EscapeFitted`.")
   )
