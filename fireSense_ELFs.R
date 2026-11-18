@@ -155,6 +155,11 @@ defineModule(sim, list(
                  sourceURL = NA) # nolint: in_no_default
   ),
   outputObjects = bindrows(
+    ## set in init over a study area (the ELFs it covers): declared, so a cached init gives it back -- SpaDES
+    ## restores only an event's declared outputs, and dataPrepFit then saw `.ELFind` NA ("polygon NA", 2026-11-18)
+    createsOutput(".ELFind", objectClass = "character",
+                  desc = paste("Over a study area (`studyArea_fireSense`) and unless supplied: the ELFs it covers that",
+                               "have a stored SpreadFit, for the other modules. Otherwise as supplied.")),
     createsOutput("ELFs", objectClass = "SpatRaster",
                   desc = paste("All ELFs, from `fireSenseUtils::makeELFs()`: a list with `rasWhole` and `rasCentered`",
                                "(one SpatRaster per ELF), plus `poly` when `studyArea_fireSense` is supplied.")),
