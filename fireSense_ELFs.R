@@ -44,7 +44,7 @@ defineModule(sim, list(
                   "PredictiveEcology/LandR@development (>= 1.2.0.9021)",
                   "deldir", "withr", "sf", "FOR-CAST/fireregimetools@main (>= 0.1.0.9008)",
                   "PredictiveEcology/fireSenseUtils@development (>= 0.2.3.9177)",
-                  "PredictiveEcology/SpaDES.project@development (>= 1.0.1.9205)"),
+                  "PredictiveEcology/SpaDES.project@development (>= 1.2.0.9039)"), # plotSAs() skips a bbox named studyArea* (studyAreaCrop)
   parameters = bindrows(
     defineParameter("sppEquivCol", "character", "LandR", NA, NA,
                     "The column in `sim$speciesEquivalency` data.table to use as a naming convention."),
