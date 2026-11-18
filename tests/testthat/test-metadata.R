@@ -27,7 +27,7 @@ test_that("inputs are the expected names and classes", {
 
 test_that("outputs are the expected names and classes", {
   outputs <- stats::setNames(md$outputObjects$objectClass, md$outputObjects$objectName)
-  expected <- c(ELFfireStatus = "data.table", ELFmerges = "data.table", ELFs = "SpatRaster",
+  expected <- c(.ELFind = "character", ELFfireStatus = "data.table", ELFmerges = "data.table", ELFs = "SpatRaster",
                 ELFsExcluded = "character",
                 rasterToMatch = "SpatRaster", rasterToMatchELF = "SpatRaster",
                 rasterToMatchLargeELF = "SpatRaster", sppEquiv = "data.table",
