@@ -18,9 +18,6 @@
 readIgnitionFitRows <- function(ELFpolys, folder, filename, destinationPath, fitFileSuffix = "") {
   ELFinds <- as.character(ELFpolys$ELFind)
   if (identical(filename, "latest")) {
-    if (is.null(folder))
-      stop("fireSense_ELFs: ignitionFitFilename = \"latest\" needs ignitionFitGoogleDriveFolder; ",
-           "name the ledger file to read a local one")
     return(fireSenseUtils::latestIgnitionFits(folder, destinationPath = destinationPath,
                                               polygonIDs = ELFinds, suffix = fitFileSuffix))
   }

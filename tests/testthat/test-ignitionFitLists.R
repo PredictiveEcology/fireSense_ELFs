@@ -175,3 +175,7 @@ test_that("over several ELFs, rasterToMatchLargeELF is on the grid of rasterToMa
   expect_setequal(as.character(lv[[2]][lv[[1]] %in% terra::values(out$rasterToMatchLargeELF, mat = FALSE)]),
                   c("3.1.1", "3.1.2"))
 })
+
+test_that("\"latest\" without a Drive folder stops with fireSenseUtils' message", {
+  expect_error(readIgnitionFitRows(toyELFsWithPoly(), NULL, "latest", tempdir()), "`cloudFolderID` is NULL")
+})
