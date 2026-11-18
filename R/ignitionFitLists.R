@@ -11,15 +11,16 @@
 #' @param folder The Google Drive folder (url or id) of the ledger; `NULL` keeps a named ledger
 #'   local, in `destinationPath`.
 #' @param filename `"latest"`, or the name of the ledger file.
-#' @param fitFileSuffix With `"latest"`, only ledger files with this suffix are read; see `fireSenseUtils::ignitionFitFilenameFor()`.
+#' @param escapeDefinition With `"latest"`, the run's `fireSenseUtils::escapeDefinition()`: fits made under another are
+#'   skipped. `NULL`: not checked.
 #' @param destinationPath Local folder for the ledger file.
 #' @return A `data.frame` with a `polygonID` column and the list-columns
 #'   `fireSenseUtils::ignitionFitAdditionalColNamesTxt`, or `NULL` if there is none.
-readIgnitionFitRows <- function(ELFpolys, folder, filename, destinationPath, fitFileSuffix = "") {
+readIgnitionFitRows <- function(ELFpolys, folder, filename, destinationPath, escapeDefinition = NULL) {
   ELFinds <- as.character(ELFpolys$ELFind)
   if (identical(filename, "latest")) {
     return(fireSenseUtils::latestIgnitionFits(folder, destinationPath = destinationPath,
-                                              polygonIDs = ELFinds, suffix = fitFileSuffix))
+                                              polygonIDs = ELFinds, escapeDefinition = escapeDefinition))
   }
   rows <- lapply(seq_along(ELFinds), function(i) {
     r <- CacheGeo(cloudFolderID = folder, targetFile = filename, destinationPath = destinationPath,
@@ -42,7 +43,8 @@ readIgnitionFitRows <- function(ELFpolys, folder, filename, destinationPath, fit
 #'   a row are left out: a single-ELF run that is about to fit its ELF has none yet.
 #' @return `list(ignition =, escape =)`, each a list named by `ELFind`, or both `NULL` when no ELF has
 #'   a row and none is required. With `"latest"` rows, each list has attribute `ignitionFitFiles`: the ledger
-#'   file of each ELF's fit, named by `ELFind`.
+#'   file of each ELF's fit, named by `ELFind`; and, when the rows are stamped, `ignitionFitWrittenAt`: when each
+#'   was written.
 ignitionFitLists <- function(rows, ELFinds, required) {
   ELFinds <- as.character(ELFinds)
   idx <- match(ELFinds, as.character(rows$polygonID))
@@ -60,5 +62,8 @@ ignitionFitLists <- function(rows, ELFinds, required) {
   ## the ledger file each ELF's fit came from (`latestIgnitionFits()`), for the run's metrics (fireSense_summary)
   files <- attr(rows, "ignitionFitFiles")
   if (!is.null(files)) for (n in names(out)) attr(out[[n]], "ignitionFitFiles") <- files[ELFinds]
+  ## and when each was written (reproducible::CacheGeoWrite()'s stamp), so the metrics can tell newer fits from older
+  if ("writtenAt" %in% names(rows))
+    for (n in names(out)) attr(out[[n]], "ignitionFitWrittenAt") <- stats::setNames(rows$writtenAt[idx], ELFinds)
   out
 }

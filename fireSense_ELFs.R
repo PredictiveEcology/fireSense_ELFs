@@ -43,30 +43,24 @@ defineModule(sim, list(
                   "PredictiveEcology/SpaDES.core@development (>= 3.2.1.9056)",
                   "PredictiveEcology/LandR@development (>= 1.2.0.9021)",
                   "deldir", "withr", "sf", "FOR-CAST/fireregimetools@main (>= 0.1.0.9008)",
-                  "PredictiveEcology/fireSenseUtils@development (>= 0.2.3.9177)",
+                  "PredictiveEcology/fireSenseUtils@development (>= 0.2.3.9179)", # latest*Fits(escapeDefinition)
                   "PredictiveEcology/SpaDES.project@development (>= 1.2.0.9039)"), # plotSAs() skips a bbox named studyArea* (studyAreaCrop)
   parameters = bindrows(
     defineParameter("sppEquivCol", "character", "LandR", NA, NA,
                     "The column in `sim$speciesEquivalency` data.table to use as a naming convention."),
-    defineParameter("fitFileSuffix", "character", "", NA, NA,
-                    paste("Text put after the model tag in the ledger file names, e.g. `\"_boundfix_rep81\"`, so a test run",
-                          "writes and reads (`\"latest\"`) only its own files, never the production ones. `\"\"` (the",
-                          "default) writes the unsuffixed file and reads (`\"latest\"`) every file of the model tag, newest by the date in its",
-                          "suffix (`fireSenseUtils::ledgerFileOrder()`); experiment fits belong in `spreadFitLedgerFolder(testing = TRUE)`. The same parameter of `fireSense_spreadFit`, `fireSense_ignitionFit` and `fireSense_dataPrepFit`;",
-                          "set it for all with `.globals = list(fitFileSuffix = ...)`; modules that disagree stop",
-                          "(`SpaDES.core::paramCheckOtherMods()`). Ignored when a file name is given.")),
     defineParameter("spreadFitFilename", "character", "latest",
                     NA, NA, paste("Name of the file in `spreadFitGoogleDriveFolder` that holds previously fitted SpreadFit",
-                                  "parameters. `\"latest\"` (the default) takes each ELF's fit from the most recent",
-                                  "file that has it (`fireSenseUtils::latestSpreadFits()`).")),
+                                  "parameters. `\"latest\"` (the default) takes each ELF's newest fit this run can use, from",
+                                  "any ledger file (`fireSenseUtils::latestSpreadFits()`); a name (e.g. an experiment's) reads",
+                                  "that file only.")),
     defineParameter("spreadFitGoogleDriveFolder", "character",
                     fireSenseUtils::spreadFitLedgerFolder(),
                     NA, NA, paste("Google Drive folder URL that holds `spreadFitFilename` and, with `.useCloud`, the shared ELF maps.",
                                   "The default is `fireSenseUtils::spreadFitLedgerFolder()`, which follows `options(fireSenseUtils.spreadFitLedgerFolder = )`.")),
     defineParameter("ignitionFitFilename", "character", "latest",
                     NA, NA, paste("Name of the file in `ignitionFitGoogleDriveFolder` that holds the ignition/escape fits of",
-                                  "`fireSense_ignitionFit`. `\"latest\"` (the default) takes each ELF's fit from the most recent",
-                                  "file that has it (`fireSenseUtils::latestIgnitionFits()`).")),
+                                  "`fireSense_ignitionFit`. `\"latest\"` (the default) takes each ELF's newest fit this run can",
+                                  "use, from any ledger file (`fireSenseUtils::latestIgnitionFits()`); a name reads that file only.")),
     defineParameter("ignitionFitGoogleDriveFolder", "character",
                     fireSenseUtils::ignitionFitLedgerFolder(),
                     NA, NA, paste("Google Drive folder URL that holds `ignitionFitFilename`. The default is",
@@ -99,7 +93,11 @@ defineModule(sim, list(
     defineParameter("escapeSizeHa", "numeric", 50, 0, NA,
                     paste("Size (ha) a fire must reach to count as escaped, as in `fireSense_dataPrepFit`'s `escapeSizeHa`.",
                           "The escape and spread fits use only escaped fires; `init` warns if another module in the",
-                          "simList has a different `escapeSizeHa`.")),
+                          "simList has a different `escapeSizeHa`. With `fireCauses`, the escape definition: `\"latest\"`",
+                          "uses only fits made under it.")),
+    defineParameter("fireCauses", "character", fireSenseUtils::fireSenseFireCauses, NA, NA,
+                    paste("The fire cause groups of the escape definition, as in `fireSense_dataPrepFit`. With",
+                          "`escapeSizeHa`, `\"latest\"` uses only stored fits made under this definition.")),
     defineParameter("minEscapes", "numeric", 5, 0, NA,
                     paste("An ELF with fewer escaped natural fires than this over `fireYears` has too few fires.",
                           "5 is the minimum the escape fit's 5-fold cross-validation needs.")),
@@ -207,7 +205,7 @@ defineModule(sim, list(
                                "the ledger of `fireSense_ignitionFit`. With `studyArea_fireSense` an ELF without a fit is an error.",
                                "With one ELF, `NULL` when it has no fit yet (`fireSense_ignitionFit` is about to fit it),",
                                "and always `NULL` when `heldOutFold` is not `NA`. With `ignitionFitFilename = \"latest\"`, attribute",
-                               "`ignitionFitFiles` names the ledger file of each ELF's fit.")),
+                               "`ignitionFitFiles` names the ledger file of each ELF's fit, and `ignitionFitWrittenAt` when it was written.")),
     createsOutput("fireSense_EscapeFittedList", "list",
                   desc = "As `fireSense_IgnitionFittedList`, for `fireSense_EscapeFitted`.")
   )
@@ -321,7 +319,8 @@ Init <- function(sim) {
     stop("fireSense_ELFs: parameter 'heldOutFold' must be NA, 1L or 2L; got: ",
          paste(format(heldOutFold), collapse = ", "))
   heldOut <- !isTRUE(is.na(heldOutFold))
-  fitFileSuffix <- SpaDES.core::paramCheckOtherMods(sim, "fitFileSuffix")
+  ## the escape definition stored fits must have been made under (fireSenseUtils::latestSpreadFits())
+  escapeDef <- fireSenseUtils::escapeDefinition(Par$escapeSizeHa, Par$fireCauses)
   prepInputsFSURL <- SpaDES.core::paramCheckOtherMods(sim, "spreadFitGoogleDriveFolder")
   fireSenseParamsRDS <- SpaDES.core::paramCheckOtherMods(sim, "spreadFitFilename")
   latest <- identical(fireSenseParamsRDS, "latest")
@@ -334,7 +333,7 @@ Init <- function(sim) {
   } else if (latest) {
     fireSenseUtils::latestSpreadFits(prepInputsFSURL, destinationPath = inputPath(sim),
                                       polygonIDs = if (hasStudyAreaLarge) as.character(unique(pp$ELFind)),
-                                      suffix = fitFileSuffix)
+                                      escapeDefinition = escapeDef)
   } else {
     ledger <- reproducible::CacheGeoLedger(fireSenseParamsRDS, remote = prepInputsFSURL,
                                            destinationPath = inputPath(sim), key = "polygonID")
@@ -445,7 +444,7 @@ Init <- function(sim) {
                                         folder = SpaDES.core::paramCheckOtherMods(sim, "ignitionFitGoogleDriveFolder"),
                                         filename = SpaDES.core::paramCheckOtherMods(sim, "ignitionFitFilename"),
                                         destinationPath = inputPath,
-                                        fitFileSuffix = fitFileSuffix)
+                                        escapeDefinition = escapeDef)
     ignitionFits <- ignitionFitLists(ignitionRows, ELFpolys$ELFind, required = hasStudyAreaLarge)
     fireSense_IgnitionFittedList <- ignitionFits$ignition
     fireSense_EscapeFittedList <- ignitionFits$escape
