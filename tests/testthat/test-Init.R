@@ -274,9 +274,11 @@ test_that("over a study area, the SpreadFit ledger is read only as far as the EL
   }, .package = "fireSenseUtils")
   sim <- toySimInit(objects = list(studyArea_fireSense = terra::vect(terra::ext(0, 30000, 0, 20000), crs = "EPSG:3978")))
   mockInitWorld(ELFs = toyELFsWithPoly())
-  suppressMessages(runInit(sim))
+  msgs <- testthat::capture_messages(runInit(sim))
   ## the ELFs the study area reaches (5.1 only through its buffer); not 1.1, the toy ELF map's other ELF
   expect_setequal(asked, c("3.1.1", "3.1.2", "5.1"))
+  ## and the user is told which ELFs the study area overlaps (a run's ELFs were otherwise only in other messages)
+  expect_true(any(grepl("the study area \\(studyArea_fireSense\\) overlaps 2 ELFs: 3\\.1\\.1, 3\\.1\\.2\n", msgs)), label = paste(msgs, collapse = ""))
 })
 
 test_that("for a single ELF the SpreadFit ledger is still read whole", {
