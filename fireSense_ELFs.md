@@ -366,6 +366,11 @@ Description of the module outputs (Table \@ref(tab:moduleOutputs-fireSense-ELFs)
  </thead>
 <tbody>
   <tr>
+   <td style="text-align:left;"> .ELFind </td>
+   <td style="text-align:left;"> character </td>
+   <td style="text-align:left;"> Over a study area (`studyArea_fireSense`) and unless supplied: the ELFs it covers that have a stored SpreadFit, for the other modules. Otherwise as supplied. </td>
+  </tr>
+  <tr>
    <td style="text-align:left;"> ELFs </td>
    <td style="text-align:left;"> SpatRaster </td>
    <td style="text-align:left;"> All ELFs, from `fireSenseUtils::makeELFs()`: a list with `rasWhole` and `rasCentered` (one SpatRaster per ELF), plus `poly` when `studyArea_fireSense` is supplied. </td>
