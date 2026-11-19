@@ -489,10 +489,12 @@ Init <- function(sim) {
       keep <- terra::project(studyAreaLarge, sim$rasterToMatch)
       ## Cache: every job runs init, and a write here would rewrite the shared file under a worker
       ## reading it; a cache hit leaves an identical file alone and otherwise replaces it atomically
-      rasterToMatch <- terra::mask(terra::crop(sim$rasterToMatch, keep), keep,
-                                   filename = file.path(inputPath, paste0("rasterToMatch_", studyAreaName(keep), ".tif")),
-                                   overwrite = TRUE) |>
-        Cache(.functionName = "rasterToMatchMaskedToFits")
+      cropped <- terra::crop(sim$rasterToMatch, keep)
+      rasterToMatch <- writeRasterAtomic(
+        file.path(inputPath, paste0("rasterToMatch_", studyAreaName(keep), ".tif")),
+        function(f) terra::mask(cropped, keep, filename = f, overwrite = TRUE)) |>
+        Cache(omitArgs = "write", .functionName = "rasterToMatchMaskedToFits",
+              .cacheExtra = list(cropped = reproducible::.robustDigest(cropped), keep = reproducible::.robustDigest(keep)))
     }
     message("fireSense_ELFs: maskToELFsWithFits: running over ELF(s) ", paste(ELF, collapse = ", "),
             " only; `studyArea` and `rasterToMatch` are masked to them")

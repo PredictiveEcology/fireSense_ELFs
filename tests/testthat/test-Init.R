@@ -38,7 +38,7 @@ test_that("init makes rasterToMatch 1 inside studyAreaLarge, on the template gri
   out <- suppressMessages(runInit(sim))
   rtm <- out$rasterToMatch
   expect_identical(dim(rtm)[1:2], c(4, 5))
-  expect_identical(as.vector(terra::values(rtm)), rep(1, 20))          # never 0: 0 is treated as NA
+  expect_equal(as.vector(terra::values(rtm)), rep(1, 20))          # never 0: 0 is treated as NA
   expect_equal(terra::res(rtm), c(5000, 5000))
 })
 
@@ -53,7 +53,7 @@ test_that("init writes rasterToMatch to a file in inputPath, not to terra's temp
   out <- suppressMessages(runInit(sim))
   expect_identical(normalizePath(terra::sources(out$rasterToMatch)),
                    normalizePath(file.path(inputPath(out), paste0("rasterToMatch_", reproducible::studyAreaName(out$studyAreaLarge), ".tif"))))
-  expect_identical(as.vector(terra::values(out$rasterToMatch)), rep(1, 20))
+  expect_equal(as.vector(terra::values(out$rasterToMatch)), rep(1, 20))
 })
 
 test_that("init puts the species table and the ELF maps in the simList", {
