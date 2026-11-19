@@ -1,7 +1,5 @@
-## The national ELF list's Cache is shared through the canonical fireSense Google Drive folder,
-## the one that also holds the fitted-parameter ledger (`spreadFitGoogleDriveFolder`).
-## Before, cloud caching was off and pointed at a hard-coded folder ID that no other
-## module or person used, so no ELF map was ever shared.
+## The national ELF list's Cache is shared through its own Google Drive folder (`ELFsGoogleDriveFolder`,
+## default fireSenseUtils::elfCacheFolder()), not the fitted-parameter ledger folder it used to share.
 ##
 ## The event needs a full simList, so this checks the parsed module file.
 exprs <- parse(testthat::test_path("..", "..", "fireSense_ELFs.R"), keep.source = FALSE)
@@ -26,10 +24,11 @@ test_that(".useCloud is on by default", {
   expect_identical(paramDefault(".useCloud"), TRUE)
 })
 
-test_that("the national ELF list is cached to the spreadFitGoogleDriveFolder, not a hard-coded folder", {
+test_that("the national ELF list is cached to ELFsGoogleDriveFolder, not the ledger folder", {
   caches <- Filter(function(x) identical(x[[1]], as.name("Cache")), allCalls(initBody()))
   built <- Filter(function(cl) identical(as.list(cl)[-1][[1]][[1]], as.name("buildELFs")), caches)
   expect_length(built, 1L)
   expect_identical(built[[1]]$useCloud, quote(Par$.useCloud))
-  expect_match(paste(deparse(built[[1]]$cloudFolderID), collapse = ""), "spreadFitGoogleDriveFolder", fixed = TRUE)
+  expect_identical(built[[1]]$cloudFolderID, quote(Par$ELFsGoogleDriveFolder))
+  expect_identical(paramDefault("ELFsGoogleDriveFolder"), quote(fireSenseUtils::elfCacheFolder()))
 })

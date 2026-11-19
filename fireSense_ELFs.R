@@ -43,7 +43,7 @@ defineModule(sim, list(
                   "PredictiveEcology/SpaDES.core@development (>= 3.2.1.9056)",
                   "PredictiveEcology/LandR@development (>= 1.2.0.9021)",
                   "deldir", "withr", "sf", "FOR-CAST/fireregimetools@main (>= 0.1.0.9008)",
-                  "PredictiveEcology/fireSenseUtils@development (>= 0.2.3.9179)", # latest*Fits(escapeDefinition)
+                  "PredictiveEcology/fireSenseUtils@development (>= 0.2.3.9182)", # elfCacheFolder()
                   "PredictiveEcology/SpaDES.project@development (>= 1.2.0.9041)"), # plotSAs(): skips a bbox named studyArea* (9039); crops rasters to its window (9041)
   parameters = bindrows(
     defineParameter("sppEquivCol", "character", "LandR", NA, NA,
@@ -55,7 +55,7 @@ defineModule(sim, list(
                                   "that file only.")),
     defineParameter("spreadFitGoogleDriveFolder", "character",
                     fireSenseUtils::spreadFitLedgerFolder(),
-                    NA, NA, paste("Google Drive folder URL that holds `spreadFitFilename` and, with `.useCloud`, the shared ELF maps.",
+                    NA, NA, paste("Google Drive folder URL that holds `spreadFitFilename`.",
                                   "The default is `fireSenseUtils::spreadFitLedgerFolder()`, which follows `options(fireSenseUtils.spreadFitLedgerFolder = )`.")),
     defineParameter("ignitionFitFilename", "character", "latest",
                     NA, NA, paste("Name of the file in `ignitionFitGoogleDriveFolder` that holds the ignition/escape fits of",
@@ -66,6 +66,10 @@ defineModule(sim, list(
                     NA, NA, paste("Google Drive folder URL that holds `ignitionFitFilename`. The default is",
                                   "`fireSenseUtils::ignitionFitLedgerFolder()` (`options(fireSenseUtils.ignitionFitLedgerFolder = )`). `NULL` reads a named",
                                   "ledger file from `inputPath(sim)`, with no Google Drive access.")),
+    defineParameter("ELFsGoogleDriveFolder", "character",
+                    fireSenseUtils::elfCacheFolder(),
+                    NA, NA, paste("Google Drive folder URL where, with `.useCloud`, the national ELF list is shared.",
+                                  "The default is `fireSenseUtils::elfCacheFolder()` (`options(fireSenseUtils.elfCacheFolder = )`).")),
     defineParameter("heldOutFold", "integer", default = NA, NA, NA,
                     paste("NA (default): unchanged. `1` or `2`: a cross-validation fold is being fitted (the same",
                           "parameter as in `fireSense_spreadFit`), so the SpreadFit ledger is not relevant and is not",
@@ -130,9 +134,8 @@ defineModule(sim, list(
                           "cache, keyed on `ELFversion` alone, which an event cache (keyed on parameters and",
                           "module version) would undo.")),
     defineParameter(".useCloud", c("logical", "character"), TRUE, NA, NA,
-                    paste("Share the national ELF list (see `ELFversion`) through Google Drive, in the",
-                          "fireSense folder named by `spreadFitGoogleDriveFolder` (the same folder that",
-                          "holds the fitted-parameter file). `TRUE`: download the list if someone has",
+                    paste("Share the national ELF list (see `ELFversion`) through Google Drive, in",
+                          "`ELFsGoogleDriveFolder`. `TRUE`: download the list if someone has",
                           "already built it for this `ELFversion`, otherwise build and upload it.",
                           "`\"pull\"`: download only, never upload (for read-only access). `FALSE`: build",
                           "locally without Google Drive. Needs Google Drive access to that folder.")),
@@ -280,7 +283,7 @@ Init <- function(sim) {
                      maxLandCoverDist = Par$maxLandCoverDist, maxBurnRatio = Par$maxBurnRatio) |>
     Cache(omitArgs = c("FUN", names(formals(buildELFs))), .cacheExtra = list(ELFversion = Par$ELFversion),
           .functionName = "ELFs", useCache = TRUE, useCloud = Par$.useCloud,
-          cloudFolderID = SpaDES.core::paramCheckOtherMods(sim, "spreadFitGoogleDriveFolder"))
+          cloudFolderID = Par$ELFsGoogleDriveFolder)
   ELFs <- built$ELFs
   ELFsBeforeMerges <- built$ELFsBeforeMerges
   ELFsExcluded <- built$excluded

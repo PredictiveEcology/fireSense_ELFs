@@ -44,6 +44,7 @@ test_that("no parameter has been removed or retyped", {
   expected <- c(sppEquivCol = "character", spreadFitFilename = "character",
                 spreadFitGoogleDriveFolder = "character",
                 ignitionFitFilename = "character", ignitionFitGoogleDriveFolder = "character",
+                ELFsGoogleDriveFolder = "character",
                 fireYears = "integer", minNaturalIgnitions = "numeric", minFirePolygons = "numeric",
                 escapeSizeHa = "numeric", minEscapes = "numeric",
                 minRegionAreaKm2 = "numeric", maxLandCoverDist = "numeric", maxBurnRatio = "numeric",
@@ -67,6 +68,7 @@ test_that("parameter defaults are unchanged", {
   expect_identical(p$spreadFitGoogleDriveFolder, fireSenseUtils::spreadFitLedgerFolder())
   expect_identical(p$ignitionFitFilename, "latest")
   expect_identical(p$ignitionFitGoogleDriveFolder, fireSenseUtils::ignitionFitLedgerFolder())
+  expect_identical(p$ELFsGoogleDriveFolder, fireSenseUtils::elfCacheFolder())
   expect_identical(p$fireYears, fireSenseUtils::defaultFireYears())
   expect_identical(p$minNaturalIgnitions, 50)
   expect_identical(p$minFirePolygons, 50)
