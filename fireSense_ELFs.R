@@ -44,7 +44,7 @@ defineModule(sim, list(
                   "PredictiveEcology/LandR@development (>= 1.2.0.9021)",
                   "deldir", "withr", "sf", "FOR-CAST/fireregimetools@main (>= 0.1.0.9008)",
                   "PredictiveEcology/fireSenseUtils@development (>= 0.2.3.9179)", # latest*Fits(escapeDefinition)
-                  "PredictiveEcology/SpaDES.project@development (>= 1.2.0.9039)"), # plotSAs() skips a bbox named studyArea* (studyAreaCrop)
+                  "PredictiveEcology/SpaDES.project@development (>= 1.2.0.9041)"), # plotSAs(): skips a bbox named studyArea* (9039); crops rasters to its window (9041)
   parameters = bindrows(
     defineParameter("sppEquivCol", "character", "LandR", NA, NA,
                     "The column in `sim$speciesEquivalency` data.table to use as a naming convention."),
@@ -524,7 +524,16 @@ Init <- function(sim) {
           filename = paste0("studyAreas", paste(sim$.ELFind, collapse = "_")),
           path = inputPath,
           ggsaveArgs = list(width = 11, height = 8, units = "in"))
-    
+
+    ## the study area on the map of the ELFs around it, on the map of Canada as above; the legend names the ELFs.
+    ## plotSAs() crops the ELF map to the window it draws (SpaDES.project >= 1.2.0.9041)
+    if (hasStudyAreaLarge && !is.null(ELFs$poly))
+      Plots(list(studyArea_fireSense = saFS, ELFs = ELFsMap(ELFs$poly)),
+            title = paste0("ELFs around the study area (", paste(sim$.ELFind, collapse = ", "), ")"),
+            fn = SpaDES.project::plotSAs,
+            filename = paste0("ELFs_studyArea", paste(sim$.ELFind, collapse = "_")),
+            path = inputPath,
+            ggsaveArgs = list(width = 11, height = 8, units = "in"))
   }
   
   return(invisible(sim))
