@@ -487,17 +487,24 @@ Init <- function(sim) {
     }
     if (!is.null(sim$rasterToMatch)) {
       keep <- terra::project(studyAreaLarge, sim$rasterToMatch)
+      ## Cache: every job runs init, and a write here would rewrite the shared file under a worker
+      ## reading it; a cache hit leaves an identical file alone and otherwise replaces it atomically
       rasterToMatch <- terra::mask(terra::crop(sim$rasterToMatch, keep), keep,
                                    filename = file.path(inputPath, paste0("rasterToMatch_", studyAreaName(keep), ".tif")),
-                                   overwrite = TRUE)
+                                   overwrite = TRUE) |>
+        Cache(.functionName = "rasterToMatchMaskedToFits")
     }
     message("fireSense_ELFs: maskToELFsWithFits: running over ELF(s) ", paste(ELF, collapse = ", "),
             " only; `studyArea` and `rasterToMatch` are masked to them")
   }
 
   if (is.null(sim$rasterToMatch)) # conditional; can't put it in metadata or this will not be run first
+    ## Cache, as above. `rastTemplate` is a file-backed raster, so it is omitted and its digest is in the key
     rasterToMatch <- studyAreaGrid(rastTemplate, studyAreaLarge,
-                                   filename = file.path(inputPath, paste0("rasterToMatch_", studyAreaName(studyAreaLarge), ".tif")))
+                                   filename = file.path(inputPath, paste0("rasterToMatch_", studyAreaName(studyAreaLarge), ".tif"))) |>
+      Cache(omitArgs = "rastTemplate", .functionName = "rasterToMatch",
+            .cacheExtra = list(rastTemplate = attr(rastTemplate, "tags"),
+                               rastTemplateDigest = reproducible::.robustDigest(rastTemplate)))
   
   # Put them all in the sim; a supplied rasterToMatch or studyArea was not made here and stays as it is
   objsHere <- depends(sim)@dependencies[[currentModule(sim)]]@outputObjects$objectName
