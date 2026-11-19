@@ -487,17 +487,26 @@ Init <- function(sim) {
     }
     if (!is.null(sim$rasterToMatch)) {
       keep <- terra::project(studyAreaLarge, sim$rasterToMatch)
-      rasterToMatch <- terra::mask(terra::crop(sim$rasterToMatch, keep), keep,
-                                   filename = file.path(inputPath, paste0("rasterToMatch_", studyAreaName(keep), ".tif")),
-                                   overwrite = TRUE)
+      ## Cache: every job runs init, and a write here would rewrite the shared file under a worker
+      ## reading it; a cache hit leaves an identical file alone and otherwise replaces it atomically
+      cropped <- terra::crop(sim$rasterToMatch, keep)
+      rasterToMatch <- writeRasterAtomic(
+        file.path(inputPath, paste0("rasterToMatch_", studyAreaName(keep), ".tif")),
+        function(f) terra::mask(cropped, keep, filename = f, overwrite = TRUE)) |>
+        Cache(omitArgs = "write", .functionName = "rasterToMatchMaskedToFits",
+              .cacheExtra = list(cropped = reproducible::.robustDigest(cropped), keep = reproducible::.robustDigest(keep)))
     }
     message("fireSense_ELFs: maskToELFsWithFits: running over ELF(s) ", paste(ELF, collapse = ", "),
             " only; `studyArea` and `rasterToMatch` are masked to them")
   }
 
   if (is.null(sim$rasterToMatch)) # conditional; can't put it in metadata or this will not be run first
+    ## Cache, as above. `rastTemplate` is a file-backed raster, so it is omitted and its digest is in the key
     rasterToMatch <- studyAreaGrid(rastTemplate, studyAreaLarge,
-                                   filename = file.path(inputPath, paste0("rasterToMatch_", studyAreaName(studyAreaLarge), ".tif")))
+                                   filename = file.path(inputPath, paste0("rasterToMatch_", studyAreaName(studyAreaLarge), ".tif"))) |>
+      Cache(omitArgs = "rastTemplate", .functionName = "rasterToMatch",
+            .cacheExtra = list(rastTemplate = attr(rastTemplate, "tags"),
+                               rastTemplateDigest = reproducible::.robustDigest(rastTemplate)))
   
   # Put them all in the sim; a supplied rasterToMatch or studyArea was not made here and stays as it is
   objsHere <- depends(sim)@dependencies[[currentModule(sim)]]@outputObjects$objectName

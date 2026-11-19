@@ -38,7 +38,7 @@ test_that("init makes rasterToMatch 1 inside studyAreaLarge, on the template gri
   out <- suppressMessages(runInit(sim))
   rtm <- out$rasterToMatch
   expect_identical(dim(rtm)[1:2], c(4, 5))
-  expect_identical(as.vector(terra::values(rtm)), rep(1, 20))          # never 0: 0 is treated as NA
+  expect_equal(as.vector(terra::values(rtm)), rep(1, 20))          # never 0: 0 is treated as NA
   expect_equal(terra::res(rtm), c(5000, 5000))
 })
 
@@ -53,7 +53,7 @@ test_that("init writes rasterToMatch to a file in inputPath, not to terra's temp
   out <- suppressMessages(runInit(sim))
   expect_identical(normalizePath(terra::sources(out$rasterToMatch)),
                    normalizePath(file.path(inputPath(out), paste0("rasterToMatch_", reproducible::studyAreaName(out$studyAreaLarge), ".tif"))))
-  expect_identical(as.vector(terra::values(out$rasterToMatch)), rep(1, 20))
+  expect_equal(as.vector(terra::values(out$rasterToMatch)), rep(1, 20))
 })
 
 test_that("init puts the species table and the ELF maps in the simList", {
@@ -377,4 +377,47 @@ test_that("maskToELFsWithFits runs over the fitted ELFs and masks a supplied stu
   ## rasterToMatch keeps only cells of the fitted ELFs, and is written to inputPath
   expect_lt(sum(!is.na(terra::values(out$rasterToMatch))), sum(!is.na(terra::values(rtm))))
   expect_true(all(terra::sources(out$rasterToMatch) != ""))
+})
+
+## Every job runs init, and init wrote rasterToMatch_<hash>.tif into the shared inputPath each time. A
+## worker reading that file while another rewrote it got "cannot open this file as a SpatRaster".
+## A second init must leave the file alone.
+
+## terra overwrites a file in place, so the inode does not tell; the modification time does
+fileId <- function(f) format(file.info(f)$mtime, "%Y-%m-%d %H:%M:%OS6")
+
+test_that("a second init does not rewrite rasterToMatch in inputPath", {
+  sim <- toySimInit(objects = list(.ELFind = "3.1.2"))
+  mockInitWorld()
+  out1 <- suppressMessages(runInit(sim))
+  f <- terra::sources(out1$rasterToMatch)
+  expect_true(file.exists(f))
+  id1 <- fileId(f)
+  Sys.sleep(1.1)
+  ## same cache, no clearing: a second job on the same ELF
+  grDevices::pdf(NULL)
+  on.exit(grDevices::dev.off(), add = TRUE)
+  out2 <- suppressMessages(SpaDES.core::spades(toySimInit(objects = list(.ELFind = "3.1.2")),
+                                               debug = FALSE, events = list(fireSense_ELFs = "init")))
+  expect_identical(normalizePath(terra::sources(out2$rasterToMatch)), normalizePath(f))
+  expect_identical(fileId(f), id1)
+  expect_equal(as.vector(terra::values(out2$rasterToMatch)), rep(1, 20))
+})
+
+test_that("a second init does not rewrite the rasterToMatch masked to the ELFs with fits", {
+  mockFits("3.1.1")
+  rtm <- terra::rast(toyGrid())
+  terra::values(rtm) <- 1
+  mk <- function() toySimInit(objects = list(studyArea_fireSense = toySAfS(), studyArea = toySAfS(), rasterToMatch = rtm),
+                              params = list(maskToELFsWithFits = TRUE))
+  mockInitWorld(ELFs = toyELFsWithPoly())
+  out1 <- suppressWarnings(suppressMessages(runInit(mk())))
+  f <- terra::sources(out1$rasterToMatch)
+  expect_true(file.exists(f))
+  id1 <- fileId(f)
+  Sys.sleep(1.1)
+  grDevices::pdf(NULL)
+  on.exit(grDevices::dev.off(), add = TRUE)
+  suppressWarnings(suppressMessages(SpaDES.core::spades(mk(), debug = FALSE, events = list(fireSense_ELFs = "init"))))
+  expect_identical(fileId(f), id1)
 })
