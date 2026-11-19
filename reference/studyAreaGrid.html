@@ -79,7 +79,8 @@ over several ELFs.</p>
 <dt id="arg-filename">filename<a class="anchor" aria-label="anchor" href="#arg-filename"></a></dt>
 <dd><p>optional file to write the grid to. A result kept in terra's temporary folder
 (as with <code>todisk = TRUE</code>) is lost once that folder is cleared, and a cache hit restores it
-into the cache folder; a named file is restored to where it was written.</p></dd>
+into the cache folder; a named file is restored to where it was written. It is written to a
+temporary file and renamed, so a reader never sees it half-written.</p></dd>
 
 </dl></div>
     <div id="value">
