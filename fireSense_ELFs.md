@@ -1,6 +1,6 @@
 ---
 title: "fireSense_ELFs Manual"
-subtitle: "v.1.2.0.9011"
+subtitle: "v.1.2.0.9012"
 date: "Last updated: 2026-11-19"
 output:
   bookdown::html_document2:
@@ -144,7 +144,7 @@ Summary of user-visible parameters (Table \@ref(tab:moduleParams-fireSense-ELFs)
    <td style="text-align:left;"> https://.... </td>
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> NA </td>
-   <td style="text-align:left;"> Google Drive folder URL that holds `spreadFitFilename` and, with `.useCloud`, the shared ELF maps. The default is `fireSenseUtils::spreadFitLedgerFolder()`, which follows `options(fireSenseUtils.spreadFitLedgerFolder = )`. </td>
+   <td style="text-align:left;"> Google Drive folder URL that holds `spreadFitFilename`. The default is `fireSenseUtils::spreadFitLedgerFolder()`, which follows `options(fireSenseUtils.spreadFitLedgerFolder = )`. </td>
    <td style="text-align:left;"> TRUE </td>
   </tr>
   <tr>
@@ -163,6 +163,15 @@ Summary of user-visible parameters (Table \@ref(tab:moduleParams-fireSense-ELFs)
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> Google Drive folder URL that holds `ignitionFitFilename`. The default is `fireSenseUtils::ignitionFitLedgerFolder()` (`options(fireSenseUtils.ignitionFitLedgerFolder = )`). `NULL` reads a named ledger file from `inputPath(sim)`, with no Google Drive access. </td>
+   <td style="text-align:left;"> TRUE </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> ELFsGoogleDriveFolder </td>
+   <td style="text-align:left;"> character </td>
+   <td style="text-align:left;"> https://.... </td>
+   <td style="text-align:left;"> NA </td>
+   <td style="text-align:left;"> NA </td>
+   <td style="text-align:left;"> Google Drive folder URL where, with `.useCloud`, the national ELF list is shared. The default is `fireSenseUtils::elfCacheFolder()` (`options(fireSenseUtils.elfCacheFolder = )`). </td>
    <td style="text-align:left;"> TRUE </td>
   </tr>
   <tr>
@@ -324,7 +333,7 @@ Summary of user-visible parameters (Table \@ref(tab:moduleParams-fireSense-ELFs)
    <td style="text-align:left;"> TRUE </td>
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> NA </td>
-   <td style="text-align:left;"> Share the national ELF list (see `ELFversion`) through Google Drive, in the fireSense folder named by `spreadFitGoogleDriveFolder` (the same folder that holds the fitted-parameter file). `TRUE`: download the list if someone has already built it for this `ELFversion`, otherwise build and upload it. `"pull"`: download only, never upload (for read-only access). `FALSE`: build locally without Google Drive. Needs Google Drive access to that folder. </td>
+   <td style="text-align:left;"> Share the national ELF list (see `ELFversion`) through Google Drive, in `ELFsGoogleDriveFolder`. `TRUE`: download the list if someone has already built it for this `ELFversion`, otherwise build and upload it. `"pull"`: download only, never upload (for read-only access). `FALSE`: build locally without Google Drive. Needs Google Drive access to that folder. </td>
    <td style="text-align:left;"> TRUE </td>
   </tr>
   <tr>
