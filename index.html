@@ -231,28 +231,6 @@ TRUE
 </tr>
 <tr>
 <td style="text-align:left;">
-fitFileSuffix
-</td>
-<td style="text-align:left;">
-character
-</td>
-<td style="text-align:left;">
-</td>
-<td style="text-align:left;">
-NA
-</td>
-<td style="text-align:left;">
-NA
-</td>
-<td style="text-align:left;">
-Text put after the model tag in the ledger file names, e.g. <code>"_boundfix_rep81"</code>, so a test run writes and reads (<code>"latest"</code>) only its own files, never the production ones. <code>""</code> (the default) writes the unsuffixed file and reads (<code>"latest"</code>) every file of the model tag, newest by the date in its suffix (<code><a href="https://rdrr.io/pkg/fireSenseUtils/man/ledgerFileOrder.html" class="external-link">fireSenseUtils::ledgerFileOrder()</a></code>); experiment fits belong in <code>spreadFitLedgerFolder(testing = TRUE)</code>. The same parameter of <code>fireSense_spreadFit</code>, <code>fireSense_ignitionFit</code> and <code>fireSense_dataPrepFit</code>; set it for all with <code>.globals = list(fitFileSuffix = ...)</code>; modules that disagree stop (<code><a href="https://spades-core.predictiveecology.org/reference/paramCheckOtherMods.html" class="external-link">SpaDES.core::paramCheckOtherMods()</a></code>). Ignored when a file name is given.
-</td>
-<td style="text-align:left;">
-TRUE
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
 spreadFitFilename
 </td>
 <td style="text-align:left;">
@@ -268,7 +246,7 @@ NA
 NA
 </td>
 <td style="text-align:left;">
-Name of the file in <code>spreadFitGoogleDriveFolder</code> that holds previously fitted SpreadFit parameters. <code>"latest"</code> (the default) takes each ELF’s fit from the most recent file that has it (<code><a href="https://rdrr.io/pkg/fireSenseUtils/man/spreadFitLedger.html" class="external-link">fireSenseUtils::latestSpreadFits()</a></code>).
+Name of the file in <code>spreadFitGoogleDriveFolder</code> that holds previously fitted SpreadFit parameters. <code>"latest"</code> (the default) takes each ELF’s newest fit this run can use, from any ledger file (<code><a href="https://rdrr.io/pkg/fireSenseUtils/man/spreadFitLedger.html" class="external-link">fireSenseUtils::latestSpreadFits()</a></code>); a name (e.g. an experiment’s) reads that file only.
 </td>
 <td style="text-align:left;">
 TRUE
@@ -314,7 +292,7 @@ NA
 NA
 </td>
 <td style="text-align:left;">
-Name of the file in <code>ignitionFitGoogleDriveFolder</code> that holds the ignition/escape fits of <code>fireSense_ignitionFit</code>. <code>"latest"</code> (the default) takes each ELF’s fit from the most recent file that has it (<code><a href="https://rdrr.io/pkg/fireSenseUtils/man/ignitionFitLedger.html" class="external-link">fireSenseUtils::latestIgnitionFits()</a></code>).
+Name of the file in <code>ignitionFitGoogleDriveFolder</code> that holds the ignition/escape fits of <code>fireSense_ignitionFit</code>. <code>"latest"</code> (the default) takes each ELF’s newest fit this run can use, from any ledger file (<code><a href="https://rdrr.io/pkg/fireSenseUtils/man/ignitionFitLedger.html" class="external-link">fireSenseUtils::latestIgnitionFits()</a></code>); a name reads that file only.
 </td>
 <td style="text-align:left;">
 TRUE
@@ -475,7 +453,30 @@ numeric
 NA
 </td>
 <td style="text-align:left;">
-Size (ha) a fire must reach to count as escaped, as in <code>fireSense_dataPrepFit</code>’s <code>escapeSizeHa</code>. The escape and spread fits use only escaped fires; <code>init</code> warns if another module in the simList has a different <code>escapeSizeHa</code>.
+Size (ha) a fire must reach to count as escaped, as in <code>fireSense_dataPrepFit</code>’s <code>escapeSizeHa</code>. The escape and spread fits use only escaped fires; <code>init</code> warns if another module in the simList has a different <code>escapeSizeHa</code>. With <code>fireCauses</code>, the escape definition: <code>"latest"</code> uses only fits made under it.
+</td>
+<td style="text-align:left;">
+TRUE
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+fireCauses
+</td>
+<td style="text-align:left;">
+character
+</td>
+<td style="text-align:left;">
+natural,….
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+The fire cause groups of the escape definition, as in <code>fireSense_dataPrepFit</code>. With <code>escapeSizeHa</code>, <code>"latest"</code> uses only stored fits made under this definition.
 </td>
 <td style="text-align:left;">
 TRUE
@@ -957,7 +958,7 @@ fireSense_IgnitionFittedList
 list
 </td>
 <td style="text-align:left;">
-One <code>fireSense_IgnitionFitted</code> per ELF the study area touches, named by <code>ELFind</code>, read from the ledger of <code>fireSense_ignitionFit</code>. With <code>studyArea_fireSense</code> an ELF without a fit is an error. With one ELF, <code>NULL</code> when it has no fit yet (<code>fireSense_ignitionFit</code> is about to fit it), and always <code>NULL</code> when <code>heldOutFold</code> is not <code>NA</code>. With <code>ignitionFitFilename = "latest"</code>, attribute <code>ignitionFitFiles</code> names the ledger file of each ELF’s fit.
+One <code>fireSense_IgnitionFitted</code> per ELF the study area touches, named by <code>ELFind</code>, read from the ledger of <code>fireSense_ignitionFit</code>. With <code>studyArea_fireSense</code> an ELF without a fit is an error. With one ELF, <code>NULL</code> when it has no fit yet (<code>fireSense_ignitionFit</code> is about to fit it), and always <code>NULL</code> when <code>heldOutFold</code> is not <code>NA</code>. With <code>ignitionFitFilename = "latest"</code>, attribute <code>ignitionFitFiles</code> names the ledger file of each ELF’s fit, and <code>ignitionFitWrittenAt</code> when it was written.
 </td>
 </tr>
 <tr>
