@@ -48,7 +48,7 @@ test_that("no parameter has been removed or retyped", {
                 fireYears = "integer", minNaturalIgnitions = "numeric", minFirePolygons = "numeric",
                 escapeSizeHa = "numeric", minEscapes = "numeric",
                 minRegionAreaKm2 = "numeric", maxLandCoverDist = "numeric", maxBurnRatio = "numeric",
-                maskToELFsWithFits = "logical",
+                maskToELFsWithFits = "logical", fitDatesMap = "logical",
                 .plots = "character", .plotInitialTime = "numeric", .studyAreaName = "character",
                 ELFversion = "character", .useCache = "logical", .useCloud = "logical|character", .useCacheArgs = "list")
   ## `%in%`, not identical: work in progress adds parameters, and an addition breaks no caller
