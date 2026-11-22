@@ -43,7 +43,7 @@ defineModule(sim, list(
                   "PredictiveEcology/SpaDES.core@development (>= 3.2.1.9056)",
                   "PredictiveEcology/LandR@development (>= 1.2.0.9021)",
                   "deldir", "withr", "sf", "FOR-CAST/fireregimetools@main (>= 0.1.0.9008)",
-                  "PredictiveEcology/fireSenseUtils@development (>= 0.2.3.9187)", # elfCacheFolder() (9182); elfFitDates(), elfFeatures(), elfOutlines(), plotELFs() date metric (9187)
+                  "PredictiveEcology/fireSenseUtils@development (>= 0.2.3.9188)", # elfCacheFolder() (9182); elfFitDates(), plotELFs() date metric (9187); elfFeatures(), elfOutlines(), pixelAreaHa(), noELFPlan() (9188)
                   "PredictiveEcology/SpaDES.project@development (>= 1.2.0.9041)"), # plotSAs(): skips a bbox named studyArea* (9039); crops rasters to its window (9041)
   parameters = bindrows(
     defineParameter("sppEquivCol", "character", "LandR", NA, NA,
