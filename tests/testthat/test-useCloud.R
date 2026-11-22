@@ -25,7 +25,7 @@ test_that(".useCloud is on by default", {
 })
 
 test_that("the national ELF list is cached to ELFsGoogleDriveFolder, not the ledger folder", {
-  caches <- Filter(function(x) identical(x[[1]], as.name("Cache")), allCalls(initBody()))
+  caches <- Filter(function(x) identical(x[[1]], as.name("Cache")), allCalls(moduleFunBody("nationalELFs")))
   built <- Filter(function(cl) identical(as.list(cl)[-1][[1]][[1]], as.name("buildELFs")), caches)
   expect_length(built, 1L)
   expect_identical(built[[1]]$useCloud, quote(Par$.useCloud))

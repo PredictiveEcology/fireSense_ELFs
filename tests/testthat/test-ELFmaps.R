@@ -1,5 +1,6 @@
-## fitDatesMap = TRUE: after init, the figure and the table of each ELF's latest production fit dates.
-## Google Drive is not read: fireSenseUtils::elfFitDates() is replaced by a table. The colours are
+## ELFmaps = TRUE: after init, the files for a map of the ELFs: the table of features, the outlines, the fit dates and
+## their figure. Google Drive and the fire records are not read: fireSenseUtils::elfFitDates(), latestSpreadFits() and
+## ELFfireRates() are replaced by small tables, the rest (elfFeatures(), elfOutlines()) is real. The colours are
 ## fireSenseUtils::plotELFs()'; its date metric is tested there, here only that the module hands it dates.
 
 fitDatesTable <- function() {
@@ -10,8 +11,19 @@ fitDatesTable <- function() {
              ignitionLedger = c("c.rds", NA, NA, NA))
 }
 
+## two ELFs' ledger rows, as latestSpreadFits() returns them
+spreadRows <- function() {
+  one <- function(id, y) {
+    row <- data.frame(polygonID = id, spreadLink = "powerLawSmooth", fuelScale = "linear")
+    row$params <- list(data.table::data.table(maxAsymptote = c(0.2, 0.3), `(Intercept)` = y, youngAge = -2,
+                                              nfLCC_100_40 = -1, yearSpreadSD = 1.5))
+    row
+  }
+  rbind(one("3.1.1", 4), one("5.1", 6))
+}
+
 runFitDates <- function(params = list(), env = parent.frame()) {
-  sim <- toySimInit(objects = list(.ELFind = "3.1.2"), params = c(list(fitDatesMap = TRUE), params))
+  sim <- toySimInit(objects = list(.ELFind = "3.1.2"), params = c(list(ELFmaps = TRUE), params))
   mockInitWorld(env = env)
   seen <- new.env()
   local_mocked_bindings(
@@ -19,35 +31,42 @@ runFitDates <- function(params = list(), env = parent.frame()) {
       seen$args <- list(spreadFolder = if (!missing(spreadFolder)) spreadFolder, destinationPath = destinationPath, ELFs = ELFs)
       fitDatesTable()
     },
+    ELFfireRates = function(ELFs, plan, fireYears, pixelAreaHa, destinationPath, ...) {
+      seen$rates <- list(ELFs = names(ELFs$rasWhole), fireYears = fireYears, pixelAreaHa = pixelAreaHa)
+      data.table::data.table(ELF = c("3.1.1", "3.1.2", "5.1"), naturalFiresPerYear = c(1, 2, 3),
+                             naturalFiresPer100km2PerYear = 0.1, haBurnedPerYear = c(10, 20, 30), proportionBurnedPerYear = 0.01)
+    },
+    latestSpreadFits = function(...) spreadRows(),
     .package = "fireSenseUtils", .env = env)
   reproducible::clearCache(SpaDES.core::cachePath(sim), ask = FALSE, verbose = -2)
   unlink(list.files(SpaDES.core::outputPath(sim), full.names = TRUE))
   grDevices::pdf(NULL)
   on.exit(grDevices::dev.off(), add = TRUE)
   ## init's own figures are not what is tested here (they need the national ELF numbers): run it with no plots,
-  ## then turn them on for the fitDates event, which init scheduled
+  ## then turn them on for the ELFmaps event, which init scheduled
   plots <- sim@params$fireSense_ELFs$.plots
   sim@params$fireSense_ELFs$.plots <- NA
   out <- suppressMessages(SpaDES.core::spades(sim, debug = FALSE, events = list(fireSense_ELFs = "init")))
   out@params$fireSense_ELFs$.plots <- plots
-  out <- suppressMessages(SpaDES.core::spades(out, debug = FALSE, events = list(fireSense_ELFs = "fitDates")))
+  out <- suppressMessages(SpaDES.core::spades(out, debug = FALSE, events = list(fireSense_ELFs = "ELFmaps")))
   list(sim = out, seen = seen)
 }
 
-test_that("fitDatesMap is FALSE by default: init schedules no fitDates event", {
+test_that("ELFmaps is FALSE by default: init schedules no ELFmaps event", {
   sim <- toySimInit(objects = list(.ELFind = "3.1.2"))
-  expect_false(SpaDES.core::params(sim)$fireSense_ELFs$fitDatesMap)
+  expect_false(SpaDES.core::params(sim)$fireSense_ELFs$ELFmaps)
   mockInitWorld()
   out <- suppressMessages(runInit(sim))
   done <- SpaDES.core::completed(out)
-  expect_false("fitDates" %in% done$eventType)
+  expect_false("ELFmaps" %in% done$eventType)
   expect_false(file.exists(file.path(SpaDES.core::outputPath(out), "ELFfitDates.csv")))
+  expect_false(file.exists(file.path(SpaDES.core::outputPath(out), "ELFfeatures.csv")))
 })
 
-test_that("the fitDates event writes the table of every ELF to outputPath, and the figure", {
+test_that("the ELFmaps event writes the fit dates, the features table, the outlines and the figure to outputPath", {
   r <- runFitDates(params = list(.plots = "png"))
   out <- r$sim
-  expect_true("fitDates" %in% SpaDES.core::completed(out)$eventType)
+  expect_true("ELFmaps" %in% SpaDES.core::completed(out)$eventType)
   csv <- file.path(SpaDES.core::outputPath(out), "ELFfitDates.csv")
   expect_true(file.exists(csv))
   tab <- data.table::fread(csv, colClasses = list(character = "ELF"))
@@ -60,6 +79,25 @@ test_that("the fitDates event writes the table of every ELF to outputPath, and t
   expect_null(r$seen$args$spreadFolder)
   expect_identical(r$seen$args$destinationPath, SpaDES.core::inputPath(out))
   expect_true(file.exists(file.path(SpaDES.core::outputPath(out), "ELFfitDates.png")))
+
+  ## the features: one long table, no row for a value that is missing, per-class non-forest coefficients
+  feat <- data.table::fread(file.path(SpaDES.core::outputPath(out), "ELFfeatures.csv"), colClasses = list(character = "ELF"))
+  expect_identical(names(feat), c("ELF", "group", "feature", "label", "units", "type", "value"))
+  expect_setequal(feat$group, c("Observed", "Fit", "Spread coefficients"))
+  expect_false(anyNA(feat$value))
+  expect_equal(feat$value[feat$ELF == "3.1.2" & feat$feature == "haBurnedPerYear"], 20)
+  expect_equal(feat$value[feat$ELF == "5.1" & feat$feature == "spread_maxAsymptote"], 0.25)
+  expect_true(all(c("spread_nfLCC_100", "spread_nfLCC_40") %in% feat$feature[feat$ELF == "3.1.1"]))
+  expect_equal(feat$value[feat$ELF == "3.1.2" & feat$feature == "spreadFitDate"], as.numeric(as.Date("2026-11-10")))
+  ## the rates are counted on the ELFs, over this run's fire years and cell area
+  expect_identical(r$seen$rates$ELFs, names(out$ELFs$rasWhole))
+  expect_equal(r$seen$rates$pixelAreaHa, 2500)
+
+  ## the outlines: one core per ELF of the map, in longitude and latitude
+  geo <- terra::vect(file.path(SpaDES.core::outputPath(out), "ELFs.geojson"))
+  expect_setequal(geo$ELF, names(out$ELFs$rasWhole))
+  expect_true(terra::is.lonlat(geo))
+  expect_true("name" %in% names(geo))
 })
 
 test_that("with .plots off the table is still written and no figure is", {
@@ -87,11 +125,11 @@ test_that("plotFitDates() draws one panel per ledger on one date scale, with no-
   expect_identical(drawn[[1]]$fill, "grey70")
 })
 
-test_that("fitDatesMap is FALSE and fitDates is never cached, by default", {
+test_that("ELFmaps is FALSE and ELFmaps is never cached, by default", {
   md <- SpaDES.core::moduleMetadata(module = "fireSense_ELFs", path = dirname(toyModuleRoot()))
   p <- md$parameters
-  expect_identical(p$paramClass[p$paramName == "fitDatesMap"][[1]], "logical")
+  expect_identical(p$paramClass[p$paramName == "ELFmaps"][[1]], "logical")
   p <- SpaDES.core::params(toySimInit(objects = list(.ELFind = "3.1.2")))$fireSense_ELFs
-  expect_identical(p$.neverCache, "fitDates")
-  expect_false(p$fitDatesMap)
+  expect_identical(p$.neverCache, "ELFmaps")
+  expect_false(p$ELFmaps)
 })

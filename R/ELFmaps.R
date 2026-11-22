@@ -1,15 +1,20 @@
-#' The `fitDates` event: the dates of each ELF's latest production fits
+#' The `ELFmaps` event: the files for a map of the ELFs
 #'
-#' Writes `ELFfitDates.csv` (`fireSenseUtils::elfFitDates()`: per ELF, the date and ledger file of its latest
-#' production spread fit and ignition fit) and the figure `ELFfitDates` (two maps, [plotFitDates()]) to
-#' `outputPath(sim)`. The ledgers are the production folders of `fireSenseUtils::spreadFitLedgerFolder()` and
-#' `fireSenseUtils::ignitionFitLedgerFolder()`, never an experiment's `testing` folder or an `archived` one,
-#' whatever this run's `spreadFitGoogleDriveFolder` says. The ELFs are those of `sim$ELFs` (after the merges).
+#' Writes to `outputPath(sim)`: `ELFfeatures.csv` (`fireSenseUtils::elfFeatures()`: one long table of each ELF's fire
+#' rates, fit dates and spread coefficients), `ELFs.geojson` (`fireSenseUtils::elfOutlines()`: the ELF cores),
+#' `ELFfitDates.csv` (`fireSenseUtils::elfFitDates()`: per ELF, the date and ledger file of its latest production
+#' spread fit and ignition fit) and the figure `ELFfitDates` (two maps, [plotFitDates()]). The ledgers are the production
+#' folders of `fireSenseUtils::spreadFitLedgerFolder()` and `fireSenseUtils::ignitionFitLedgerFolder()`, never an
+#' experiment's `testing` folder or an `archived` one, whatever this run's `spreadFitGoogleDriveFolder` says. The ELFs
+#' are those of `sim$ELFs` (after the merges). The fire rates are counted over `fireYears` (`fireSenseUtils::
+#' defaultFireYears()` when that is `NULL`) on the ELFs before the merges, which `nationalELFs()` gives back from the
+#' cache.
 #'
 #' @param sim A `simList` after `init`.
 #'
 #' @return The `simList`, invisibly.
-fitDates <- function(sim) {
+ELFmaps <- function(sim) {
+  Par <- P(sim)
   ELFs <- sim$ELFs
   allELFs <- names(ELFs$rasWhole)
   dates <- fireSenseUtils::elfFitDates(destinationPath = inputPath(sim), ELFs = allELFs)
@@ -20,6 +25,17 @@ fitDates <- function(sim) {
   dates <- dates[dates$ELF %in% allELFs, ]
   dir.create(outputPath(sim), recursive = TRUE, showWarnings = FALSE)
   data.table::fwrite(dates, file.path(outputPath(sim), "ELFfitDates.csv"))
+
+  ## the rates are counted on the ELFs as they were before the merges (a cache hit), as fewFireELFs() counted them
+  built <- nationalELFs(Par, inputPath(sim))
+  features <- fireSenseUtils::elfFeatures(
+    if (is.null(built$ELFsBeforeMerges)) ELFs else built$ELFsBeforeMerges, sim$ELFmerges,
+    fireYears = if (is.null(Par$fireYears)) fireSenseUtils::defaultFireYears() else Par$fireYears,
+    pixelAreaHa = pixelAreaHa(ELFtemplateRaster(inputPath(sim))), destinationPath = inputPath(sim), dates = dates)
+  data.table::fwrite(features, file.path(outputPath(sim), "ELFfeatures.csv"))
+  ## coordinates to 5 decimals (about a metre), more than the 1 km simplification keeps
+  terra::writeVector(fireSenseUtils::elfOutlines(ELFs), file.path(outputPath(sim), "ELFs.geojson"),
+                     filetype = "GeoJSON", overwrite = TRUE, options = "COORDINATE_PRECISION=5")
 
   ## `ELFs` is already merged; the plan then holds only the ELFs left out for too few fires
   plan <- sim$ELFmerges
