@@ -1,7 +1,7 @@
 ---
 title: "fireSense_ELFs Manual"
 subtitle: "v.1.2.0.9012"
-date: "Last updated: 2026-11-19"
+date: "Last updated: 2026-11-22"
 output:
   bookdown::html_document2:
     toc: true
@@ -283,6 +283,15 @@ Summary of user-visible parameters (Table \@ref(tab:moduleParams-fireSense-ELFs)
    <td style="text-align:left;"> TRUE </td>
   </tr>
   <tr>
+   <td style="text-align:left;"> fitDatesMap </td>
+   <td style="text-align:left;"> logical </td>
+   <td style="text-align:left;"> FALSE </td>
+   <td style="text-align:left;"> NA </td>
+   <td style="text-align:left;"> NA </td>
+   <td style="text-align:left;"> `TRUE`: after `init`, write `ELFfitDates.csv` and the figure `ELFfitDates` (two maps of the ELFs, coloured by the date of each one's latest production spread fit and ignition fit, oldest red to newest green, grey with no fit) to `outputPath`, from the ledger files in `fireSenseUtils::spreadFitLedgerFolder()` and `fireSenseUtils::ignitionFitLedgerFolder()`. Whatever `spreadFitGoogleDriveFolder` and `ignitionFitGoogleDriveFolder` say. The figure's file type is `.plots`'. </td>
+   <td style="text-align:left;"> FALSE </td>
+  </tr>
+  <tr>
    <td style="text-align:left;"> .plots </td>
    <td style="text-align:left;"> character </td>
    <td style="text-align:left;"> screen </td>
@@ -334,6 +343,15 @@ Summary of user-visible parameters (Table \@ref(tab:moduleParams-fireSense-ELFs)
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> Share the national ELF list (see `ELFversion`) through Google Drive, in `ELFsGoogleDriveFolder`. `TRUE`: download the list if someone has already built it for this `ELFversion`, otherwise build and upload it. `"pull"`: download only, never upload (for read-only access). `FALSE`: build locally without Google Drive. Needs Google Drive access to that folder. </td>
+   <td style="text-align:left;"> TRUE </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> .neverCache </td>
+   <td style="text-align:left;"> character </td>
+   <td style="text-align:left;"> fitDates </td>
+   <td style="text-align:left;"> NA </td>
+   <td style="text-align:left;"> NA </td>
+   <td style="text-align:left;"> Events never cached, whatever `.useCache` says: `fitDates` writes files and reads the ledgers as they are now. </td>
    <td style="text-align:left;"> TRUE </td>
   </tr>
   <tr>
