@@ -1,6 +1,6 @@
 ---
 title: "fireSense_ELFs Manual"
-subtitle: "v.1.2.0.9012"
+subtitle: "v.1.2.0.9013"
 date: "Last updated: 2026-11-22"
 output:
   bookdown::html_document2:
@@ -283,12 +283,12 @@ Summary of user-visible parameters (Table \@ref(tab:moduleParams-fireSense-ELFs)
    <td style="text-align:left;"> TRUE </td>
   </tr>
   <tr>
-   <td style="text-align:left;"> fitDatesMap </td>
+   <td style="text-align:left;"> ELFmaps </td>
    <td style="text-align:left;"> logical </td>
    <td style="text-align:left;"> FALSE </td>
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> NA </td>
-   <td style="text-align:left;"> `TRUE`: after `init`, write `ELFfitDates.csv` and the figure `ELFfitDates` (two maps of the ELFs, coloured by the date of each one's latest production spread fit and ignition fit, oldest red to newest green, grey with no fit) to `outputPath`, from the ledger files in `fireSenseUtils::spreadFitLedgerFolder()` and `fireSenseUtils::ignitionFitLedgerFolder()`. Whatever `spreadFitGoogleDriveFolder` and `ignitionFitGoogleDriveFolder` say. The figure's file type is `.plots`'. </td>
+   <td style="text-align:left;"> `TRUE`: after `init`, write to `outputPath` the files for a map of the ELFs: `ELFfeatures.csv` (one long table of each ELF's fire rates, fit dates and spread coefficients, `fireSenseUtils::elfFeatures()`), `ELFs.geojson` (the ELF cores, `fireSenseUtils::elfOutlines()`), `ELFfitDates.csv` (the date and ledger file of each ELF's latest production spread and ignition fit) and the figure `ELFfitDates` (two maps of the ELFs, coloured by those dates, oldest red to newest green, grey with no fit). The fits are those of the production ledger folders `fireSenseUtils::spreadFitLedgerFolder()` and `fireSenseUtils::ignitionFitLedgerFolder()`, whatever `spreadFitGoogleDriveFolder` and `ignitionFitGoogleDriveFolder` say. The figure's file type is `.plots`'. Replaces `fitDatesMap`. </td>
    <td style="text-align:left;"> FALSE </td>
   </tr>
   <tr>
@@ -348,10 +348,10 @@ Summary of user-visible parameters (Table \@ref(tab:moduleParams-fireSense-ELFs)
   <tr>
    <td style="text-align:left;"> .neverCache </td>
    <td style="text-align:left;"> character </td>
-   <td style="text-align:left;"> fitDates </td>
+   <td style="text-align:left;"> ELFmaps </td>
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> NA </td>
-   <td style="text-align:left;"> Events never cached, whatever `.useCache` says: `fitDates` writes files and reads the ledgers as they are now. </td>
+   <td style="text-align:left;"> Events never cached, whatever `.useCache` says: `ELFmaps` writes files and reads the ledgers as they are now. </td>
    <td style="text-align:left;"> TRUE </td>
   </tr>
   <tr>
