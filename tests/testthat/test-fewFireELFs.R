@@ -4,7 +4,7 @@
 
 test_that("init merges thin ELFs before it picks this run's ELF out of the map", {
   code <- deparse(initBody(), width.cutoff = 500L)
-  gate <- grep("buildELFs(", code, fixed = TRUE)[1]
+  gate <- grep("nationalELFs(", code, fixed = TRUE)[1]
   pick <- grep("ELFs$rasWhole[[ELF]]", code, fixed = TRUE)[1]
   expect_false(is.na(gate))
   expect_false(is.na(pick))
@@ -14,7 +14,7 @@ test_that("init merges thin ELFs before it picks this run's ELF out of the map",
 })
 
 test_that("the national ELF list is one Cache call, keyed on ELFversion alone", {
-  caches <- Filter(function(x) identical(x[[1]], as.name("Cache")), allCalls(initBody()))
+  caches <- Filter(function(x) identical(x[[1]], as.name("Cache")), allCalls(moduleFunBody("nationalELFs")))
   built <- Filter(function(cl) identical(as.list(cl)[-1][[1]][[1]], as.name("buildELFs")), caches)
   expect_length(built, 1L)
   cl <- built[[1]]
