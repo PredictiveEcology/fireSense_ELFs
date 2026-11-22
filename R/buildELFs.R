@@ -28,7 +28,7 @@ buildELFs <- function(inputPath, fireYears, minNaturalIgnitions, minFirePolygons
     landCoverFile <- if (!is.null(minRegionAreaKm2) && !is.na(minRegionAreaKm2))
       fireSenseUtils::sizeRuleLandCover(inputPath)
     fewFire <- fireSenseUtils::fewFireELFs(
-      ELFs, fireYears = fireYears, pixelAreaHa = prod(terra::res(rastTemplate)) / 1e4,
+      ELFs, fireYears = fireYears, pixelAreaHa = fireSenseUtils::pixelAreaHa(rastTemplate),
       destinationPath = inputPath, nfdbUrl = fireSenseUtils::nfdbPointUrl(),
       nbacUrl = fireSenseUtils::latestNBACUrl(),
       minNaturalIgnitions = minNaturalIgnitions, minFirePolygons = minFirePolygons,

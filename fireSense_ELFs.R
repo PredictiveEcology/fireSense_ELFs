@@ -43,7 +43,7 @@ defineModule(sim, list(
                   "PredictiveEcology/SpaDES.core@development (>= 3.2.1.9056)",
                   "PredictiveEcology/LandR@development (>= 1.2.0.9021)",
                   "deldir", "withr", "sf", "FOR-CAST/fireregimetools@main (>= 0.1.0.9008)",
-                  "PredictiveEcology/fireSenseUtils@development (>= 0.2.3.9187)", # elfCacheFolder() (9182); elfFitDates(), plotELFs() date metric (9187)
+                  "PredictiveEcology/fireSenseUtils@development (>= 0.2.3.9188)", # elfCacheFolder() (9182); elfFitDates(), plotELFs() date metric (9187); elfFeatures(), elfOutlines(), pixelAreaHa(), noELFPlan() (9188)
                   "PredictiveEcology/SpaDES.project@development (>= 1.2.0.9041)"), # plotSAs(): skips a bbox named studyArea* (9039); crops rasters to its window (9041)
   parameters = bindrows(
     defineParameter("sppEquivCol", "character", "LandR", NA, NA,
@@ -118,12 +118,16 @@ defineModule(sim, list(
                     paste("With `studyArea_fireSense`, when some of its ELFs have no stored SpreadFit and no module",
                           "can fit them (`doFit` FALSE): `FALSE` (default) stops, naming them; `TRUE` runs over only",
                           "the ELFs that have fits, cropping and masking `studyArea` and `rasterToMatch` to them.")),
-    defineParameter("fitDatesMap", "logical", FALSE, NA, NA,
-                    paste("`TRUE`: after `init`, write `ELFfitDates.csv` and the figure `ELFfitDates` (two maps of the ELFs,",
-                          "coloured by the date of each one's latest production spread fit and ignition fit, oldest red to newest",
-                          "green, grey with no fit) to `outputPath`, from the ledger files in",
-                          "`fireSenseUtils::spreadFitLedgerFolder()` and `fireSenseUtils::ignitionFitLedgerFolder()`. Whatever",
-                          "`spreadFitGoogleDriveFolder` and `ignitionFitGoogleDriveFolder` say. The figure's file type is `.plots`'."),
+    defineParameter("ELFmaps", "logical", FALSE, NA, NA,
+                    paste("`TRUE`: after `init`, write to `outputPath` the files for a map of the ELFs: `ELFfeatures.csv` (one",
+                          "long table of each ELF's fire rates, fit dates and spread coefficients,",
+                          "`fireSenseUtils::elfFeatures()`), `ELFs.geojson` (the ELF cores, `fireSenseUtils::elfOutlines()`),",
+                          "`ELFfitDates.csv` (the date and ledger file of each ELF's latest production spread and ignition fit) and",
+                          "the figure `ELFfitDates` (two maps of the ELFs, coloured by those dates, oldest red to newest green,",
+                          "grey with no fit). The fits are those of the production ledger folders",
+                          "`fireSenseUtils::spreadFitLedgerFolder()` and `fireSenseUtils::ignitionFitLedgerFolder()`, whatever",
+                          "`spreadFitGoogleDriveFolder` and `ignitionFitGoogleDriveFolder` say. The figure's file type is `.plots`'.",
+                          "Replaces `fitDatesMap`."),
                     cacheKey = FALSE),
     defineParameter(".plots", "character", "screen", NA, NA,
                     "Passed to `types` in `Plots()`. If any, `init` plots the map of all ELFs and this run's study areas."),
@@ -146,8 +150,8 @@ defineModule(sim, list(
                           "already built it for this `ELFversion`, otherwise build and upload it.",
                           "`\"pull\"`: download only, never upload (for read-only access). `FALSE`: build",
                           "locally without Google Drive. Needs Google Drive access to that folder.")),
-    defineParameter(".neverCache", "character", "fitDates", NA, NA,
-                    "Events never cached, whatever `.useCache` says: `fitDates` writes files and reads the ledgers as they are now."),
+    defineParameter(".neverCache", "character", "ELFmaps", NA, NA,
+                    "Events never cached, whatever `.useCache` says: `ELFmaps` writes files and reads the ledgers as they are now."),
     defineParameter(".useCacheArgs", "list", list(), NA, NA,
                     "Extra `Cache()` arguments for each event, by event name. None by default; see `.useCache`.")
   ),
@@ -225,11 +229,11 @@ defineModule(sim, list(
 
 #' Event dispatcher
 #'
-#' Events: `init`, and `fitDates` (scheduled by `init` when `fitDatesMap` is `TRUE`).
+#' Events: `init`, and `ELFmaps` (scheduled by `init` when `ELFmaps` is `TRUE`).
 #'
 #' @param sim A `simList`.
 #' @param eventTime Time of the event.
-#' @param eventType `"init"` or `"fitDates"`.
+#' @param eventType `"init"` or `"ELFmaps"`.
 #'
 #' @return The `simList`, invisibly.
 doEvent.fireSense_ELFs = function(sim, eventTime, eventType) {
@@ -238,12 +242,32 @@ doEvent.fireSense_ELFs = function(sim, eventTime, eventType) {
     init = {
       sim <- Init(sim)
     },
-    fitDates = {
-      sim <- fitDates(sim)
+    ELFmaps = {
+      sim <- ELFmaps(sim)
     },
     warning(noEventWarning(sim))
   )
   return(invisible(sim))
+}
+
+#' The national ELF list, from the cache
+#'
+#' `buildELFs()` through `Cache()`: built once and shared through the cloud cache. Its key is `ELFversion` alone: no
+#' argument, no code and no other parameter is part of it. Change `ELFversion` to rebuild. `init` and the `ELFmaps`
+#' event both read it, so the event gets the ELFs before the merges from the cache.
+#'
+#' @param Par The module's parameters (`P(sim)`).
+#' @param inputPath Where downloads go (`inputPath(sim)`).
+#'
+#' @return As `buildELFs()`.
+nationalELFs <- function(Par, inputPath) {
+  buildELFs(inputPath, fireYears = Par$fireYears, minNaturalIgnitions = Par$minNaturalIgnitions,
+            minFirePolygons = Par$minFirePolygons, escapeSizeHa = Par$escapeSizeHa,
+            minEscapes = Par$minEscapes, minRegionAreaKm2 = Par$minRegionAreaKm2,
+            maxLandCoverDist = Par$maxLandCoverDist, maxBurnRatio = Par$maxBurnRatio) |>
+    Cache(omitArgs = c("FUN", names(formals(buildELFs))), .cacheExtra = list(ELFversion = Par$ELFversion),
+          .functionName = "ELFs", useCache = TRUE, useCloud = Par$.useCloud,
+          cloudFolderID = Par$ELFsGoogleDriveFolder)
 }
 
 #' Build the ELF maps and this run's study area objects
@@ -287,15 +311,8 @@ Init <- function(sim) {
     SpaDES.core::paramCheckOtherMods(sim, "fireYears", ifSetButDifferent = "warning")
     SpaDES.core::paramCheckOtherMods(sim, "escapeSizeHa", ifSetButDifferent = "warning")
   }
-  ## The national ELF list is built once and shared through the cloud cache. Its key is `ELFversion`
-  ## alone: no argument, no code and no other parameter is part of it. Change `ELFversion` to rebuild.
-  built <- buildELFs(inputPath, fireYears = Par$fireYears, minNaturalIgnitions = Par$minNaturalIgnitions,
-                     minFirePolygons = Par$minFirePolygons, escapeSizeHa = Par$escapeSizeHa,
-                     minEscapes = Par$minEscapes, minRegionAreaKm2 = Par$minRegionAreaKm2,
-                     maxLandCoverDist = Par$maxLandCoverDist, maxBurnRatio = Par$maxBurnRatio) |>
-    Cache(omitArgs = c("FUN", names(formals(buildELFs))), .cacheExtra = list(ELFversion = Par$ELFversion),
-          .functionName = "ELFs", useCache = TRUE, useCloud = Par$.useCloud,
-          cloudFolderID = Par$ELFsGoogleDriveFolder)
+  ## The national ELF list is built once and shared through the cloud cache (nationalELFs())
+  built <- nationalELFs(Par, inputPath)
   ELFs <- built$ELFs
   ELFsBeforeMerges <- built$ELFsBeforeMerges
   ELFsExcluded <- built$excluded
@@ -560,9 +577,9 @@ Init <- function(sim) {
             ggsaveArgs = list(width = 11, height = 8, units = "in"))
   }
   
-  ## the map of the dates of the latest production fits, once, after the other modules' init events
-  if (isTRUE(Par$fitDatesMap))
-    sim <- scheduleEvent(sim, start(sim), "fireSense_ELFs", "fitDates", .last())
+  ## the files for a map of the ELFs, once, after the other modules' init events
+  if (isTRUE(Par$ELFmaps))
+    sim <- scheduleEvent(sim, start(sim), "fireSense_ELFs", "ELFmaps", .last())
 
   return(invisible(sim))
 }

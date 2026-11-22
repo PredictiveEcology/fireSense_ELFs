@@ -1,9 +1,12 @@
 ## The parsed module file, for tests that check what Init does without running it
 exprs <- parse(testthat::test_path("..", "..", "fireSense_ELFs.R"), keep.source = FALSE)
 
-initBody <- function() {
+initBody <- function() moduleFunBody("Init")
+
+## the body of the module file's function `name`
+moduleFunBody <- function(name) {
   def <- Filter(function(x) is.call(x) && identical(x[[1]], as.name("<-")) &&
-                  identical(x[[2]], as.name("Init")), exprs)
+                  identical(x[[2]], as.name(name)), exprs)
   stopifnot(length(def) == 1L)
   body(eval(def[[1]][[3]]))
 }
