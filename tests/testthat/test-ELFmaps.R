@@ -82,7 +82,7 @@ test_that("the ELFmaps event writes the fit dates, the features table, the outli
 
   ## the features: one long table, no row for a value that is missing, per-class non-forest coefficients
   feat <- data.table::fread(file.path(SpaDES.core::outputPath(out), "ELFfeatures.csv"), colClasses = list(character = "ELF"))
-  expect_identical(names(feat), c("ELF", "group", "feature", "label", "units", "type", "value"))
+  expect_identical(names(feat), c("ELF", "group", "feature", "label", "units", "type", "value", "note"))
   expect_setequal(feat$group, c("Observed", "Fit", "Spread coefficients"))
   expect_false(anyNA(feat$value))
   expect_equal(feat$value[feat$ELF == "3.1.2" & feat$feature == "haBurnedPerYear"], 20)
