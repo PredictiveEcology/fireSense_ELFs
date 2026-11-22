@@ -28,7 +28,7 @@ buildELFs <- function(inputPath, fireYears, minNaturalIgnitions, minFirePolygons
     landCoverFile <- if (!is.null(minRegionAreaKm2) && !is.na(minRegionAreaKm2))
       fireSenseUtils::sizeRuleLandCover(inputPath)
     fewFire <- fireSenseUtils::fewFireELFs(
-      ELFs, fireYears = fireYears, pixelAreaHa = pixelAreaHa(rastTemplate),
+      ELFs, fireYears = fireYears, pixelAreaHa = fireSenseUtils::pixelAreaHa(rastTemplate),
       destinationPath = inputPath, nfdbUrl = fireSenseUtils::nfdbPointUrl(),
       nbacUrl = fireSenseUtils::latestNBACUrl(),
       minNaturalIgnitions = minNaturalIgnitions, minFirePolygons = minFirePolygons,
@@ -54,10 +54,3 @@ buildELFs <- function(inputPath, fireYears, minNaturalIgnitions, minFirePolygons
     ELFs[[j]] <- lapply(ELFs[[j]], terra::toMemory)
   ELFs
 }
-
-#' Area of one cell of the template raster, in hectares
-#'
-#' @param rastTemplate The template raster (`ELFtemplateRaster()`).
-#'
-#' @return A number: the `pixelAreaHa` of the fire counts.
-pixelAreaHa <- function(rastTemplate) prod(terra::res(rastTemplate)) / 1e4

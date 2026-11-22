@@ -31,7 +31,7 @@ ELFmaps <- function(sim) {
   features <- fireSenseUtils::elfFeatures(
     if (is.null(built$ELFsBeforeMerges)) ELFs else built$ELFsBeforeMerges, sim$ELFmerges,
     fireYears = if (is.null(Par$fireYears)) fireSenseUtils::defaultFireYears() else Par$fireYears,
-    pixelAreaHa = pixelAreaHa(ELFtemplateRaster(inputPath(sim))), destinationPath = inputPath(sim), dates = dates)
+    pixelAreaHa = fireSenseUtils::pixelAreaHa(ELFtemplateRaster(inputPath(sim))), destinationPath = inputPath(sim), dates = dates)
   data.table::fwrite(features, file.path(outputPath(sim), "ELFfeatures.csv"))
   ## coordinates to 5 decimals (about a metre), more than the 1 km simplification keeps
   terra::writeVector(fireSenseUtils::elfOutlines(ELFs), file.path(outputPath(sim), "ELFs.geojson"),
@@ -39,8 +39,7 @@ ELFmaps <- function(sim) {
 
   ## `ELFs` is already merged; the plan then holds only the ELFs left out for too few fires
   plan <- sim$ELFmerges
-  plan <- if (is.null(plan)) data.table::data.table(action = character(0), ELF = character(0), members = list())
-          else plan[plan$action != "merge", ]
+  plan <- if (is.null(plan)) fireSenseUtils::noELFPlan() else plan[plan$action != "merge", ]
   Plots(fn = plotFitDates, dates = dates, ELFs = ELFs, plan = plan,
         path = outputPath(sim), deviceArgs = list(width = 16, height = 7, units = "in", res = 200),
         filename = "ELFfitDates")
