@@ -17,7 +17,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="index.html">fireSense_ELFs</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">1.2.0.9013</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">1.2.0.9014</span>
       </span>
     </div>
 
@@ -540,7 +540,7 @@ With <code>studyArea_fireSense</code>, when some of its ELFs have no stored Spre
 TRUE
 </td>
 </tr><tr><td style="text-align:left;">
-fitDatesMap
+ELFmaps
 </td>
 <td style="text-align:left;">
 logical
@@ -555,7 +555,7 @@ NA
 NA
 </td>
 <td style="text-align:left;">
-<code>TRUE</code>: after <code>init</code>, write <code>ELFfitDates.csv</code> and the figure <code>ELFfitDates</code> (two maps of the ELFs, coloured by the date of each one’s latest production spread fit and ignition fit, oldest red to newest green, grey with no fit) to <code>outputPath</code>, from the ledger files in <code><a href="https://rdrr.io/pkg/fireSenseUtils/man/fitLedgerFolders.html" class="external-link">fireSenseUtils::spreadFitLedgerFolder()</a></code> and <code><a href="https://rdrr.io/pkg/fireSenseUtils/man/fitLedgerFolders.html" class="external-link">fireSenseUtils::ignitionFitLedgerFolder()</a></code>. Whatever <code>spreadFitGoogleDriveFolder</code> and <code>ignitionFitGoogleDriveFolder</code> say. The figure’s file type is <code>.plots</code>’.
+<code>TRUE</code>: after <code>init</code>, write to <code>outputPath</code> the files for a map of the ELFs: <code>ELFfeatures.csv</code> (one long table of each ELF’s fire rates, fit dates and spread coefficients, <code><a href="https://rdrr.io/pkg/fireSenseUtils/man/elfFeatures.html" class="external-link">fireSenseUtils::elfFeatures()</a></code>), <code>ELFs.geojson</code> (the ELF cores, <code><a href="https://rdrr.io/pkg/fireSenseUtils/man/elfFeatures.html" class="external-link">fireSenseUtils::elfOutlines()</a></code>), <code>ELFfitDates.csv</code> (the date and ledger file of each ELF’s latest production spread and ignition fit) and the figure <code>ELFfitDates</code> (two maps of the ELFs, coloured by those dates, oldest red to newest green, grey with no fit). The fits are those of the production ledger folders <code><a href="https://rdrr.io/pkg/fireSenseUtils/man/fitLedgerFolders.html" class="external-link">fireSenseUtils::spreadFitLedgerFolder()</a></code> and <code><a href="https://rdrr.io/pkg/fireSenseUtils/man/fitLedgerFolders.html" class="external-link">fireSenseUtils::ignitionFitLedgerFolder()</a></code>, whatever <code>spreadFitGoogleDriveFolder</code> and <code>ignitionFitGoogleDriveFolder</code> say. The figure’s file type is <code>.plots</code>’. Replaces <code>fitDatesMap</code>.
 </td>
 <td style="text-align:left;">
 FALSE
@@ -693,7 +693,7 @@ TRUE
 character
 </td>
 <td style="text-align:left;">
-fitDates
+ELFmaps
 </td>
 <td style="text-align:left;">
 NA
@@ -702,7 +702,7 @@ NA
 NA
 </td>
 <td style="text-align:left;">
-Events never cached, whatever <code>.useCache</code> says: <code>fitDates</code> writes files and reads the ledgers as they are now.
+Events never cached, whatever <code>.useCache</code> says: <code>ELFmaps</code> writes files and reads the ledgers as they are now.
 </td>
 <td style="text-align:left;">
 TRUE
