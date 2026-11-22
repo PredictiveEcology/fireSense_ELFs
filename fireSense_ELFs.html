@@ -17,7 +17,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="index.html">fireSense_ELFs</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">1.2.0.9011</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">1.2.0.9013</span>
       </span>
     </div>
 
@@ -219,7 +219,7 @@ NA
 NA
 </td>
 <td style="text-align:left;">
-Google Drive folder URL that holds <code>spreadFitFilename</code> and, with <code>.useCloud</code>, the shared ELF maps. The default is <code><a href="https://rdrr.io/pkg/fireSenseUtils/man/fitLedgerFolders.html" class="external-link">fireSenseUtils::spreadFitLedgerFolder()</a></code>, which follows <code>options(fireSenseUtils.spreadFitLedgerFolder = )</code>.
+Google Drive folder URL that holds <code>spreadFitFilename</code>. The default is <code><a href="https://rdrr.io/pkg/fireSenseUtils/man/fitLedgerFolders.html" class="external-link">fireSenseUtils::spreadFitLedgerFolder()</a></code>, which follows <code>options(fireSenseUtils.spreadFitLedgerFolder = )</code>.
 </td>
 <td style="text-align:left;">
 TRUE
@@ -262,6 +262,27 @@ NA
 </td>
 <td style="text-align:left;">
 Google Drive folder URL that holds <code>ignitionFitFilename</code>. The default is <code><a href="https://rdrr.io/pkg/fireSenseUtils/man/fitLedgerFolders.html" class="external-link">fireSenseUtils::ignitionFitLedgerFolder()</a></code> (<code>options(fireSenseUtils.ignitionFitLedgerFolder = )</code>). <code>NULL</code> reads a named ledger file from <code>inputPath(sim)</code>, with no Google Drive access.
+</td>
+<td style="text-align:left;">
+TRUE
+</td>
+</tr><tr><td style="text-align:left;">
+ELFsGoogleDriveFolder
+</td>
+<td style="text-align:left;">
+character
+</td>
+<td style="text-align:left;">
+<a href="https://" class="external-link uri">https://</a>….
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+Google Drive folder URL where, with <code>.useCloud</code>, the national ELF list is shared. The default is <code><a href="https://rdrr.io/pkg/fireSenseUtils/man/fitLedgerFolders.html" class="external-link">fireSenseUtils::elfCacheFolder()</a></code> (<code>options(fireSenseUtils.elfCacheFolder = )</code>).
 </td>
 <td style="text-align:left;">
 TRUE
@@ -519,6 +540,27 @@ With <code>studyArea_fireSense</code>, when some of its ELFs have no stored Spre
 TRUE
 </td>
 </tr><tr><td style="text-align:left;">
+fitDatesMap
+</td>
+<td style="text-align:left;">
+logical
+</td>
+<td style="text-align:left;">
+FALSE
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+<code>TRUE</code>: after <code>init</code>, write <code>ELFfitDates.csv</code> and the figure <code>ELFfitDates</code> (two maps of the ELFs, coloured by the date of each one’s latest production spread fit and ignition fit, oldest red to newest green, grey with no fit) to <code>outputPath</code>, from the ledger files in <code><a href="https://rdrr.io/pkg/fireSenseUtils/man/fitLedgerFolders.html" class="external-link">fireSenseUtils::spreadFitLedgerFolder()</a></code> and <code><a href="https://rdrr.io/pkg/fireSenseUtils/man/fitLedgerFolders.html" class="external-link">fireSenseUtils::ignitionFitLedgerFolder()</a></code>. Whatever <code>spreadFitGoogleDriveFolder</code> and <code>ignitionFitGoogleDriveFolder</code> say. The figure’s file type is <code>.plots</code>’.
+</td>
+<td style="text-align:left;">
+FALSE
+</td>
+</tr><tr><td style="text-align:left;">
 .plots
 </td>
 <td style="text-align:left;">
@@ -639,7 +681,28 @@ NA
 NA
 </td>
 <td style="text-align:left;">
-Share the national ELF list (see <code>ELFversion</code>) through Google Drive, in the fireSense folder named by <code>spreadFitGoogleDriveFolder</code> (the same folder that holds the fitted-parameter file). <code>TRUE</code>: download the list if someone has already built it for this <code>ELFversion</code>, otherwise build and upload it. <code>"pull"</code>: download only, never upload (for read-only access). <code>FALSE</code>: build locally without Google Drive. Needs Google Drive access to that folder.
+Share the national ELF list (see <code>ELFversion</code>) through Google Drive, in <code>ELFsGoogleDriveFolder</code>. <code>TRUE</code>: download the list if someone has already built it for this <code>ELFversion</code>, otherwise build and upload it. <code>"pull"</code>: download only, never upload (for read-only access). <code>FALSE</code>: build locally without Google Drive. Needs Google Drive access to that folder.
+</td>
+<td style="text-align:left;">
+TRUE
+</td>
+</tr><tr><td style="text-align:left;">
+.neverCache
+</td>
+<td style="text-align:left;">
+character
+</td>
+<td style="text-align:left;">
+fitDates
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+Events never cached, whatever <code>.useCache</code> says: <code>fitDates</code> writes files and reads the ledgers as they are now.
 </td>
 <td style="text-align:left;">
 TRUE

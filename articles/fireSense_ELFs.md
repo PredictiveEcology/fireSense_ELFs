@@ -1,7 +1,7 @@
 ---
 title: "fireSense_ELFs Manual"
-subtitle: "v.1.2.0.9011"
-date: "Last updated: 2026-11-19"
+subtitle: "v.1.2.0.9013"
+date: "Last updated: 2026-11-22"
 output:
   bookdown::html_document2:
     toc: true
@@ -146,7 +146,7 @@ Summary of user-visible parameters (Table \@ref(tab:moduleParams-fireSense-ELFs)
    <td style="text-align:left;"> https://.... </td>
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> NA </td>
-   <td style="text-align:left;"> Google Drive folder URL that holds `spreadFitFilename` and, with `.useCloud`, the shared ELF maps. The default is `fireSenseUtils::spreadFitLedgerFolder()`, which follows `options(fireSenseUtils.spreadFitLedgerFolder = )`. </td>
+   <td style="text-align:left;"> Google Drive folder URL that holds `spreadFitFilename`. The default is `fireSenseUtils::spreadFitLedgerFolder()`, which follows `options(fireSenseUtils.spreadFitLedgerFolder = )`. </td>
    <td style="text-align:left;"> TRUE </td>
   </tr>
   <tr>
@@ -165,6 +165,15 @@ Summary of user-visible parameters (Table \@ref(tab:moduleParams-fireSense-ELFs)
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> Google Drive folder URL that holds `ignitionFitFilename`. The default is `fireSenseUtils::ignitionFitLedgerFolder()` (`options(fireSenseUtils.ignitionFitLedgerFolder = )`). `NULL` reads a named ledger file from `inputPath(sim)`, with no Google Drive access. </td>
+   <td style="text-align:left;"> TRUE </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> ELFsGoogleDriveFolder </td>
+   <td style="text-align:left;"> character </td>
+   <td style="text-align:left;"> https://.... </td>
+   <td style="text-align:left;"> NA </td>
+   <td style="text-align:left;"> NA </td>
+   <td style="text-align:left;"> Google Drive folder URL where, with `.useCloud`, the national ELF list is shared. The default is `fireSenseUtils::elfCacheFolder()` (`options(fireSenseUtils.elfCacheFolder = )`). </td>
    <td style="text-align:left;"> TRUE </td>
   </tr>
   <tr>
@@ -276,6 +285,15 @@ Summary of user-visible parameters (Table \@ref(tab:moduleParams-fireSense-ELFs)
    <td style="text-align:left;"> TRUE </td>
   </tr>
   <tr>
+   <td style="text-align:left;"> ELFmaps </td>
+   <td style="text-align:left;"> logical </td>
+   <td style="text-align:left;"> FALSE </td>
+   <td style="text-align:left;"> NA </td>
+   <td style="text-align:left;"> NA </td>
+   <td style="text-align:left;"> `TRUE`: after `init`, write to `outputPath` the files for a map of the ELFs: `ELFfeatures.csv` (one long table of each ELF's fire rates, fit dates and spread coefficients, `fireSenseUtils::elfFeatures()`), `ELFs.geojson` (the ELF cores, `fireSenseUtils::elfOutlines()`), `ELFfitDates.csv` (the date and ledger file of each ELF's latest production spread and ignition fit) and the figure `ELFfitDates` (two maps of the ELFs, coloured by those dates, oldest red to newest green, grey with no fit). The fits are those of the production ledger folders `fireSenseUtils::spreadFitLedgerFolder()` and `fireSenseUtils::ignitionFitLedgerFolder()`, whatever `spreadFitGoogleDriveFolder` and `ignitionFitGoogleDriveFolder` say. The figure's file type is `.plots`'. Replaces `fitDatesMap`. </td>
+   <td style="text-align:left;"> FALSE </td>
+  </tr>
+  <tr>
    <td style="text-align:left;"> .plots </td>
    <td style="text-align:left;"> character </td>
    <td style="text-align:left;"> screen </td>
@@ -326,7 +344,16 @@ Summary of user-visible parameters (Table \@ref(tab:moduleParams-fireSense-ELFs)
    <td style="text-align:left;"> TRUE </td>
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> NA </td>
-   <td style="text-align:left;"> Share the national ELF list (see `ELFversion`) through Google Drive, in the fireSense folder named by `spreadFitGoogleDriveFolder` (the same folder that holds the fitted-parameter file). `TRUE`: download the list if someone has already built it for this `ELFversion`, otherwise build and upload it. `"pull"`: download only, never upload (for read-only access). `FALSE`: build locally without Google Drive. Needs Google Drive access to that folder. </td>
+   <td style="text-align:left;"> Share the national ELF list (see `ELFversion`) through Google Drive, in `ELFsGoogleDriveFolder`. `TRUE`: download the list if someone has already built it for this `ELFversion`, otherwise build and upload it. `"pull"`: download only, never upload (for read-only access). `FALSE`: build locally without Google Drive. Needs Google Drive access to that folder. </td>
+   <td style="text-align:left;"> TRUE </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> .neverCache </td>
+   <td style="text-align:left;"> character </td>
+   <td style="text-align:left;"> ELFmaps </td>
+   <td style="text-align:left;"> NA </td>
+   <td style="text-align:left;"> NA </td>
+   <td style="text-align:left;"> Events never cached, whatever `.useCache` says: `ELFmaps` writes files and reads the ledgers as they are now. </td>
    <td style="text-align:left;"> TRUE </td>
   </tr>
   <tr>

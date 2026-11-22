@@ -8,6 +8,7 @@
 <url><loc>/fireSense_ELFs.html</loc></url>
 <url><loc>/index.html</loc></url>
 <url><loc>/news/index.html</loc></url>
+<url><loc>/reference/ELFmaps.html</loc></url>
 <url><loc>/reference/ELFsMap.html</loc></url>
 <url><loc>/reference/Init.html</loc></url>
 <url><loc>/reference/bufferBorder.html</loc></url>
@@ -23,7 +24,9 @@
 <url><loc>/reference/ignitionFitLists.html</loc></url>
 <url><loc>/reference/index.html</loc></url>
 <url><loc>/reference/maskOutBorder.html</loc></url>
+<url><loc>/reference/nationalELFs.html</loc></url>
 <url><loc>/reference/plotAllELFsFn.html</loc></url>
+<url><loc>/reference/plotFitDates.html</loc></url>
 <url><loc>/reference/readIgnitionFitRows.html</loc></url>
 <url><loc>/reference/selectCanadaUSBorder.html</loc></url>
 <url><loc>/reference/studyAreaGrid.html</loc></url>
