@@ -1,7 +1,7 @@
 ---
 title: "fireSense_ELFs Manual"
-subtitle: "v.1.2.0.9014"
-date: "Last updated: 2026-11-22"
+subtitle: "v.1.2.0.9015"
+date: "Last updated: 2026-11-23"
 output:
   bookdown::html_document2:
     toc: true
